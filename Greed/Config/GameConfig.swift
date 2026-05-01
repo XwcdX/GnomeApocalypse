@@ -1,0 +1,121 @@
+import Foundation
+import CoreGraphics
+
+enum GameConfig {
+    // MARK: - Map
+    /// The logical size of the toroidal world. Positions outside this range are wrapped.
+    static let mapSize: CGSize = CGSize(width: 4096, height: 4096)
+    
+    
+    // MARK: - Player
+    static let basePlayerSpeed: CGFloat = 200
+    static let basePlayerHealth: Int = 100
+    static let basePlayerDamage: Int = 10
+    static let baseFireRate: TimeInterval = 0.25
+    static let projectileSpeed: CGFloat = 500
+    static let projectileLifeSpan: TimeInterval = 2
+    
+    
+    // MARK: - Projectile Pool
+    /// Pre-allocated pool size at scene start. Never allocates new projectiles during gameplay.
+    static let projectilePoolSize: Int = 128
+    
+    
+    // MARK: - XP / Levelling
+    static let baseXPThreshold: Int = 100
+    static let xpThresholdGrowthFactor: Double = 1.4
+    
+    
+    // MARK: - Forest Essense Orb Evolution
+    static let orbEvolveTime: TimeInterval = 5.0
+    static let grownOrbEvolveTime: TimeInterval = 8.0
+    static let orbBaseEssenceValue: Int = 10
+    static let grownOrbEssenceValue: Int = 25
+    
+    
+    // MARK: - Shield (Level Up)
+    static let shieldExpandDuration: TimeInterval = 1.5
+    static let shieldMaxRadius: CGFloat = 180
+    static let shieldKnockbackImpulse: CGFloat = 280
+    static let shieldPushForce: CGFloat = 120
+    
+    
+    // MARK: - Skill Draw
+    static let skillDrawCount: Int = 3
+    static let minimumSkillPoolSize: Int = 9
+    
+    
+    // MARK: - Camera
+    static let cameraFollowSpeed: CGFloat = 0.1
+    
+    /// Leash defined as a fraction of the viewport, not a fixed point value
+    /// 1.0 = player can reach exactly the screen edge before being leashed
+    /// 0.9 = player is pulled back slightly before reaching the edge (safer feel)
+    static let cameraLeashFactor: CGFloat = 0.95
+    
+    
+    // MARK: - Input
+    /// Seconds of mouse/trackpad inactivity before auto-aim engages.
+    static let autoAimIdleThreshold: TimeInterval = 0.2
+    
+    /// Right-stick magnitude below which auto-aim engages for controller players.
+    static let stickDeadzone: CGFloat = 0.15
+    
+    
+    // MARK: - Director System
+    /// How often (in seconds) the Director evaluates its rolling-window metrics and steps the budget.
+    static let directorPollInterval: TimeInterval = 5.0
+ 
+    /// Duration of the rolling window used to compute kill rate and damage rate.
+    /// Events older than this are evicted from the circular buffer before each evaluation.
+    static let directorRollingWindowDuration: TimeInterval = 20.0
+ 
+    /// The minimum enemy budget.
+    static let directorMinBudget: Int = 100
+ 
+    /// Soft ceiling for the enemy budget.
+    static let directorMaxBudget: Int = 300
+ 
+    /// Normal budget step applied when the Director ramps up or ramps down per poll.
+    static let directorBudgetStep: Int = 20
+ 
+    /// Smaller step applied when the player is being passive (low kill rate + low damage rate).
+    /// Exists to prevent indefinite safe-zone survival on the toroidal map.
+    static let directorPassiveStep: Int = 10
+ 
+    /// Kill rate (kills/sec) above which the Director considers the player to be dominating.
+    static let directorKillRateThreshold: Double = 2.0
+ 
+    /// Damage rate (damage/sec) above which the Director considers the player to be struggling.
+    static let directorDamageRateThreshold: Double = 5.0
+    
+    
+    // MARK: - Boss Stage
+    /// Interval (in seconds) between Boss eruptions, regardless of Director budget state.
+    static let bossSpawnInterval: TimeInterval = 600.0
+    
+    
+    // MARK: - Enemy Spawn
+    /// Margin (in points) outside the camera rect required before a gnome spawn position is accepted.
+    static let spawnMarginOutsideCamera: CGFloat = 60
+    
+    
+    // MARK: - Gnome Budget Weights
+    static let smallGnomeBudgetWeight: Int = 1
+    static let miniBossGnomeBudgetWeight: Int = 10
+    static let swarmBudgetWeight: Int = 20
+    
+    
+    // MARK: - Side Quest
+    static let sideQuestButtonCount: Int = 4
+    static let sideQuestActivationRadius: CGFloat = 80
+    static let sideQuestActivationDuration: TimeInterval = 2.0
+    static let sideQuestGlobalTimer: TimeInterval = 120.0
+    
+    
+    // MARK: - Meta-Progression
+    static let maxSpeedUpgradeLevel: Int = 10
+    static let maxLuckUpgradeLevel: Int = 10
+    static let maxHealthUpgradeLevel: Int = 10
+    static let essenceCostPerUpgradeLevel: Int = 100
+}
