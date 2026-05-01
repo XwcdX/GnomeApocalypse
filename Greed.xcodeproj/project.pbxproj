@@ -6,20 +6,25 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D69740352FA53576000D428B /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D69740332FA53576000D428B /* GameController.framework */; };
+		D69740362FA53576000D428B /* GameKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D69740342FA53576000D428B /* GameKit.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		D6973F512FA260F6000D428B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = D6973F322FA260F5000D428B /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = D6973F392FA260F5000D428B;
-			remoteInfo = Challenge2;
+			remoteInfo = Greed;
 		};
 		D6973F5B2FA260F6000D428B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = D6973F322FA260F5000D428B /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = D6973F392FA260F5000D428B;
-			remoteInfo = Challenge2;
+			remoteInfo = Greed;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -27,6 +32,8 @@
 		D6973F3A2FA260F5000D428B /* Greed.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Greed.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6973F502FA260F6000D428B /* GreedTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GreedTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D6973F5A2FA260F6000D428B /* GreedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GreedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D69740332FA53576000D428B /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
+		D69740342FA53576000D428B /* GameKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameKit.framework; path = System/Library/Frameworks/GameKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +59,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D69740352FA53576000D428B /* GameController.framework in Frameworks */,
+				D69740362FA53576000D428B /* GameKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +87,7 @@
 				D6973F3C2FA260F5000D428B /* Greed */,
 				D6973F532FA260F6000D428B /* GreedTests */,
 				D6973F5D2FA260F6000D428B /* GreedUITests */,
+				D69740322FA53575000D428B /* Frameworks */,
 				D6973F3B2FA260F5000D428B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +100,15 @@
 				D6973F5A2FA260F6000D428B /* GreedUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D69740322FA53575000D428B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D69740332FA53576000D428B /* GameController.framework */,
+				D69740342FA53576000D428B /* GameKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -113,7 +132,7 @@
 			name = Greed;
 			packageProductDependencies = (
 			);
-			productName = Challenge2;
+			productName = Greed;
 			productReference = D6973F3A2FA260F5000D428B /* Greed.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -136,7 +155,7 @@
 			name = GreedTests;
 			packageProductDependencies = (
 			);
-			productName = Challenge2Tests;
+			productName = GreedTests;
 			productReference = D6973F502FA260F6000D428B /* GreedTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
@@ -159,7 +178,7 @@
 			name = GreedUITests;
 			packageProductDependencies = (
 			);
-			productName = Challenge2UITests;
+			productName = GreedUITests;
 			productReference = D6973F5A2FA260F6000D428B /* GreedUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
@@ -414,7 +433,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Challenge2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Greed;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -451,7 +470,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Challenge2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Greed;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -474,7 +493,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Challenge2Tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.GreedTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -496,7 +515,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Challenge2Tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.GreedTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -516,14 +535,14 @@
 				EXCLUDED_SOURCE_FILE_NAMES = .gitkeep;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Challenge2UITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.GreedUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = Challenge2;
+				TEST_TARGET_NAME = Greed;
 			};
 			name = Debug;
 		};
@@ -536,14 +555,14 @@
 				EXCLUDED_SOURCE_FILE_NAMES = .gitkeep;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.apple.Challenge2UITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apple.GreedUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = Challenge2;
+				TEST_TARGET_NAME = Greed;
 			};
 			name = Release;
 		};
