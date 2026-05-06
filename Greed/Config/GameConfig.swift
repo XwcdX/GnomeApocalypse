@@ -40,9 +40,31 @@ enum GameConfig {
     static let shieldPushForce: CGFloat = 120
     
     
-    // MARK: - Skill Draw
+    // MARK: - Skill System
     static let skillDrawCount: Int = 3
-    static let minimumSkillPoolSize: Int = 9
+    static let maxWeaponSlots: Int = 3
+    static let maxPowerUpSlots: Int = 3
+    static let maxLevel3Items: Int = 3
+    
+    // Orbiting Spell
+    static let orbitRotationSpeed: CGFloat = 2.0
+    static let orbitRadius: CGFloat = 80
+    static let orbitDamage: Int = 15
+    static let orbitCooldownPerEnemy: TimeInterval = 1.0
+    
+    // Lightning Strike
+    static let lightningCooldown: TimeInterval = 3.0
+    static let lightningBaseDamage: Int = 50
+    static let lightningAoERadius: CGFloat = 100
+    
+    // Poisonous Mist
+    static let mistBaseDamage: Int = 5
+    static let mistBaseDuration: TimeInterval = 5.0
+    static let mistTickInterval: TimeInterval = 0.5
+    static let mistRadius: CGFloat = 120
+    
+    // Power-ups
+    static let healthBoostPerLevel: Int = 20
     
     
     // MARK: - Camera
