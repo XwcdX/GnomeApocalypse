@@ -2,7 +2,7 @@ import Foundation
 
 struct HealthComponent {
     private(set) var current: Int
-    let maximum: Int
+    var maximum: Int
     var onDeath: (() -> Void)?
     
     init(maximum: Int) {
@@ -19,6 +19,12 @@ struct HealthComponent {
     mutating func heal(_ amount: Int) {
         guard amount > 0, !isDead, current < maximum else { return }
         current = min(maximum, current + amount)
+    }
+    
+    mutating func increaseMaximum(_ amount: Int) {
+        guard amount > 0 else { return }
+        maximum += amount
+        current += amount
     }
     
     var isDead: Bool { current <= 0 }
