@@ -59,6 +59,17 @@ final class ViewController: NSViewController {
             InputSystem.shared.keyUp(with: event)
             return event
         }
+        
+        NSEvent.addLocalMonitorForEvents(
+            matching: [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged]
+        ) { [weak self] event in
+            guard let self, event.window === self.view.window else { return event }
+            
+            let viewPosition = self.metalView.convert(event.locationInWindow, from: nil)
+            let worldPosition = self.scene.convertPoint(fromView: viewPosition)
+            InputSystem.shared.mouseMoved(to: worldPosition)
+            return event
+        }
     }
 }
 

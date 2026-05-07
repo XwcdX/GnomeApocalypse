@@ -10,9 +10,11 @@ final class GameScene: SKScene {
     private var skillSystem: SkillSystem!
     private var floorRenderer: FloorTileRenderer!
     private var enemyAI: EnemyAI!
+    private var playerProjectilePool: ProjectilePool!
     
     private var players: [PlayerEntity] = []
     private var enemies: [EnemyEntity] = []
+    private var playerAttacks: [PlayerAttack] = []
     
     private let groundLayer = SKNode()
     private let environmentLayer = SKNode()
@@ -34,8 +36,19 @@ final class GameScene: SKScene {
         enemyAI.update(enemies: enemies, players: players)
         
         for player in players {
+            player.aimDirection = inputSystem.aimVector(
+                for: player.controllerIndex ?? 0,
+                playerWorldPos: player.position,
+                gnomes: enemies
+            )
             player.update(deltaTime: deltaTime)
         }
+        
+        for attack in playerAttacks {
+            attack.update(deltaTime: deltaTime)
+        }
+        
+        playerProjectilePool.updateAll(deltaTime: deltaTime)
         
         for enemy in enemies {
             enemy.update(deltaTime: deltaTime)
@@ -75,6 +88,15 @@ final class GameScene: SKScene {
         skillSystem = SkillSystem()
         enemyAI = EnemyAI()
         spawnSystem = SpawnSystem(entityLayer: entityLayer, cameraSystem: cameraSystem, directorSystem: directorSystem)
+        playerProjectilePool = ProjectilePool(
+            size: GameConfig.projectilePoolSize,
+            atlasName: "PlayerProjectile",
+            frameNames: ["tile000", "tile001", "tile002", "tile003"],
+            projectileSize: GameConfig.playerProjectileSize,
+            category: PhysicsCategory.playerProjectile,
+            contactTestBitMask: PhysicsCategory.enemy,
+            frameTime: GameConfig.playerProjectileFrameTime
+        )
         
         let tileTexture = SKTexture(imageNamed: "tile_ground")
         let tileSize = CGSize(width: 128, height: 128)
@@ -93,6 +115,7 @@ final class GameScene: SKScene {
         entityLayer.addChild(player)
         players.append(player)
         cameraSystem.addPlayer(player)
+        playerAttacks.append(PlayerAttack(owner: player, pool: playerProjectilePool, entityLayer: entityLayer))
         
         collisionSystem.register(player: player, directorSystem: directorSystem)
     }

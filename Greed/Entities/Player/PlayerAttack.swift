@@ -25,7 +25,6 @@ final class PlayerAttack {
     }
 
     private func fire(from owner: PlayerEntity) {
-        guard owner.aimDirection != .zero else { return }
         spawnProjectile(from: owner.position, direction: owner.aimDirection, damage: GameConfig.basePlayerDamage)
     }
 
@@ -33,8 +32,20 @@ final class PlayerAttack {
         guard let pool, let entityLayer,
               let projectile = pool.dequeue() else { return }
         
-        let velocity = CGVector(dx: direction.dx * GameConfig.projectileSpeed, dy: direction.dy * GameConfig.projectileSpeed)
-        projectile.activate(at: position, velocity: velocity, damage: damage, lifespan: GameConfig.projectileLifeSpan)
+        let magnitude = sqrt(direction.dx * direction.dx + direction.dy * direction.dy)
+        guard magnitude > 0 else { return }
+        
+        let normalisedDirection = CGVector(dx: direction.dx / magnitude, dy: direction.dy / magnitude)
+        let spawnPosition = CGPoint(
+            x: position.x + normalisedDirection.dx * GameConfig.playerProjectileSpawnOffset,
+            y: position.y + normalisedDirection.dy * GameConfig.playerProjectileSpawnOffset
+        )
+        let velocity = CGVector(
+            dx: normalisedDirection.dx * GameConfig.projectileSpeed,
+            dy: normalisedDirection.dy * GameConfig.projectileSpeed
+        )
+        
+        projectile.activate(at: spawnPosition, velocity: velocity, damage: damage, lifespan: GameConfig.projectileLifeSpan)
         entityLayer.addChild(projectile)
     }
 }

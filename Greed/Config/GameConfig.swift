@@ -14,6 +14,9 @@ enum GameConfig {
     static let baseFireRate: TimeInterval = 0.25
     static let projectileSpeed: CGFloat = 500
     static let projectileLifeSpan: TimeInterval = 2
+    static let playerProjectileSize: CGSize = CGSize(width: 24, height: 20)
+    static let playerProjectileSpawnOffset: CGFloat = 24
+    static let playerProjectileFrameTime: TimeInterval = 0.06
     
     
     // MARK: - Projectile Pool

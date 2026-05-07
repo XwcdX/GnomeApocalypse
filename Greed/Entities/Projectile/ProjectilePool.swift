@@ -2,16 +2,29 @@ import SpriteKit
 
 final class ProjectilePool {
     private var pool: [Projectile] = []
-    private let texture: SKTexture
-    private let size: CGSize
     
-    init(size: Int, texture: SKTexture, projectileSize: CGSize) {
-        self.texture = texture
-        self.size = projectileSize
+    init(
+        size: Int,
+        atlasName: String,
+        frameNames: [String],
+        projectileSize: CGSize,
+        category: UInt32,
+        contactTestBitMask: UInt32,
+        frameTime: TimeInterval
+    ) {
+        let atlas = SKTextureAtlas(named: atlasName)
+        let frames = frameNames.map { frameName in
+            let texture = atlas.textureNamed(frameName)
+            texture.filteringMode = .nearest
+            return texture
+        }
         
         for _ in 0..<size {
-            let projectile = Projectile(texture: texture, color: .clear, size: projectileSize)
+            let projectile = Projectile(texture: frames.first, color: .clear, size: projectileSize)
+            projectile.name = "\(atlasName)Projectile"
             projectile.isHidden = true
+            projectile.configurePhysics(category: category, contactTestBitMask: contactTestBitMask)
+            projectile.configureAnimation(frames: frames, frameTime: frameTime)
             pool.append(projectile)
         }
     }

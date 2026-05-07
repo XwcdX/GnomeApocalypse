@@ -42,6 +42,10 @@ final class ToroidalRenderingComponent {
         }
     }
     
+    func clear() {
+        clearGhosts()
+    }
+    
     private func createGhost(sprite: SKSpriteNode, at position: CGPoint, parent: SKNode) {
         let ghost = SKSpriteNode(texture: sprite.texture, size: sprite.size)
         ghost.position = position
