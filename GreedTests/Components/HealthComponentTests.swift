@@ -30,14 +30,11 @@ struct HealthComponentTests {
         #expect(health.isDead == true)
     }
     
-    @Test("takeDamage triggers onDeath when health reaches zero")
-    func takeDamageTriggersOnDeath() {
+    @Test("takeDamage returns true when health reaches zero")
+    func takeDamageReturnsTrueOnDeath() {
         var health = HealthComponent(maximum: 50)
-        var deathCalled = false
-        health.onDeath = { deathCalled = true }
-        
-        health.takeDamage(50)
-        #expect(deathCalled == true)
+        let died = health.takeDamage(50)
+        #expect(died == true)
         #expect(health.isDead == true)
     }
     

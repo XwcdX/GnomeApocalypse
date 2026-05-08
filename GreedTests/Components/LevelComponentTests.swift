@@ -32,14 +32,12 @@ struct LevelComponentTests {
         #expect(level.currentXP == 10)
     }
     
-    @Test("addXP calls onLevelUp callback")
-    func addXPCallsOnLevelUp() {
+    @Test("addXP returns true on level up")
+    func addXPReturnsTrueOnLevelUp() {
         var level = LevelComponent(xpThreshold: 100)
-        var callbackLevel = 0
-        level.onLevelUp = { newLevel in callbackLevel = newLevel }
-        
-        level.addXP(100)
-        #expect(callbackLevel == 2)
+        let result = level.addXP(100)
+        #expect(result == true)
+        #expect(level.currentLevel == 2)
     }
     
     @Test("addXP increases threshold after level up")
