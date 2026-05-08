@@ -463,7 +463,7 @@ final class LuminousWisp: PlayerEntity {
     private func setupAnimations() {
         animator = AnimationComponent(atlasName: "LuminousWisp", owner: self, canMirror: false)
         
-        let directions = ["up", "down", "left", "right", "up_left", "right_up", "down_left", "right_down"]
+        let directions = ["up", "down", "left", "right", "up_left", "up_right", "down_left", "down_right"]
         
         for direction in directions {
             animator.loadAnimation(name: "\(direction)_idle", frameCount: 6)
