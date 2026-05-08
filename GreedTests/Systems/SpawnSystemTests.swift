@@ -1,0 +1,97 @@
+import SpriteKit
+import Testing
+
+@testable import Greed
+
+@MainActor
+@Suite("SpawnSystem")
+struct SpawnSystemTests {
+    @Test("orb mist explosion spawns budgeted MiniBoss outside camera")
+    func orbMistExplosionSpawnsBudgetedMiniBossOutsideCamera() throws {
+        let harness = makeHarness()
+
+        harness.spawnSystem.spawnForestEssenceOrb(at: .zero)
+        harness.spawnSystem.update(
+            deltaTime: GameConfig.orbEvolveTime,
+            activeBudgetUsed: harness.director.currentBudget
+        )
+        harness.spawnSystem.update(
+            deltaTime: GameConfig.grownOrbEvolveTime,
+            activeBudgetUsed: 0
+        )
+
+        let miniBoss = try #require(children(of: MiniBossGnome.self, in: harness.layer).first)
+        #expect(!harness.camera.visibleRect.contains(miniBoss.position))
+        #expect(children(of: ForestEssenceOrb.self, in: harness.layer).isEmpty)
+    }
+
+    @Test("orb mist explosion consumes orb without MiniBoss when budget is full")
+    func orbMistExplosionDoesNotSpawnMiniBossWhenBudgetIsFull() {
+        let harness = makeHarness()
+
+        harness.spawnSystem.spawnForestEssenceOrb(at: .zero)
+        harness.spawnSystem.update(
+            deltaTime: GameConfig.orbEvolveTime,
+            activeBudgetUsed: harness.director.currentBudget
+        )
+        harness.spawnSystem.update(
+            deltaTime: GameConfig.grownOrbEvolveTime,
+            activeBudgetUsed: harness.director.currentBudget
+        )
+
+        #expect(children(of: MiniBossGnome.self, in: harness.layer).isEmpty)
+        #expect(children(of: ForestEssenceOrb.self, in: harness.layer).isEmpty)
+    }
+
+    @Test("boss stage pauses regular spawning and spawns one BossGnome outside camera")
+    func bossStageSpawnsSingleBossAndPausesRegularSpawning() throws {
+        let harness = makeHarness()
+        harness.director.update(deltaTime: GameConfig.bossSpawnInterval, activeBudgetUsed: 0)
+
+        harness.spawnSystem.update(deltaTime: 0.1, activeBudgetUsed: 0)
+        harness.spawnSystem.update(deltaTime: 2.1, activeBudgetUsed: 0)
+
+        let boss = try #require(children(of: BossGnome.self, in: harness.layer).first)
+        #expect(children(of: BossGnome.self, in: harness.layer).count == 1)
+        #expect(children(of: SmallGnome.self, in: harness.layer).isEmpty)
+        #expect(!harness.camera.visibleRect.contains(boss.position))
+    }
+
+    @Test("regular spawn respects active budget usage")
+    func regularSpawnRespectsActiveBudgetUsage() {
+        let harness = makeHarness()
+
+        harness.spawnSystem.update(
+            deltaTime: 2.1,
+            activeBudgetUsed: harness.director.currentBudget
+        )
+
+        #expect(children(of: SmallGnome.self, in: harness.layer).isEmpty)
+    }
+
+    private func makeHarness() -> Harness {
+        let scene = GameScene(size: GameConfig.cameraViewportSize)
+        let layer = SKNode()
+        let cameraNode = SKCameraNode()
+        cameraNode.position = .zero
+        scene.addChild(cameraNode)
+        scene.addChild(layer)
+
+        let camera = CameraSystem(cameraNode: cameraNode, viewportSize: GameConfig.cameraViewportSize)
+        let director = DirectorSystem()
+        let spawnSystem = SpawnSystem(entityLayer: layer, cameraSystem: camera, directorSystem: director)
+        return Harness(scene: scene, layer: layer, camera: camera, director: director, spawnSystem: spawnSystem)
+    }
+
+    private func children<T>(of type: T.Type, in node: SKNode) -> [T] {
+        node.children.compactMap { $0 as? T }
+    }
+
+    private struct Harness {
+        let scene: GameScene
+        let layer: SKNode
+        let camera: CameraSystem
+        let director: DirectorSystem
+        let spawnSystem: SpawnSystem
+    }
+}

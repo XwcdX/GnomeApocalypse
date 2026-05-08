@@ -59,7 +59,7 @@ final class GameScene: SKScene {
         let activeBudget = enemies.reduce(0) { $0 + $1.budgetWeight }
         directorSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
 
-        spawnSystem.update(deltaTime: deltaTime)
+        spawnSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
         cameraSystem.update(deltaTime: deltaTime)
         floorRenderer.update(cameraPosition: cameraSystem.cameraNode.position)
     }

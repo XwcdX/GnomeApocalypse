@@ -5,6 +5,7 @@ final class SpawnSystem {
     private weak var cameraSystem: CameraSystem?
     private weak var directorSystem: DirectorSystem?
     private var orbs: [ForestEssenceOrb] = []
+    private weak var activeBoss: BossGnome?
     
     private var spawnAccumulator: TimeInterval = 0
     private let spawnInterval: TimeInterval = 2.0
@@ -15,29 +16,23 @@ final class SpawnSystem {
         self.directorSystem = directorSystem
     }
     
-    func update(deltaTime: TimeInterval) {
+    func update(deltaTime: TimeInterval, activeBudgetUsed: Int) {
         guard let director = directorSystem,
               let camera = cameraSystem,
               let layer = entityLayer else { return }
         
-        if director.isBossStageActive { return }
+        var budgetUsed = activeBudgetUsed
+        budgetUsed += updateOrbs(deltaTime: deltaTime, camera: camera, director: director, activeBudgetUsed: budgetUsed)
+
+        if director.isBossStageActive {
+            spawnBossIfNeeded(camera: camera, layer: layer)
+            return
+        }
         
         spawnAccumulator += deltaTime
         if spawnAccumulator >= spawnInterval {
             spawnAccumulator = 0
-            attemptSpawn(camera: camera, layer: layer, director: director)
-        }
-        
-        var explodedOrbs: [ForestEssenceOrb] = []
-        for orb in orbs {
-            if orb.update(deltaTime: deltaTime, cameraSystem: camera) {
-                explodedOrbs.append(orb)
-            }
-        }
-
-        for orb in explodedOrbs {
-            spawnMiniBossGnome(at: orb.position)
-            removeOrb(orb)
+            attemptSpawn(camera: camera, layer: layer, director: director, activeBudgetUsed: budgetUsed)
         }
     }
     
@@ -55,9 +50,33 @@ final class SpawnSystem {
         orb.cleanup()
     }
     
-    private func attemptSpawn(camera: CameraSystem, layer: SKNode, director: DirectorSystem) {
+    private func updateOrbs(
+        deltaTime: TimeInterval,
+        camera: CameraSystem,
+        director: DirectorSystem,
+        activeBudgetUsed: Int
+    ) -> Int {
+        var spawnedBudget = 0
+        var explodedOrbs: [ForestEssenceOrb] = []
+        for orb in orbs {
+            if orb.update(deltaTime: deltaTime, cameraSystem: camera) {
+                explodedOrbs.append(orb)
+            }
+        }
+
+        for orb in explodedOrbs {
+            if spawnMiniBossGnome(camera: camera, director: director, activeBudgetUsed: activeBudgetUsed + spawnedBudget) {
+                spawnedBudget += GameConfig.miniBossGnomeBudgetWeight
+            }
+            removeOrb(orb)
+        }
+
+        return spawnedBudget
+    }
+
+    private func attemptSpawn(camera: CameraSystem, layer: SKNode, director: DirectorSystem, activeBudgetUsed: Int) {
         let weight = GameConfig.smallGnomeBudgetWeight
-        guard director.currentBudget >= weight else { return }
+        guard activeBudgetUsed + weight <= director.currentBudget else { return }
 
         let spawnPos = randomPositionOutsideCamera(camera: camera)
         let gnome = SmallGnome()
@@ -70,16 +89,34 @@ final class SpawnSystem {
         gnome.targetPosition = scene.nearestPlayerPosition(to: spawnPos)
     }
 
-    private func spawnMiniBossGnome(at position: CGPoint) {
-        guard let layer = entityLayer,
-              let scene = layer.scene as? GameScene else { return }
+    private func spawnMiniBossGnome(camera: CameraSystem, director: DirectorSystem, activeBudgetUsed: Int) -> Bool {
+        let weight = GameConfig.miniBossGnomeBudgetWeight
+        guard activeBudgetUsed + weight <= director.currentBudget,
+              let layer = entityLayer,
+              let scene = layer.scene as? GameScene else { return false }
 
+        let spawnPos = randomPositionOutsideCamera(camera: camera)
         let miniBoss = MiniBossGnome()
-        miniBoss.position = position
+        miniBoss.position = spawnPos
         miniBoss.gameScene = scene
         scene.register(enemy: miniBoss)
         layer.addChild(miniBoss)
-        miniBoss.targetPosition = scene.nearestPlayerPosition(to: position)
+        miniBoss.targetPosition = scene.nearestPlayerPosition(to: spawnPos)
+        return true
+    }
+
+    private func spawnBossIfNeeded(camera: CameraSystem, layer: SKNode) {
+        if activeBoss?.parent != nil { return }
+        guard let scene = layer.scene as? GameScene else { return }
+
+        let spawnPos = randomPositionOutsideCamera(camera: camera)
+        let boss = BossGnome()
+        boss.position = spawnPos
+        boss.gameScene = scene
+        scene.register(enemy: boss)
+        layer.addChild(boss)
+        boss.targetPosition = scene.nearestPlayerPosition(to: spawnPos)
+        activeBoss = boss
     }
     
     private func randomPositionOutsideCamera(camera: CameraSystem) -> CGPoint {
