@@ -6,22 +6,29 @@ final class FloorTileRenderer {
     private let tileSize: CGSize
     private let tileTexture: SKTexture
     private var tiles: [SKSpriteNode] = []
-    private let columns: Int
-    private let rows: Int
+    private var columns: Int = 0
+    private var rows: Int = 0
+    private var viewportSize: CGSize
 
     init(tileTexture: SKTexture, tileSize: CGSize, viewportSize: CGSize) {
         self.tileTexture = tileTexture
         self.tileSize = tileSize
-        columns = Int(ceil(viewportSize.width  / tileSize.width))  + 3
-        rows    = Int(ceil(viewportSize.height / tileSize.height)) + 3
+        self.viewportSize = viewportSize
+        rebuildGrid(for: viewportSize)
+    }
 
-        buildTileGrid()
+    func updateViewport(_ size: CGSize) {
+        guard size != viewportSize else { return }
+        viewportSize = size
+        tiles.forEach { $0.removeFromParent() }
+        tiles.removeAll()
+        rebuildGrid(for: size)
     }
 
     func update(cameraPosition: CGPoint) {
         let tw = tileSize.width
         let th = tileSize.height
-        
+
         let gridOriginX = (cameraPosition.x / tw).rounded(.down) * tw - tw * CGFloat(columns / 2)
         let gridOriginY = (cameraPosition.y / th).rounded(.down) * th - th * CGFloat(rows / 2)
 
@@ -36,11 +43,13 @@ final class FloorTileRenderer {
         }
     }
 
-    private func buildTileGrid() {
+    private func rebuildGrid(for size: CGSize) {
+        columns = Int(ceil(size.width  / tileSize.width))  + 3
+        rows    = Int(ceil(size.height / tileSize.height)) + 3
+
         tiles.reserveCapacity(columns * rows)
         for _ in 0..<(columns * rows) {
             let tile = SKSpriteNode(texture: tileTexture, size: tileSize)
-            tile.zPosition = Layer.ground
             rootNode.addChild(tile)
             tiles.append(tile)
         }
