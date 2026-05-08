@@ -28,8 +28,16 @@ final class SpawnSystem {
             attemptSpawn(camera: camera, layer: layer, director: director)
         }
         
+        var explodedOrbs: [ForestEssenceOrb] = []
         for orb in orbs {
-            orb.update(cameraSystem: camera)
+            if orb.update(deltaTime: deltaTime, cameraSystem: camera) {
+                explodedOrbs.append(orb)
+            }
+        }
+
+        for orb in explodedOrbs {
+            spawnMiniBossGnome(at: orb.position)
+            removeOrb(orb)
         }
     }
     
@@ -60,6 +68,18 @@ final class SpawnSystem {
         scene.register(enemy: gnome)
         layer.addChild(gnome)
         gnome.targetPosition = scene.nearestPlayerPosition(to: spawnPos)
+    }
+
+    private func spawnMiniBossGnome(at position: CGPoint) {
+        guard let layer = entityLayer,
+              let scene = layer.scene as? GameScene else { return }
+
+        let miniBoss = MiniBossGnome()
+        miniBoss.position = position
+        miniBoss.gameScene = scene
+        scene.register(enemy: miniBoss)
+        layer.addChild(miniBoss)
+        miniBoss.targetPosition = scene.nearestPlayerPosition(to: position)
     }
     
     private func randomPositionOutsideCamera(camera: CameraSystem) -> CGPoint {

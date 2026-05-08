@@ -1,8 +1,16 @@
 import SpriteKit
 
 final class ForestEssenceOrb: SKSpriteNode {
+    enum OrbState {
+        case small
+        case grown
+        case mistExplosion
+    }
+
     private var ghostRenderer: ToroidalRenderingComponent?
-    let essenceValue: Int
+    private(set) var state: OrbState = .small
+    private(set) var essenceValue: Int
+    private var stateElapsedTime: TimeInterval = 0
     
     init(essenceValue: Int) {
         self.essenceValue = essenceValue
@@ -13,12 +21,25 @@ final class ForestEssenceOrb: SKSpriteNode {
     
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
     
-    func update(cameraSystem: CameraSystem) {
+    func update(deltaTime: TimeInterval, cameraSystem: CameraSystem) -> Bool {
         if ghostRenderer == nil {
             ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
         }
         cameraSystem.clampToroidal(&position)
         ghostRenderer?.update(cameraPosition: cameraSystem.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
+
+        stateElapsedTime += deltaTime
+        switch state {
+        case .small where stateElapsedTime >= GameConfig.orbEvolveTime:
+            becomeGrown()
+        case .grown where stateElapsedTime >= GameConfig.grownOrbEvolveTime:
+            explodeIntoMist()
+            return true
+        default:
+            break
+        }
+
+        return state == .mistExplosion
     }
     
     func cleanup() {
@@ -26,8 +47,42 @@ final class ForestEssenceOrb: SKSpriteNode {
         removeFromParent()
     }
     
-    private func setupPhysics() {
-        let body = SKPhysicsBody(circleOfRadius: 8)
+    private func becomeGrown() {
+        state = .grown
+        stateElapsedTime = 0
+        essenceValue = GameConfig.grownOrbEssenceValue
+        color = .yellow
+        size = CGSize(width: 24, height: 24)
+        setupPhysics(radius: 12)
+    }
+
+    private func explodeIntoMist() {
+        state = .mistExplosion
+        stateElapsedTime = 0
+        physicsBody = nil
+        isHidden = true
+        ghostRenderer?.clear()
+        playMistExplosionPlaceholder()
+    }
+
+    private func playMistExplosionPlaceholder() {
+        guard let parent else { return }
+
+        let mistBurst = SKShapeNode(circleOfRadius: 24)
+        mistBurst.position = position
+        mistBurst.strokeColor = .purple
+        mistBurst.fillColor = .clear
+        mistBurst.lineWidth = 3
+        mistBurst.zPosition = zPosition + 1
+        parent.addChild(mistBurst)
+
+        let expand = SKAction.scale(to: 3, duration: 0.35)
+        let fade = SKAction.fadeOut(withDuration: 0.35)
+        mistBurst.run(.sequence([.group([expand, fade]), .removeFromParent()]))
+    }
+
+    private func setupPhysics(radius: CGFloat = 8) {
+        let body = SKPhysicsBody(circleOfRadius: radius)
         body.categoryBitMask = PhysicsCategory.forestEssenceOrb
         body.contactTestBitMask = PhysicsCategory.player
         body.collisionBitMask = PhysicsCategory.none
