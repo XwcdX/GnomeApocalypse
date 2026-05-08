@@ -11,6 +11,7 @@ final class GameScene: SKScene {
     private var floorRenderer: FloorTileRenderer!
     private var enemyAI: EnemyAI!
     private var playerProjectilePool: ProjectilePool!
+    private var enemyProjectilePool: ProjectilePool!
     
     private var players: [PlayerEntity] = []
     private var enemies: [EnemyEntity] = []
@@ -50,6 +51,7 @@ final class GameScene: SKScene {
 
         // Enemies move and wrap
         for enemy in enemies { enemy.update(deltaTime: deltaTime) }
+        enemyProjectilePool.updateAll(deltaTime: deltaTime)
 
         // AI runs after move+wrap so offsets are computed from correct wrapped positions
         enemyAI.update(enemies: enemies, players: players)
@@ -95,6 +97,15 @@ final class GameScene: SKScene {
             projectileSize: GameConfig.playerProjectileSize,
             category: PhysicsCategory.playerProjectile,
             contactTestBitMask: PhysicsCategory.enemy,
+            frameTime: GameConfig.playerProjectileFrameTime
+        )
+        enemyProjectilePool = ProjectilePool(
+            size: GameConfig.projectilePoolSize,
+            atlasName: "PlayerProjectile",
+            frameNames: ["tile000", "tile001", "tile002", "tile003"],
+            projectileSize: GameConfig.playerProjectileSize,
+            category: PhysicsCategory.enemyProjectile,
+            contactTestBitMask: PhysicsCategory.player,
             frameTime: GameConfig.playerProjectileFrameTime
         )
         
@@ -193,6 +204,18 @@ final class GameScene: SKScene {
     }
     
     func spawnEnemyProjectile(at position: CGPoint, direction: CGVector, damage: Int) {
-        Log.debug("GameScene: spawning enemy projectile")
+        guard let projectile = enemyProjectilePool.dequeue() else { return }
+        
+        let magnitude = sqrt(direction.dx * direction.dx + direction.dy * direction.dy)
+        guard magnitude > 0 else { return }
+        
+        let normalisedDirection = CGVector(dx: direction.dx / magnitude, dy: direction.dy / magnitude)
+        let velocity = CGVector(
+            dx: normalisedDirection.dx * GameConfig.projectileSpeed,
+            dy: normalisedDirection.dy * GameConfig.projectileSpeed
+        )
+        
+        projectile.activate(at: position, velocity: velocity, damage: damage, lifespan: GameConfig.projectileLifeSpan)
+        entityLayer.addChild(projectile)
     }
 }
