@@ -1,7 +1,6 @@
 import SpriteKit
 
 final class Projectile: SKSpriteNode {
-    let toroidal = ToroidalPositionComponent()
     private var ghostRenderer: ToroidalRenderingComponent?
     
     var damage: Int = 0
@@ -55,17 +54,24 @@ final class Projectile: SKSpriteNode {
     
     func update(deltaTime: TimeInterval) {
         guard isActive else { return }
-        
+
         age += deltaTime
         if age >= lifespan {
             deactivate()
             return
         }
-        
+
         position.x += velocity.dx * deltaTime
         position.y += velocity.dy * deltaTime
-        toroidal.update(node: self)
-        updateToroidalGhosts()
+
+        if let scene = scene as? GameScene {
+            let cam: CameraSystem = scene.cameraSystem
+            cam.clampToroidal(&position)
+            if ghostRenderer == nil {
+                ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
+            }
+            ghostRenderer?.update(cameraPosition: cam.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
+        }
     }
     
     private func playAnimation() {
@@ -76,12 +82,4 @@ final class Projectile: SKSpriteNode {
         run(SKAction.repeatForever(animate), withKey: "projectileAnimation")
     }
     
-    private func updateToroidalGhosts() {
-        if ghostRenderer == nil {
-            ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
-        }
-        
-        guard let scene = scene as? GameScene, let camera = scene.camera else { return }
-        ghostRenderer?.update(cameraPosition: camera.position, viewportSize: scene.size)
-    }
 }

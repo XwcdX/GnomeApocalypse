@@ -22,6 +22,7 @@ final class ProjectilePool {
         for _ in 0..<size {
             let projectile = Projectile(texture: frames.first, color: .clear, size: projectileSize)
             projectile.name = "\(atlasName)Projectile"
+            projectile.zPosition = Layer.projectile
             projectile.isHidden = true
             projectile.configurePhysics(category: category, contactTestBitMask: contactTestBitMask)
             projectile.configureAnimation(frames: frames, frameTime: frameTime)

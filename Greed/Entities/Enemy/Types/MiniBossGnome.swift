@@ -3,15 +3,13 @@ import SpriteKit
 final class MiniBossGnome: EnemyEntity {
 
     override var budgetWeight: Int { GameConfig.miniBossGnomeBudgetWeight }
-    override var moveSpeed: CGFloat { 60 }
+    override var moveSpeed: CGFloat { GameConfig.miniBossMoveSpeed }
 
     private var timeSinceLastShot: TimeInterval = 0
-    private let shootInterval: TimeInterval = 2.0
-    private let projectileDamage: Int = 15
 
     init() {
         let texture = SKTexture(imageNamed: "gnome_miniboss")
-        super.init(texture: texture, health: 200)
+        super.init(texture: texture, health: GameConfig.miniBossHealth)
         self.name = "MiniBossGnome"
     }
 
@@ -24,7 +22,7 @@ final class MiniBossGnome: EnemyEntity {
 
     private func updateRangedAttack(deltaTime: TimeInterval) {
         timeSinceLastShot += deltaTime
-        guard timeSinceLastShot >= shootInterval else { return }
+        guard timeSinceLastShot >= GameConfig.miniBossShootInterval else { return }
         timeSinceLastShot = 0
         fireTowardTarget()
     }
@@ -34,8 +32,7 @@ final class MiniBossGnome: EnemyEntity {
         let offset = toroidalOffset(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
         let distance = sqrt(offset.dx * offset.dx + offset.dy * offset.dy)
         guard distance > 0 else { return }
-        
         let direction = CGVector(dx: offset.dx / distance, dy: offset.dy / distance)
-        gameScene.spawnEnemyProjectile(at: position, direction: direction, damage: projectileDamage)
+        gameScene.spawnEnemyProjectile(at: position, direction: direction, damage: GameConfig.miniBossProjectileDamage)
     }
 }

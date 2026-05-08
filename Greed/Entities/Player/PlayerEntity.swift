@@ -3,13 +3,13 @@ import SpriteKit
 class PlayerEntity: SKSpriteNode {
     var health: HealthComponent
     var level: LevelComponent
-    let toroidal = ToroidalPositionComponent()
     private var ghostRenderer: ToroidalRenderingComponent?
     
     var skillState = PlayerSkillState()
     
     var controllerIndex: Int?
     var aimDirection: CGVector = .zero
+    weak var attack: PlayerAttack?
     
     private(set) var attackSpeedMultiplier: CGFloat = 1.0
     private(set) var movementSpeedMultiplier: CGFloat = 1.0
@@ -24,8 +24,7 @@ class PlayerEntity: SKSpriteNode {
         self.health = HealthComponent(maximum: health)
         self.level = LevelComponent()
         super.init(texture: texture, color: .clear, size: texture.size())
-        self.health.onDeath = { [weak self] in self?.die() }
-        self.level.onLevelUp = { [weak self] newLevel in self?.handleLevelUp(newLevel) }
+        self.zPosition = Layer.player
         setupPhysics()
     }
 
@@ -33,23 +32,26 @@ class PlayerEntity: SKSpriteNode {
 
     func update(deltaTime: TimeInterval) {
         guard let scene = scene as? GameScene else { return }
-        
         if ghostRenderer == nil {
             ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
         }
-        
         let movement = scene.inputSystem.movementVector(for: controllerIndex ?? 0)
         position.x += movement.dx * currentSpeed * deltaTime
         position.y += movement.dy * currentSpeed * deltaTime
-        
-        toroidal.update(node: self)
-        
-        if let camera = scene.camera {
-            ghostRenderer?.update(cameraPosition: camera.position, viewportSize: scene.size)
-        }
+        scene.cameraSystem.clampToroidal(&position)
+        ghostRenderer?.update(cameraPosition: scene.cameraSystem.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
     }
 
-    func fireProjectile() {}
+    func takeDamage(_ amount: Int) {
+        if health.takeDamage(amount) { die() }
+    }
+
+    func addXP(_ amount: Int) {
+        if level.addXP(amount) {
+            guard let scene = scene as? GameScene else { return }
+            scene.handleLevelUp(for: self)
+        }
+    }
 
     func applySkill(_ skill: Skill) {
         skillState.upgrade(skill)
@@ -76,11 +78,6 @@ class PlayerEntity: SKSpriteNode {
     func die() {
         guard let scene = scene as? GameScene else { return }
         scene.handlePlayerDeath(self)
-    }
-
-    private func handleLevelUp(_ newLevel: Int) {
-        guard let scene = scene as? GameScene else { return }
-        scene.handleLevelUp(for: self)
     }
 
     private func setupPhysics() {

@@ -6,6 +6,9 @@ final class PlayerAttack {
     private weak var entityLayer: SKNode?
 
     private var timeSinceLastShot: TimeInterval = 0
+    private var shootingTimer: TimeInterval = 0
+    private let shootingDisplayDuration: TimeInterval = 0.3
+    private(set) var isShooting: Bool = false
 
     init(owner: PlayerEntity, pool: ProjectilePool, entityLayer: SKNode) {
         self.owner = owner
@@ -17,9 +20,19 @@ final class PlayerAttack {
         guard let owner else { return }
         timeSinceLastShot += deltaTime
 
+        if isShooting {
+            shootingTimer += deltaTime
+            if shootingTimer >= shootingDisplayDuration {
+                isShooting = false
+                shootingTimer = 0
+            }
+        }
+
         let fireInterval = GameConfig.baseFireRate / Double(owner.attackSpeedMultiplier)
         guard timeSinceLastShot >= fireInterval else { return }
         timeSinceLastShot = 0
+        isShooting = true
+        shootingTimer = 0
 
         fire(from: owner)
     }

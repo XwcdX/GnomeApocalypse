@@ -2,20 +2,19 @@ import SpriteKit
 
 class EnemyEntity: SKSpriteNode {
     var health: HealthComponent
-    let toroidal = ToroidalPositionComponent()
     private var ghostRenderer: ToroidalRenderingComponent?
     
     var targetPosition: CGPoint = .zero
     var isTargetingActive: Bool = true
     var budgetWeight: Int { 1 }
-    var moveSpeed: CGFloat { 80 }
+    var moveSpeed: CGFloat { GameConfig.smallGnomeMoveSpeed }
     
     weak var gameScene: GameScene?
 
     init(texture: SKTexture, health: Int) {
         self.health = HealthComponent(maximum: health)
         super.init(texture: texture, color: .clear, size: texture.size())
-        self.health.onDeath = { [weak self] in self?.die() }
+        self.zPosition = Layer.enemy
         setupPhysics()
     }
 
@@ -25,16 +24,15 @@ class EnemyEntity: SKSpriteNode {
         if ghostRenderer == nil {
             ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
         }
-        
-        toroidal.update(node: self)
         moveTowardTarget(deltaTime: deltaTime)
-        
-        if let camera = gameScene?.camera, let scene = gameScene {
-            ghostRenderer?.update(cameraPosition: camera.position, viewportSize: scene.size)
-        }
+        guard let cam = gameScene?.cameraSystem else { return }
+        cam.clampToroidal(&position)
+        ghostRenderer?.update(cameraPosition: cam.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
     }
 
     func die() {
+        ghostRenderer?.clear()
+        ghostRenderer = nil
         gameScene?.spawnForestEssenceOrb(at: position)
         gameScene?.directorSystem.recordKill()
         gameScene?.deregister(enemy: self)
