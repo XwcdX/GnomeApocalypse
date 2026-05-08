@@ -34,7 +34,6 @@ Challenge2/                             # Xcode project root
 │   ├── Components/
 │   │   ├── HealthComponent.swift           # Shared by Player and Enemy
 │   │   ├── LevelComponent.swift            # XP tracking, level-up trigger, skill unlock
-│   │   ├── ToroidalPositionComponent.swift # Wrap logic for any entity on the toroidal map
 │   │   ├── ToroidalRenderingComponent.swift # Ghost node rendering for toroidal boundary visibility
 │   │   ├── AnimationComponent.swift        # Directional animation handler with atlas loading and optional mirroring
 │   │   ├── ShieldComponent.swift           # Level-up shield radius expansion and collision
@@ -243,12 +242,27 @@ Entities near map boundaries must be visible from the opposite side. `ToroidalRe
 ```swift
 final class ToroidalRenderingComponent {
     func update(cameraPosition: CGPoint, viewportSize: CGSize) {
-        // For each of 8 wrapped positions (±mapSize on x/y)
-        // If wrapped position is visible in camera viewport:
-        //   Create ghost SKSpriteNode copy at that position
+        // Find the wrapped copy of the entity closest to the camera center
+        // Check its 8 neighbours for visibility in the camera viewport
+        // Create ghost SKSpriteNode copies at any visible wrapped positions
     }
 }
 ```
+
+**Entity position strategy — no hard wrap:**
+Entities are NOT wrapped to `[-mapSize/2, +mapSize/2]` every frame. Instead, each entity keeps its position within one map-width of the camera. This prevents the one-frame visual snap that occurs when a position jumps by `mapSize`. The camera also never wraps — it drifts freely in world space following the player via `toroidalOffset`.
+
+```swift
+// Applied in PlayerEntity, EnemyEntity, ForestEssenceOrb each frame:
+let hw = GameConfig.mapSize.width / 2
+let hh = GameConfig.mapSize.height / 2
+if position.x - camPos.x >  hw { position.x -= GameConfig.mapSize.width }
+if position.x - camPos.x < -hw { position.x += GameConfig.mapSize.width }
+if position.y - camPos.y >  hh { position.y -= GameConfig.mapSize.height }
+if position.y - camPos.y < -hh { position.y += GameConfig.mapSize.height }
+```
+
+**Ghost node visibility** uses the camera's absolute (unwrapped) position. The ghost renderer finds the nearest wrapped copy of the entity relative to the camera, then checks its 8 neighbours — this handles the camera drifting outside `[-mapSize/2, +mapSize/2]` correctly.
 
 **Ghost nodes are:**
 - Visual copies only - texture, size, position, alpha, scale
@@ -297,15 +311,14 @@ private func handlePlayerProjectileHitsEnemy(_ contact: SKPhysicsContact) {
 All spatial logic involving wrap must go through `ToroidalMath.swift`. Never compute wrapped positions inline in entity or scene code.
 
 ```swift
-// Wrap a position into map bounds
-func toroidalWrap(_ position: CGPoint, mapSize: CGSize) -> CGPoint
-
 // Find shortest toroidal distance vector from a to b
 func toroidalOffset(from a: CGPoint, to b: CGPoint, mapSize: CGSize) -> CGVector
 
 // Evaluate all 9 sectors and return the closest target position
 func nearestToroidalTarget(from origin: CGPoint, to target: CGPoint, mapSize: CGSize) -> CGPoint
 ```
+
+**Note:** Entities never call `toroidalWrap` directly. Position clamping is handled by `CameraSystem.clampToroidal(_:)` which keeps each entity within one map-width of the camera — no hard snap, no visual pop.
 
 ---
 
@@ -553,7 +566,12 @@ enum GameConfig {
     static let shieldMaxRadius: CGFloat = 180
 
     // Camera
-    static let cameraLeashDistance: CGFloat = 600
+    static let cameraFollowSpeed: CGFloat = 0.1
+    static let cameraZoom: CGFloat = 3.0          // SKCameraNode scale = 1/cameraZoom
+    static var cameraViewportSize: CGSize {        // computed — never hardcode
+        CGSize(width: mapSize.width / cameraZoom, height: mapSize.height / cameraZoom)
+    }
+    static let cameraLeashFactor: CGFloat = 0.95
 
     // Skill Draw
     static let skillDrawCount: Int = 3

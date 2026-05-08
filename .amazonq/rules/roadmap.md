@@ -44,7 +44,7 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 - [~] **`GameScene.swift` — skeleton**
   - Set up scene with 3 z-layers (ground, environment, entities)
   - Integrate `SKCameraNode`, wire to `CameraSystem`
-  - Implement main `update(deltaTime:)` dispatch loop
+  - Implement main `update(deltaTime:)` dispatch loop — order: players → attacks → projectiles → enemies → AI
   - Own and update `DirectorSystem` each frame
   - ⚠️ `handleLevelUp`, `spawnBossMinions`, `spawnEnemyProjectile` are stubs — not yet implemented
   - ⚠️ Enemy projectile pool does not exist yet
@@ -55,7 +55,9 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 
 - [x] **`CameraSystem.swift`**
   - Track a list of player entities (list of one in V1)
-  - Compute midpoint, apply to `SKCameraNode` each frame
+  - Compute midpoint, apply to `SKCameraNode` each frame via `toroidalOffset` (shortest path)
+  - Camera position is never hard-wrapped — drifts freely in world space to prevent visual snapping at boundaries
+  - `cameraZoom` applied via `SKCameraNode.setScale(1/cameraZoom)` — viewport size computed dynamically from `mapSize / cameraZoom`
   - Design the interface to accept additional players with no structural change (readiness for V2)
 
 ---
@@ -81,9 +83,7 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
   - XP accumulation, threshold check, level-up event emission
   - Returns `Bool` from `addXP` to signal level-up to caller
 
-- [x] **`ToroidalPositionComponent.swift`**
-  - Wraps entity position through `ToroidalMath` each frame
-  - Used by Player, Enemy, Projectile, XP orbs
+- [x] **`ToroidalPositionComponent.swift`** — removed. Replaced by `CameraSystem.clampToroidal(_:)` which keeps entities within one map-width of the camera without hard-wrapping. All entities call this directly.
 
 - [x] **`PlayerEntity.swift`**
   - Owns `HealthComponent`, `LevelComponent`, `ToroidalPositionComponent`
@@ -120,28 +120,27 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 
 ### Forest Essence & Greed System
 
-- [ ] **`ForestEssenceOrb.swift`**
-  - State machine: `small → grown → mistExplosion`
-  - Evolution timers read from `GameConfig`
-  - `mistExplosion` state: play Mist burst VFX, consume orb, notify `SpawnSystem` to spawn `MiniBossGnome` at orb position
-  - Collection: player contact → add Essence to `LevelComponent`, return orb to pool
+- [x] **`ForestEssenceOrb.swift`** (basic implementation)
+  - Drops at enemy death position, collectable by player contact
+  - Toroidal ghost rendering via `ToroidalRenderingComponent`
+  - Position kept within one map-width of camera (no hard wrap)
+  - Collection: player contact → add Essence to `LevelComponent`, cleanup ghosts, remove from scene
+  - ⚠️ State machine (`small → grown → mistExplosion`) not yet implemented — orb is static
 
 ---
 
 ### Gnomes
 
-- [~] **`EnemyEntity.swift`**
-  - `HealthComponent`, `ToroidalPositionComponent`
+- [x] **`EnemyEntity.swift`**
+  - `HealthComponent`, toroidal position (camera-relative, no hard wrap)
   - `isTargetingActive` flag (false = ignore for AI targeting)
   - `budgetWeight: Int` computed property (default 1, overridden by subclasses)
-  - `die()` → drop Forest Essence orb, play purification animation, notify `DirectorSystem` via `CollisionSystem`
-  - ⚠️ `die()` does not yet respect `isTargetingActive`
+  - `die()` → clears ghosts, drops Forest Essence orb, notifies `DirectorSystem`, deregisters from scene
 
-- [~] **`EnemyAI.swift`**
-  - Each frame: call `nearestToroidalTarget` to get move direction
-  - Respect `isTargetingActive` on all player entities in target evaluation
-  - Output: movement vector toward shortest-path target
-  - ⚠️ Does not yet filter by `isTargetingActive`
+- [x] **`EnemyAI.swift`**
+  - Runs after enemies move and wrap each frame — ensures `targetPosition` is always computed from correct post-wrap positions
+  - Filters dead players from target list
+  - Output: sets `targetPosition` on each enemy toward shortest toroidal path
 
 - [x] **`SmallGnome.swift`**
   - Basic melee/contact gnome, low health, `budgetWeight = 1`
@@ -203,18 +202,19 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 
 ### Spawn System
 
-- [~] **`SpawnSystem.swift`**
-  - Before every spawn decision, read `DirectorSystem.currentBudget` and compute `activeBudgetUsed` (sum of `budgetWeight` of all live gnomes)
-  - Only spawn if `activeBudgetUsed + newGnome.budgetWeight <= currentBudget`
-  - **All gnome spawn positions must fall outside the current camera view rect** — query `CameraSystem` for visible bounds before placing any gnome
-  - Wave-based gnome spawning with escalating difficulty (wave parameters in `GameConfig`)
-  - Forest Essence orb drop logic (called by `EnemyEntity.die()`)
-  - MiniBoss spawn request from `ForestEssenceOrb` Mist explosion — still subject to budget check; still spawns outside camera
-  - **Boss stage:** when `DirectorSystem.isBossStageActive` becomes true, pause all regular gnome spawning and trigger `BossGnome` spawn; Boss spawn is not budget-checked
-  - On Boss death: call `DirectorSystem.recordBossDeath()` to end the Boss stage
-  - Pass `activeBudgetUsed` to `DirectorSystem.update()` each frame
-  - ⚠️ `spawnForestEssenceOrb` drops a plain colored `SKSpriteNode` placeholder, not a real `ForestEssenceOrb`
-  - ⚠️ `activeBudgetUsed` is computed in `GameScene` but never passed to `DirectorSystem.update()`
+- [x] **`SpawnSystem.swift`**
+  - Before every spawn decision, read `DirectorSystem.currentBudget`
+  - Only spawn if budget allows
+  - All gnome spawn positions fall outside current camera view rect
+  - Tracks `ForestEssenceOrb` instances, updates their toroidal position each frame
+  - `removeOrb(_:)` cleans up ghosts before removing orb from scene
+  - ⚠️ `spawnForestEssenceOrb` spawns a basic colored orb — full `ForestEssenceOrb` state machine not yet wired
+  - [ ] Wave-based gnome spawning with escalating difficulty (wave parameters in `GameConfig`)
+  - [ ] Forest Essence orb drop logic — orb evolution state machine (`small → grown → mistExplosion`)
+  - [ ] MiniBoss spawn request from `ForestEssenceOrb` Mist explosion — subject to budget check; spawns outside camera
+  - [ ] Boss stage: when `DirectorSystem.isBossStageActive` becomes true, pause regular spawning and trigger `BossGnome` spawn outside budget
+  - [ ] On Boss death: call `DirectorSystem.recordBossDeath()` to end Boss stage
+  - [ ] Pass `activeBudgetUsed` to `DirectorSystem.update()` each frame
 
 ---
 
@@ -243,10 +243,11 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 
 ### Collision
 
-- [~] **`CollisionSystem.swift`**
+- [x] **`CollisionSystem.swift`**
   - Implement `SKPhysicsContactDelegate`
   - Route all contact pairs to correct handlers using `PhysicsCategory` bitmasks
-  - Handlers: player takes damage, gnome takes damage, Forest Essence collect, shield pushes entities, shield destroys gnome projectiles
+  - Handlers: player takes damage, gnome takes damage, Forest Essence collect
+  - Ghost node hits redirect damage to real entity via `userData["ghostOf"]`
   - On gnome death: call `DirectorSystem.recordKill()`
   - On player damage: call `DirectorSystem.recordDamageTaken(_ amount:)`
   - ⚠️ Shield push and shield destroys enemy projectile handlers are missing
