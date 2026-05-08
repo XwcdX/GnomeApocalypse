@@ -5,7 +5,7 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
     
     func register(player: PlayerEntity, directorSystem: DirectorSystem) {
         playerHealthCallbacks[player] = { [weak player, weak directorSystem] damage in
-            player?.health.takeDamage(damage)
+            player?.takeDamage(damage)
             directorSystem?.recordDamageTaken(damage)
         }
     }
@@ -41,8 +41,8 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
         }
         
         guard let enemy = enemyNode else { return }
-        
         enemy.health.takeDamage(projectile.damage)
+        if enemy.health.isDead { enemy.die() }
         projectile.deactivate()
     }
     
@@ -65,19 +65,25 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
     }
     
     private func handlePlayerCollectsOrb(_ contact: SKPhysicsContact) {
-        var playerNode = (contact.bodyA.node as? PlayerEntity) ?? (contact.bodyB.node as? PlayerEntity)
-        
+        let nodeA = contact.bodyA.node
+        let nodeB = contact.bodyB.node
+
+        var playerNode = (nodeA as? PlayerEntity) ?? (nodeB as? PlayerEntity)
+        var orbNode: SKNode? = playerNode === nodeA ? nodeB : nodeA
+
         if playerNode == nil {
-            let ghostNode = contact.bodyA.node?.name == "ghost" ? contact.bodyA.node : contact.bodyB.node
+            let ghostNode = nodeA?.name == "ghost" ? nodeA : nodeB
             if let realPlayer = ghostNode?.userData?["ghostOf"] as? PlayerEntity {
                 playerNode = realPlayer
+                orbNode = ghostNode === nodeA ? nodeB : nodeA
             }
         }
-        
+
         guard let player = playerNode,
-              let orb = contact.bodyA.node ?? contact.bodyB.node else { return }
-        
-        player.level.addXP(GameConfig.orbBaseEssenceValue)
-        orb.removeFromParent()
+              let orb = orbNode as? ForestEssenceOrb,
+              let scene = player.scene as? GameScene else { return }
+
+        player.addXP(orb.essenceValue)
+        scene.removeOrb(orb)
     }
 }

@@ -4,12 +4,19 @@ final class CameraSystem {
     let cameraNode: SKCameraNode
     private(set) var players: [PlayerEntity] = []
 
-    private let viewportSize: CGSize
+    private(set) var viewportSize: CGSize
 
     init(cameraNode: SKCameraNode, viewportSize: CGSize) {
         self.cameraNode = cameraNode
         self.viewportSize = viewportSize
+        cameraNode.setScale(1.0 / GameConfig.cameraZoom)
     }
+
+    func updateViewport(_ size: CGSize) {
+        viewportSize = size
+    }
+
+    var worldViewportSize: CGSize { GameConfig.cameraViewportSize }
 
     func addPlayer(_ player: PlayerEntity) {
         guard !players.contains(where: { $0 === player }) else { return }
@@ -20,35 +27,43 @@ final class CameraSystem {
         players.removeAll { $0 === player }
     }
 
+    /// Keeps `position` within one map-width of the camera — no hard wrap, no visual snap.
+    /// Call every frame from any entity after moving.
+    func clampToroidal(_ position: inout CGPoint) {
+        let camPos = cameraNode.position
+        let hw = GameConfig.mapSize.width / 2
+        let hh = GameConfig.mapSize.height / 2
+        if position.x - camPos.x >  hw { position.x -= GameConfig.mapSize.width }
+        if position.x - camPos.x < -hw { position.x += GameConfig.mapSize.width }
+        if position.y - camPos.y >  hh { position.y -= GameConfig.mapSize.height }
+        if position.y - camPos.y < -hh { position.y += GameConfig.mapSize.height }
+    }
+
     func update(deltaTime: TimeInterval) {
         guard !players.isEmpty else { return }
-        
+
         let target = midpoint(of: players.map { $0.position })
         let current = cameraNode.position
-        
         let offset = toroidalOffset(from: current, to: target, mapSize: GameConfig.mapSize)
-        
         cameraNode.position = CGPoint(
             x: current.x + offset.dx * GameConfig.cameraFollowSpeed,
             y: current.y + offset.dy * GameConfig.cameraFollowSpeed
         )
-        
-        cameraNode.position = toroidalWrap(cameraNode.position, mapSize: GameConfig.mapSize)
     }
 
     var visibleRect: CGRect {
         let origin = CGPoint(
-            x: cameraNode.position.x - viewportSize.width  / 2,
-            y: cameraNode.position.y - viewportSize.height / 2
+            x: cameraNode.position.x - worldViewportSize.width  / 2,
+            y: cameraNode.position.y - worldViewportSize.height / 2
         )
-        return CGRect(origin: origin, size: viewportSize)
+        return CGRect(origin: origin, size: worldViewportSize)
     }
 
     var isLocked: Bool = false
 
     func isWithinLeash(_ position: CGPoint) -> Bool {
-        let halfW = (viewportSize.width  / 2) * GameConfig.cameraLeashFactor
-        let halfH = (viewportSize.height / 2) * GameConfig.cameraLeashFactor
+        let halfW = (worldViewportSize.width  / 2) * GameConfig.cameraLeashFactor
+        let halfH = (worldViewportSize.height / 2) * GameConfig.cameraLeashFactor
         let centre = cameraNode.position
         return abs(position.x - centre.x) <= halfW
             && abs(position.y - centre.y) <= halfH

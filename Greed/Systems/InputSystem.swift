@@ -8,10 +8,7 @@ final class InputSystem {
 
     private var keysDown: Set<KeyCode> = []
     private var mouseWorldPosition: CGPoint = .zero
-    private var lastMouseMoveTime: TimeInterval = 0
-
-    private var autoAimActive: [Bool] = []
-
+    private var lastMouseMoveTime: TimeInterval = -GameConfig.autoAimIdleThreshold - 1
     func setup() {
         NotificationCenter.default.addObserver(
             self,
@@ -107,12 +104,10 @@ final class InputSystem {
         return magnitude(v) > 0 ? normalised(v) : .zero
     }
 
-    private func mouseAimVector(playerWorldPos: CGPoint, gnomes: [EnemyEntity])
-        -> CGVector
-    {
-        let idle =
-            CACurrentMediaTime() - lastMouseMoveTime
-            > GameConfig.autoAimIdleThreshold
+    private func mouseAimVector(playerWorldPos: CGPoint, gnomes: [EnemyEntity]) -> CGVector {
+        let hasMoved = lastMouseMoveTime > 0
+        let idle = !hasMoved || CACurrentMediaTime() - lastMouseMoveTime > GameConfig.autoAimIdleThreshold
+
         if idle {
             return autoAimVector(from: playerWorldPos, gnomes: gnomes)
         }
@@ -123,30 +118,15 @@ final class InputSystem {
         return magnitude(diff) > 1 ? normalised(diff) : .zero
     }
 
-    private func autoAimVector(from origin: CGPoint, gnomes: [EnemyEntity])
-        -> CGVector
-    {
+    private func autoAimVector(from origin: CGPoint, gnomes: [EnemyEntity]) -> CGVector {
         guard !gnomes.isEmpty else { return .zero }
 
-        let nearest = gnomes.min {
-            toroidalDistance(
-                from: origin,
-                to: $0.position,
-                mapSize: GameConfig.mapSize
-            )
-                < toroidalDistance(
-                    from: origin,
-                    to: $1.position,
-                    mapSize: GameConfig.mapSize
-                )
-        }
-        guard let target = nearest else { return .zero }
+        let nearest = gnomes
+            .filter { toroidalDistance(from: origin, to: $0.position, mapSize: GameConfig.mapSize) <= GameConfig.autoAimMaxRange }
+            .min { toroidalDistance(from: origin, to: $0.position, mapSize: GameConfig.mapSize) < toroidalDistance(from: origin, to: $1.position, mapSize: GameConfig.mapSize) }
 
-        let offset = toroidalOffset(
-            from: origin,
-            to: target.position,
-            mapSize: GameConfig.mapSize
-        )
+        guard let target = nearest else { return .zero }
+        let offset = toroidalOffset(from: origin, to: target.position, mapSize: GameConfig.mapSize)
         return magnitude(offset) > 0 ? normalised(offset) : .zero
     }
 
@@ -161,9 +141,8 @@ final class InputSystem {
     }
 
     private func controller(for playerIndex: Int) -> GCController? {
-        let controllerIndex = controllers.isEmpty ? playerIndex : playerIndex
-        guard controllerIndex < controllers.count else { return nil }
-        return controllers[controllerIndex]
+        guard playerIndex < controllers.count else { return nil }
+        return controllers[playerIndex]
     }
 
     @objc private func controllerConnected(_ notification: Notification) {
