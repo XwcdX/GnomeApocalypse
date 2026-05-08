@@ -7,6 +7,7 @@ final class ForestEssenceOrb: SKSpriteNode {
     init(essenceValue: Int) {
         self.essenceValue = essenceValue
         super.init(texture: nil, color: .green, size: CGSize(width: 16, height: 16))
+        self.zPosition = Layer.orb
         setupPhysics()
     }
     
