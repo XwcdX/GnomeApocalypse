@@ -4,16 +4,18 @@ import CoreGraphics
 enum GameConfig {
     // MARK: - Map
     /// The logical size of the toroidal world. Positions outside this range are wrapped.
-    static let mapSize: CGSize = CGSize(width: 4096, height: 4096)
+    static let mapSize: CGSize = CGSize(width: 1440, height: 810)
     
     
     // MARK: - Player
     static let basePlayerSpeed: CGFloat = 200
     static let basePlayerHealth: Int = 100
     static let basePlayerDamage: Int = 10
-    static let baseFireRate: TimeInterval = 0.25
+    static let baseFireRate: TimeInterval = 1
     static let projectileSpeed: CGFloat = 500
-    static let projectileLifeSpan: TimeInterval = 2
+    static var projectileLifeSpan: TimeInterval {
+        TimeInterval((cameraViewportSize.width / 2) / projectileSpeed)
+    }
     static let playerProjectileSize: CGSize = CGSize(width: 24, height: 20)
     static let playerProjectileSpawnOffset: CGFloat = 24
     static let playerProjectileFrameTime: TimeInterval = 0.06
@@ -72,19 +74,20 @@ enum GameConfig {
     
     // MARK: - Camera
     static let cameraFollowSpeed: CGFloat = 0.1
-    
-    /// Leash defined as a fraction of the viewport, not a fixed point value
-    /// 1.0 = player can reach exactly the screen edge before being leashed
-    /// 0.9 = player is pulled back slightly before reaching the edge (safer feel)
+    static let cameraZoom: CGFloat = 2.5
+    static var cameraViewportSize: CGSize {
+        CGSize(width: mapSize.width / cameraZoom, height: mapSize.height / cameraZoom)
+    }
     static let cameraLeashFactor: CGFloat = 0.95
-    
-    
+
+
     // MARK: - Input
-    /// Seconds of mouse/trackpad inactivity before auto-aim engages.
     static let autoAimIdleThreshold: TimeInterval = 0.2
-    
-    /// Right-stick magnitude below which auto-aim engages for controller players.
     static let stickDeadzone: CGFloat = 0.15
+    /// Full viewport diagonal — auto-aim targets any enemy visible on screen
+    static var autoAimMaxRange: CGFloat {
+        sqrt(pow(cameraViewportSize.width, 2) + pow(cameraViewportSize.height, 2))
+    }
     
     
     // MARK: - Director System
@@ -121,14 +124,30 @@ enum GameConfig {
     
     
     // MARK: - Enemy Spawn
-    /// Margin (in points) outside the camera rect required before a gnome spawn position is accepted.
     static let spawnMarginOutsideCamera: CGFloat = 60
+
+    // MARK: - MiniBoss
+    static let miniBossShootInterval: TimeInterval = 2.0
+    static let miniBossProjectileDamage: Int = 15
+    static let miniBossMoveSpeed: CGFloat = 60
+    static let miniBossHealth: Int = 200
+
+    // MARK: - Boss
+    static let bossAbilityInterval: TimeInterval = 8.0
+    static let bossMoveSpeed: CGFloat = 40
+    static let bossHealth: Int = 2000
+    static let bossPhase1MinionCount: Int = 3
+    static let bossPhase2MinionCount: Int = 6
     
     
     // MARK: - Gnome Budget Weights
     static let smallGnomeBudgetWeight: Int = 1
     static let miniBossGnomeBudgetWeight: Int = 10
     static let swarmBudgetWeight: Int = 20
+
+    // MARK: - Small Gnome
+    static let smallGnomeHealth: Int = 30
+    static let smallGnomeMoveSpeed: CGFloat = 80
     
     
     // MARK: - Side Quest

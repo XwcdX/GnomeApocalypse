@@ -1,18 +1,5 @@
 import CoreGraphics
 
-func toroidalWrap(_ position: CGPoint, mapSize: CGSize) -> CGPoint {
-    let w = mapSize.width
-    let h = mapSize.height
-    
-    var x = position.x.truncatingRemainder(dividingBy: w)
-    if x < 0 { x += w }
-    
-    var y = position.y.truncatingRemainder(dividingBy: h)
-    if y < 0 { y += h }
-    
-    return CGPoint(x: x, y: y)
-}
-
 func toroidalOffset(from a: CGPoint, to b: CGPoint, mapSize: CGSize) -> CGVector {
     let w = mapSize.width
     let h = mapSize.height
