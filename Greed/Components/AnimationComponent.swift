@@ -59,37 +59,34 @@ final class AnimationComponent {
     }
     
     func setDirection(dx: CGFloat, dy: CGFloat) -> String {
+        if canMirror {
+            if dx < 0 {
+                owner.xScale = -1
+            } else if dx > 0 {
+                owner.xScale = 1
+            }
+            return "right"
+        }
+        
         let angle = atan2(dy, dx)
         let degrees = angle * 180 / .pi
         
-        let direction: String
         if degrees >= -22.5 && degrees < 22.5 {
-            direction = "right"
+            return "right"
         } else if degrees >= 22.5 && degrees < 67.5 {
-            direction = "right_up"
+            return "up_right"
         } else if degrees >= 67.5 && degrees < 112.5 {
-            direction = "up"
+            return "up"
         } else if degrees >= 112.5 && degrees < 157.5 {
-            direction = "up_left"
+            return "up_left"
         } else if degrees >= 157.5 || degrees < -157.5 {
-            direction = "left"
+            return "left"
         } else if degrees >= -157.5 && degrees < -112.5 {
-            direction = "down_left"
+            return "down_left"
         } else if degrees >= -112.5 && degrees < -67.5 {
-            direction = "down"
+            return "down"
         } else {
-            direction = "right_down"
+            return "down_right"
         }
-        
-        if canMirror {
-            if direction.contains("right") {
-                owner.xScale = -1
-                return direction.replacingOccurrences(of: "right", with: "left")
-            } else {
-                owner.xScale = 1
-            }
-        }
-        
-        return direction
     }
 }
