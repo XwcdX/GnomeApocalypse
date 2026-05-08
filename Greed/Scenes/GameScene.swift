@@ -11,6 +11,7 @@ final class GameScene: SKScene {
     private var floorRenderer: FloorTileRenderer!
     private var enemyAI: EnemyAI!
     private var playerProjectilePool: ProjectilePool!
+    private var hud: HUD!
     
     private var players: [PlayerEntity] = []
     private var enemies: [EnemyEntity] = []
@@ -20,6 +21,7 @@ final class GameScene: SKScene {
     private let environmentLayer = SKNode()
     private let entityLayer = SKNode()
     
+    private var elapsedRunTime: TimeInterval = 0
     private var lastUpdateTime: TimeInterval = 0
 
     func setup(view: MTKView) {
@@ -33,6 +35,7 @@ final class GameScene: SKScene {
     override func update(_ currentTime: TimeInterval) {
         let deltaTime = computeDeltaTime(currentTime)
         guard deltaTime > 0 else { return }
+        elapsedRunTime += deltaTime
 
         // Players move and wrap first
         let visibleEnemies = enemies.filter { isVisible($0.position) }
@@ -58,6 +61,7 @@ final class GameScene: SKScene {
         directorSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
 
         spawnSystem.update(deltaTime: deltaTime)
+        hud.update(elapsedTime: elapsedRunTime)
         cameraSystem.update(deltaTime: deltaTime)
         floorRenderer.update(cameraPosition: cameraSystem.cameraNode.position)
     }
@@ -113,6 +117,7 @@ final class GameScene: SKScene {
     func updateViewport(_ size: CGSize) {
         cameraSystem.updateViewport(size)
         floorRenderer.updateViewport(size)
+        hud?.updateViewport(size, cameraScale: cameraSystem.cameraNode.xScale)
     }
 
     private func spawnPlayer() {
@@ -125,6 +130,13 @@ final class GameScene: SKScene {
         player.attack = playerAttack
         playerAttacks.append(playerAttack)
         collisionSystem.register(player: player, directorSystem: directorSystem)
+        setupHUD(for: player)
+    }
+
+    private func setupHUD(for player: PlayerEntity) {
+        let hud = HUD(player: player, screenSize: size, cameraScale: cameraSystem.cameraNode.xScale)
+        cameraSystem.cameraNode.addChild(hud)
+        self.hud = hud
     }
 
     private func computeDeltaTime(_ currentTime: TimeInterval) -> TimeInterval {
