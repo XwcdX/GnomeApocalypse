@@ -13,32 +13,42 @@ final class ToroidalRenderingComponent {
     func update(cameraPosition: CGPoint, viewportSize: CGSize) {
         guard let owner = owner,
               let sprite = owner as? SKSpriteNode,
-              let parent = owner.parent else { return }
-        
+              let parent = owner.parent else {
+            clearGhosts()
+            return
+        }
+
         clearGhosts()
-        
+
         let pos = owner.position
+        let margin: CGFloat = max(sprite.size.width, sprite.size.height)
         let cameraRect = CGRect(
-            x: cameraPosition.x - viewportSize.width / 2 - 100,
-            y: cameraPosition.y - viewportSize.height / 2 - 100,
-            width: viewportSize.width + 200,
-            height: viewportSize.height + 200
+            x: cameraPosition.x - viewportSize.width / 2 - margin,
+            y: cameraPosition.y - viewportSize.height / 2 - margin,
+            width: viewportSize.width + margin * 2,
+            height: viewportSize.height + margin * 2
         )
-        
-        for x in -1...1 {
-            for y in -1...1 {
-                if x == 0 && y == 0 { continue }
-                
-                let offset = CGPoint(
-                    x: CGFloat(x) * mapSize.width,
-                    y: CGFloat(y) * mapSize.height
+
+        let nearestX = pos.x + round((cameraPosition.x - pos.x) / mapSize.width) * mapSize.width
+        let nearestY = pos.y + round((cameraPosition.y - pos.y) / mapSize.height) * mapSize.height
+
+        for dx in -1...1 {
+            for dy in -1...1 {
+                if dx == 0 && dy == 0 { continue }
+                let ghostPos = CGPoint(
+                    x: nearestX + CGFloat(dx) * mapSize.width,
+                    y: nearestY + CGFloat(dy) * mapSize.height
                 )
-                let ghostPos = CGPoint(x: pos.x + offset.x, y: pos.y + offset.y)
-                
                 if cameraRect.contains(ghostPos) {
                     createGhost(sprite: sprite, at: ghostPos, parent: parent)
                 }
             }
+        }
+
+        let nearestPos = CGPoint(x: nearestX, y: nearestY)
+        if (abs(nearestX - pos.x) > 1 || abs(nearestY - pos.y) > 1),
+           cameraRect.contains(nearestPos) {
+            createGhost(sprite: sprite, at: nearestPos, parent: parent)
         }
     }
     
@@ -47,22 +57,33 @@ final class ToroidalRenderingComponent {
     }
     
     private func createGhost(sprite: SKSpriteNode, at position: CGPoint, parent: SKNode) {
-        let ghost = SKSpriteNode(texture: sprite.texture, size: sprite.size)
+        let ghost: SKSpriteNode
+        if let texture = sprite.texture {
+            ghost = SKSpriteNode(texture: texture, size: sprite.size)
+        } else {
+            ghost = SKSpriteNode(color: sprite.color, size: sprite.size)
+            ghost.colorBlendFactor = sprite.colorBlendFactor
+        }
         ghost.position = position
         ghost.zPosition = sprite.zPosition
         ghost.alpha = sprite.alpha
         ghost.xScale = sprite.xScale
         ghost.yScale = sprite.yScale
         ghost.name = "ghost"
-        
+
         if let ownerBody = sprite.physicsBody {
-            let ghostBody = ownerBody.copy() as! SKPhysicsBody
-            ghostBody.isDynamic = false
+            let radius = max(sprite.size.width, sprite.size.height) / 2
+            let ghostBody = SKPhysicsBody(circleOfRadius: radius)
+            ghostBody.categoryBitMask = ownerBody.categoryBitMask
+            ghostBody.contactTestBitMask = ownerBody.contactTestBitMask
             ghostBody.collisionBitMask = PhysicsCategory.none
+            ghostBody.isDynamic = false
+            ghostBody.affectedByGravity = false
+            ghostBody.allowsRotation = false
             ghost.physicsBody = ghostBody
-            ghost.userData = ["ghostOf": sprite]
+            ghost.userData = NSMutableDictionary(dictionary: ["ghostOf": sprite])
         }
-        
+
         parent.addChild(ghost)
         ghosts.append(ghost)
     }

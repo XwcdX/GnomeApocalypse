@@ -3,17 +3,16 @@ import Foundation
 struct HealthComponent {
     private(set) var current: Int
     var maximum: Int
-    var onDeath: (() -> Void)?
-    
     init(maximum: Int) {
         self.maximum = maximum
         self.current = maximum
     }
-    
-    mutating func takeDamage(_ amount: Int) {
-        guard amount > 0, !isDead else { return }
+
+    @discardableResult
+    mutating func takeDamage(_ amount: Int) -> Bool {
+        guard amount > 0, !isDead else { return false }
         current = max(0, current - amount)
-        if isDead { onDeath?() }
+        return isDead
     }
     
     mutating func heal(_ amount: Int) {

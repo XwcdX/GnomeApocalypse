@@ -59,34 +59,53 @@ final class AnimationComponent {
     }
     
     func setDirection(dx: CGFloat, dy: CGFloat) -> String {
-        if canMirror {
-            if dx < 0 {
-                owner.xScale = -1
-            } else if dx > 0 {
-                owner.xScale = 1
-            }
-            return "right"
-        }
-        
         let angle = atan2(dy, dx)
         let degrees = angle * 180 / .pi
-        
+
+        // Resolve the canonical direction using right-side names
+        let rightSide: String
         if degrees >= -22.5 && degrees < 22.5 {
-            return "right"
+            rightSide = "right"
         } else if degrees >= 22.5 && degrees < 67.5 {
-            return "up_right"
+            rightSide = "up_right"
         } else if degrees >= 67.5 && degrees < 112.5 {
-            return "up"
+            rightSide = "up"
         } else if degrees >= 112.5 && degrees < 157.5 {
-            return "up_left"
+            rightSide = "up_left"
         } else if degrees >= 157.5 || degrees < -157.5 {
-            return "left"
+            rightSide = "left"
         } else if degrees >= -157.5 && degrees < -112.5 {
-            return "down_left"
+            rightSide = "down_left"
         } else if degrees >= -112.5 && degrees < -67.5 {
-            return "down"
+            rightSide = "down"
         } else {
+            rightSide = "down_right"
+        }
+
+        guard canMirror else { return rightSide }
+
+        switch rightSide {
+        case "right":
+            owner.xScale = 1
+            return "right"
+        case "up_right":
+            owner.xScale = 1
+            return "up_right"
+        case "down_right":
+            owner.xScale = 1
             return "down_right"
+        case "left":
+            owner.xScale = -1
+            return "right"
+        case "up_left":
+            owner.xScale = -1
+            return "up_right"
+        case "down_left":
+            owner.xScale = -1
+            return "down_right"
+        default:
+            owner.xScale = 1
+            return rightSide
         }
     }
 }
