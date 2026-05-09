@@ -1,4 +1,7 @@
 import SpriteKit
+#if os(macOS)
+import AppKit
+#endif
 
 final class HUD: SKNode {
     private enum Metrics {
@@ -11,10 +14,15 @@ final class HUD: SKNode {
         static let healthBarMaxWidth: CGFloat = 470
         static let healthFramePadding: CGFloat = 6
         static let levelRightInset: CGFloat = 0
+        static let itemSlotSize = CGSize(width: 52, height: 52)
+        static let itemSlotGapX: CGFloat = 50
+        static let itemSlotGapY: CGFloat = 40
     }
 
     private weak var player: PlayerEntity?
     private var screenSize: CGSize
+    private var weaponSlots: [ItemSlotVisual] = []
+    private var powerUpSlots: [ItemSlotVisual] = []
 
     private let avatarNode = SKShapeNode()
     private let essenceTrack = SKSpriteNode(color: .white, size: .zero)
@@ -26,6 +34,16 @@ final class HUD: SKNode {
     private let levelLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
     private let stageLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
     private let timerLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+
+    private final class ItemSlotVisual {
+        let root = SKNode()
+        let background = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.34), size: .zero)
+        let frame = SKShapeNode()
+        let icon = SKSpriteNode(color: .clear, size: .zero)
+        let initials = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        let levelLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        var representedSkillID: String?
+    }
 
     init(player: PlayerEntity, screenSize: CGSize) {
         self.player = player
@@ -55,6 +73,7 @@ final class HUD: SKNode {
         setEssenceFraction(player.level.xpFraction)
         levelLabel.text = "LV \(player.level.currentLevel)"
         timerLabel.text = formatElapsedTime(elapsedTime)
+        updateItemSlots(for: player)
     }
 
     private func setupNodes() {
@@ -116,6 +135,12 @@ final class HUD: SKNode {
         timerLabel.verticalAlignmentMode = .center
         timerLabel.name = "timerLabel"
         addChild(timerLabel)
+
+        weaponSlots = makeItemSlots(count: GameConfig.maxWeaponSlots)
+        powerUpSlots = makeItemSlots(count: GameConfig.maxPowerUpSlots)
+        for slot in weaponSlots + powerUpSlots {
+            addChild(slot.root)
+        }
     }
 
     private func layout() {
@@ -180,8 +205,20 @@ final class HUD: SKNode {
         stageLabel.position = CGPoint(x: 0, y: top - scaled(128, scale))
         timerLabel.position = CGPoint(x: 0, y: top - scaled(156, scale))
 
+        layoutItemSlots(
+            slotSize: scaled(Metrics.itemSlotSize, scale),
+            origin: CGPoint(
+                x: healthLeft + scaled(8, scale),
+                y: healthY - scaled(82, scale)
+            ),
+            scale: scale
+        )
+
         setEssenceFraction(player?.level.xpFraction ?? 0)
         setHealthFraction(player?.health.fraction ?? 0)
+        if let player {
+            updateItemSlots(for: player)
+        }
     }
 
     private func setHealthFraction(_ fraction: CGFloat) {
@@ -196,6 +233,149 @@ final class HUD: SKNode {
             width: essenceTrack.size.width * clampedFraction(fraction),
             height: essenceTrack.size.height
         )
+    }
+
+    private func makeItemSlots(count: Int) -> [ItemSlotVisual] {
+        (0..<count).map { index in
+            let slot = ItemSlotVisual()
+            slot.root.name = "itemSlot_\(index)"
+            slot.root.zPosition = 5
+
+            slot.background.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            slot.background.name = "itemSlotBackground"
+            slot.background.zPosition = 0
+            slot.root.addChild(slot.background)
+
+            slot.frame.fillColor = .clear
+            slot.frame.strokeColor = SKColor.white.withAlphaComponent(0.88)
+            slot.frame.lineWidth = 2
+            slot.frame.name = "itemSlotFrame"
+            slot.frame.zPosition = 2
+            slot.root.addChild(slot.frame)
+
+            slot.icon.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            slot.icon.name = "itemSlotIcon"
+            slot.icon.zPosition = 1
+            slot.root.addChild(slot.icon)
+
+            slot.initials.fontColor = .white
+            slot.initials.horizontalAlignmentMode = .center
+            slot.initials.verticalAlignmentMode = .center
+            slot.initials.name = "itemSlotInitials"
+            slot.initials.zPosition = 3
+            slot.root.addChild(slot.initials)
+
+            slot.levelLabel.fontColor = .white
+            slot.levelLabel.horizontalAlignmentMode = .right
+            slot.levelLabel.verticalAlignmentMode = .bottom
+            slot.levelLabel.name = "itemSlotLevel"
+            slot.levelLabel.zPosition = 4
+            slot.root.addChild(slot.levelLabel)
+
+            return slot
+        }
+    }
+
+    private func layoutItemSlots(slotSize: CGSize, origin: CGPoint, scale: CGFloat) {
+        let stepX = slotSize.width + scaled(Metrics.itemSlotGapX, scale)
+        let stepY = slotSize.height + scaled(Metrics.itemSlotGapY, scale)
+        layoutItemSlotRow(weaponSlots, slotSize: slotSize, start: origin, stepX: stepX)
+        layoutItemSlotRow(
+            powerUpSlots,
+            slotSize: slotSize,
+            start: CGPoint(x: origin.x, y: origin.y - stepY),
+            stepX: stepX
+        )
+    }
+
+    private func layoutItemSlotRow(_ slots: [ItemSlotVisual], slotSize: CGSize, start: CGPoint, stepX: CGFloat) {
+        for (index, slot) in slots.enumerated() {
+            slot.root.position = CGPoint(x: start.x + CGFloat(index) * stepX, y: start.y)
+            slot.background.size = slotSize
+            slot.frame.path = CGPath(
+                rect: CGRect(
+                    x: -slotSize.width / 2,
+                    y: -slotSize.height / 2,
+                    width: slotSize.width,
+                    height: slotSize.height
+                ),
+                transform: nil
+            )
+            slot.icon.size = CGSize(width: slotSize.width * 0.72, height: slotSize.height * 0.72)
+            slot.initials.fontSize = slotSize.height * 0.30
+            slot.levelLabel.fontSize = slotSize.height * 0.26
+            slot.levelLabel.position = CGPoint(x: slotSize.width / 2 - 4, y: -slotSize.height / 2 + 3)
+        }
+    }
+
+    private func updateItemSlots(for player: PlayerEntity) {
+        updateSlotRow(slots: weaponSlots, skills: player.equippedWeapons, player: player)
+        updateSlotRow(slots: powerUpSlots, skills: player.equippedPowerUps, player: player)
+    }
+
+    private func updateSlotRow(slots: [ItemSlotVisual], skills: [Skill], player: PlayerEntity) {
+        for (index, slot) in slots.enumerated() {
+            guard index < skills.count else {
+                clear(slot)
+                continue
+            }
+
+            let skill = skills[index]
+            let level = player.skillState.level(of: skill.id, type: skill.type)
+            fill(slot, with: skill, level: level)
+        }
+    }
+
+    private func fill(_ slot: ItemSlotVisual, with skill: Skill, level: Int) {
+        if slot.representedSkillID != skill.id {
+            slot.representedSkillID = skill.id
+            slot.icon.texture = texture(named: skill.iconName)
+            slot.icon.color = placeholderColor(for: skill)
+            slot.icon.colorBlendFactor = slot.icon.texture == nil ? 1 : 0
+            slot.initials.text = initials(for: skill.name)
+            slot.initials.isHidden = slot.icon.texture != nil
+        }
+
+        slot.root.alpha = 1
+        slot.levelLabel.text = level > 1 ? "\(level)" : ""
+    }
+
+    private func clear(_ slot: ItemSlotVisual) {
+        slot.representedSkillID = nil
+        slot.icon.texture = nil
+        slot.icon.color = .clear
+        slot.icon.colorBlendFactor = 1
+        slot.initials.text = ""
+        slot.levelLabel.text = ""
+        slot.root.alpha = 0.65
+    }
+
+    private func texture(named name: String) -> SKTexture? {
+        #if os(macOS)
+        guard let image = NSImage(named: name) else { return nil }
+        return SKTexture(image: image)
+        #else
+        return SKTexture(imageNamed: name)
+        #endif
+    }
+
+    private func placeholderColor(for skill: Skill) -> SKColor {
+        switch skill.type {
+        case .weapon:
+            return SKColor(red: 0.18, green: 0.35, blue: 0.72, alpha: 0.92)
+        case .powerUp:
+            return SKColor(red: 0.52, green: 0.36, blue: 0.72, alpha: 0.92)
+        }
+    }
+
+    private func initials(for name: String) -> String {
+        name
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first }
+            .map { String($0) }
+            .joined()
+            .uppercased()
     }
 
     private func clampedFraction(_ fraction: CGFloat) -> CGFloat {

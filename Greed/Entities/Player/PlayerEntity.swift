@@ -19,6 +19,8 @@ class PlayerEntity: SKSpriteNode {
     private(set) var lightningChainCount: Int = 0
     private(set) var mistDamage: Int = 0
     private(set) var mistDuration: TimeInterval = 0
+    private(set) var equippedWeapons: [Skill] = []
+    private(set) var equippedPowerUps: [Skill] = []
     
     var currentSpeed: CGFloat { GameConfig.basePlayerSpeed * movementSpeedMultiplier }
 
@@ -57,6 +59,7 @@ class PlayerEntity: SKSpriteNode {
 
     func applySkill(_ skill: Skill) {
         skillState.upgrade(skill)
+        rememberEquipped(skill)
         let currentLevel = skillState.level(of: skill.id, type: skill.type)
         let effect = skill.effect(at: currentLevel)
         
@@ -74,6 +77,17 @@ class PlayerEntity: SKSpriteNode {
             movementSpeedMultiplier = CGFloat(multiplier)
         case .increaseMaxHealth(let amount):
             health.increaseMaximum(amount)
+        }
+    }
+
+    private func rememberEquipped(_ skill: Skill) {
+        switch skill.type {
+        case .weapon:
+            guard !equippedWeapons.contains(where: { $0.id == skill.id }) else { return }
+            equippedWeapons.append(skill)
+        case .powerUp:
+            guard !equippedPowerUps.contains(where: { $0.id == skill.id }) else { return }
+            equippedPowerUps.append(skill)
         }
     }
 
