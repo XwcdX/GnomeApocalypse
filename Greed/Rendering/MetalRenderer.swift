@@ -35,8 +35,13 @@ final class MetalRenderer: NSObject {
 
     func present(scene: SKScene) {
         scene.scaleMode = .resizeFill
+        let renderSize = mtkView.drawableSize == .zero ? mtkView.bounds.size : mtkView.drawableSize
+        scene.size = renderSize
         renderer.scene = scene
         currentScene = scene
+        if let gameScene = scene as? GameScene {
+            gameScene.updateViewport(renderSize)
+        }
     }
 }
 
