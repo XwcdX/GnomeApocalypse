@@ -15,6 +15,9 @@ final class GameScene: SKScene {
     private var hud: HUD!
     private let audioManager = AudioManager.shared
     private let particleAssets = ParticleAssets.shared
+    private var skillCardOverlay: SkillCardOverlay?
+    private weak var skillSelectionPlayer: PlayerEntity?
+    private var wasSkillConfirmPressed = false
     
     private var players: [PlayerEntity] = []
     private var enemies: [EnemyEntity] = []
@@ -41,6 +44,12 @@ final class GameScene: SKScene {
     override func update(_ currentTime: TimeInterval) {
         let deltaTime = computeDeltaTime(currentTime)
         guard deltaTime > 0 else { return }
+
+        if skillCardOverlay != nil {
+            updateSkillSelectionInput()
+            return
+        }
+
         elapsedRunTime += deltaTime
 
         // Players move and wrap first
@@ -141,6 +150,7 @@ final class GameScene: SKScene {
         cameraSystem.updateViewport(size)
         floorRenderer.updateViewport(size)
         hud?.updateViewport(size)
+        skillCardOverlay?.updateViewport(size)
     }
 
     private func spawnPlayer() {
@@ -213,6 +223,27 @@ final class GameScene: SKScene {
     
     func handleLevelUp(for player: PlayerEntity) {
         Log.debug("GameScene: player leveled up to \(player.level.currentLevel)")
+        guard skillCardOverlay == nil else { return }
+        audioManager.play(.levelUp)
+        skillSelectionPlayer = player
+        presentSkillCardOverlay()
+    }
+
+    @discardableResult
+    func handleMouseDown(atViewPosition viewPosition: CGPoint, viewSize: CGSize) -> Bool {
+        guard let skillCardOverlay else { return false }
+        guard viewSize.width > 0, viewSize.height > 0 else { return true }
+
+        let overlayPoint = CGPoint(
+            x: (viewPosition.x / viewSize.width) * size.width - size.width / 2,
+            y: (viewPosition.y / viewSize.height) * size.height - size.height / 2
+        )
+        return skillCardOverlay.handleMouseDown(at: overlayPoint)
+    }
+
+    @discardableResult
+    func handleKeyDown(_ event: NSEvent) -> Bool {
+        skillCardOverlay != nil
     }
     func handlePlayerDeath(_ player: PlayerEntity) {
         Log.debug("GameScene: player died")
@@ -241,5 +272,40 @@ final class GameScene: SKScene {
         
         projectile.activate(at: position, velocity: velocity, damage: damage, lifespan: GameConfig.projectileLifeSpan)
         entityLayer.addChild(projectile)
+    }
+
+    private func presentSkillCardOverlay() {
+        guard let player = skillSelectionPlayer else { return }
+
+        let skills = skillSystem.draw(for: player.skillState)
+        guard !skills.isEmpty else {
+            skillSelectionPlayer = nil
+            return
+        }
+
+        let overlay = SkillCardOverlay(skills: skills, screenSize: size) { [weak self, weak player] skill in
+            guard let self, let player else { return }
+            self.completeSkillSelection(skill, for: player)
+        }
+        cameraSystem.cameraNode.addChild(overlay)
+        skillCardOverlay = overlay
+        wasSkillConfirmPressed = inputSystem.confirmPressed(for: player.controllerIndex ?? 0)
+    }
+
+    private func completeSkillSelection(_ skill: Skill, for player: PlayerEntity) {
+        player.applySkill(skill)
+        skillCardOverlay?.removeFromParent()
+        skillCardOverlay = nil
+        skillSelectionPlayer = nil
+        wasSkillConfirmPressed = false
+    }
+
+    private func updateSkillSelectionInput() {
+        guard let player = skillSelectionPlayer else { return }
+        let isConfirmPressed = inputSystem.confirmPressed(for: player.controllerIndex ?? 0)
+        if isConfirmPressed && !wasSkillConfirmPressed {
+            skillCardOverlay?.selectHighlightedCard()
+        }
+        wasSkillConfirmPressed = isConfirmPressed
     }
 }

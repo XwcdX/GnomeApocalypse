@@ -10,6 +10,8 @@ class PlayerEntity: SKSpriteNode {
     var controllerIndex: Int?
     var aimDirection: CGVector = .zero
     weak var attack: PlayerAttack?
+    var isMovementFrozen: Bool = false
+    var isTargetingActive: Bool = true
     
     private(set) var attackSpeedMultiplier: CGFloat = 1.0
     private(set) var movementSpeedMultiplier: CGFloat = 1.0
@@ -35,7 +37,7 @@ class PlayerEntity: SKSpriteNode {
         if ghostRenderer == nil {
             ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
         }
-        let movement = scene.inputSystem.movementVector(for: controllerIndex ?? 0)
+        let movement = isMovementFrozen ? .zero : scene.inputSystem.movementVector(for: controllerIndex ?? 0)
         position.x += movement.dx * currentSpeed * deltaTime
         position.y += movement.dy * currentSpeed * deltaTime
         scene.cameraSystem.clampToroidal(&position)

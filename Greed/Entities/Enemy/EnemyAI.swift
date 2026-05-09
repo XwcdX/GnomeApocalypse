@@ -2,7 +2,7 @@ import SpriteKit
 
 final class EnemyAI {
     func update(enemies: [EnemyEntity], players: [PlayerEntity]) {
-        let targets = players.filter { $0.health.isDead == false }
+        let targets = players.filter { $0.health.isDead == false && $0.isTargetingActive }
         guard !targets.isEmpty else { return }
 
         for enemy in enemies {

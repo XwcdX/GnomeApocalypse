@@ -49,6 +49,9 @@ final class ViewController: NSViewController {
                 homeScene.handleStartInput()
                 return nil
             }
+            if gameScene?.handleKeyDown(event) == true {
+                return nil
+            }
             InputSystem.shared.keyDown(with: event)
             return event
         }
@@ -61,6 +64,11 @@ final class ViewController: NSViewController {
             guard let self, event.window === view.window else { return event }
             if gameScene == nil {
                 homeScene.handleStartInput()
+                return event
+            }
+            let viewPosition = metalRenderer.mtkView.convert(event.locationInWindow, from: nil)
+            if gameScene?.handleMouseDown(atViewPosition: viewPosition, viewSize: metalRenderer.mtkView.bounds.size) == true {
+                return nil
             }
             return event
         }
