@@ -50,6 +50,7 @@ final class GameScene: SKScene {
             return
         }
 
+        cameraSystem.isLocked = directorSystem.isBossStageActive
         elapsedRunTime += deltaTime
 
         // Players move and wrap first
@@ -61,6 +62,7 @@ final class GameScene: SKScene {
                 gnomes: visibleEnemies
             )
             player.update(deltaTime: deltaTime)
+            enforceBossCameraLeash(for: player)
         }
 
         for attack in playerAttacks { attack.update(deltaTime: deltaTime) }
@@ -252,10 +254,11 @@ final class GameScene: SKScene {
     
     func handleBossDeath() {
         directorSystem.recordBossDeath()
+        cameraSystem.isLocked = false
     }
     
     func spawnBossMinions(count: Int, around position: CGPoint) {
-        Log.debug("GameScene: spawning \(count) boss minions")
+        spawnSystem.spawnBossMinions(count: count, around: position)
     }
     
     func spawnEnemyProjectile(at position: CGPoint, direction: CGVector, damage: Int) {
@@ -307,5 +310,15 @@ final class GameScene: SKScene {
             skillCardOverlay?.selectHighlightedCard()
         }
         wasSkillConfirmPressed = isConfirmPressed
+    }
+
+    private func enforceBossCameraLeash(for player: PlayerEntity) {
+        guard directorSystem.isBossStageActive else { return }
+
+        let centre = cameraSystem.cameraNode.position
+        let halfWidth = cameraSystem.worldViewportSize.width * GameConfig.cameraLeashFactor / 2
+        let halfHeight = cameraSystem.worldViewportSize.height * GameConfig.cameraLeashFactor / 2
+        player.position.x = min(max(player.position.x, centre.x - halfWidth), centre.x + halfWidth)
+        player.position.y = min(max(player.position.y, centre.y - halfHeight), centre.y + halfHeight)
     }
 }

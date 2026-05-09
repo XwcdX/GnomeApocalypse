@@ -40,6 +40,7 @@ final class CameraSystem {
     }
 
     func update(deltaTime: TimeInterval) {
+        guard !isLocked else { return }
         guard !players.isEmpty else { return }
 
         let target = midpoint(of: players.map { $0.position })

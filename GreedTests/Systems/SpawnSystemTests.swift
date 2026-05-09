@@ -66,6 +66,18 @@ struct SpawnSystemTests {
         #expect(!harness.camera.visibleRect.contains(boss.position))
     }
 
+    @Test("boss minions spawn around boss outside Director budget")
+    func bossMinionsSpawnAroundBossOutsideDirectorBudget() {
+        let harness = makeHarness()
+        let bossPosition = CGPoint(x: 120, y: -40)
+
+        harness.spawnSystem.spawnBossMinions(count: 3, around: bossPosition)
+
+        let minions = children(of: SmallGnome.self, in: harness.layer)
+        #expect(minions.count == 3)
+        #expect(minions.allSatisfy { $0.gameScene === harness.scene })
+    }
+
     @Test("regular spawn respects active budget usage")
     func regularSpawnRespectsActiveBudgetUsage() {
         let harness = makeHarness()

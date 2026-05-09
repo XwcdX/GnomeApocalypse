@@ -49,6 +49,30 @@ final class SpawnSystem {
         orbs.removeAll { $0 === orb }
         orb.cleanup()
     }
+
+    func spawnBossMinions(count: Int, around position: CGPoint) {
+        guard count > 0,
+              let layer = entityLayer,
+              let camera = cameraSystem,
+              let scene = layer.scene as? GameScene else { return }
+
+        let spawnRadius: CGFloat = 72
+        for index in 0..<count {
+            let angle = (CGFloat(index) / CGFloat(count)) * .pi * 2
+            var spawnPos = CGPoint(
+                x: position.x + cos(angle) * spawnRadius,
+                y: position.y + sin(angle) * spawnRadius
+            )
+            camera.clampToroidal(&spawnPos)
+
+            let gnome = SmallGnome()
+            gnome.position = spawnPos
+            gnome.gameScene = scene
+            scene.register(enemy: gnome)
+            layer.addChild(gnome)
+            gnome.targetPosition = scene.nearestPlayerPosition(to: spawnPos)
+        }
+    }
     
     private func updateOrbs(
         deltaTime: TimeInterval,
