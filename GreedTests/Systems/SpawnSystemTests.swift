@@ -19,6 +19,11 @@ struct SpawnSystemTests {
             deltaTime: GameConfig.grownOrbEvolveTime,
             activeBudgetUsed: 0
         )
+        #expect(children(of: MiniBossGnome.self, in: harness.layer).isEmpty)
+        harness.spawnSystem.update(
+            deltaTime: GameConfig.redOrbEvolveTime,
+            activeBudgetUsed: 0
+        )
 
         let miniBoss = try #require(children(of: MiniBossGnome.self, in: harness.layer).first)
         #expect(!harness.camera.visibleRect.contains(miniBoss.position))
@@ -36,6 +41,10 @@ struct SpawnSystemTests {
         )
         harness.spawnSystem.update(
             deltaTime: GameConfig.grownOrbEvolveTime,
+            activeBudgetUsed: harness.director.currentBudget
+        )
+        harness.spawnSystem.update(
+            deltaTime: GameConfig.redOrbEvolveTime,
             activeBudgetUsed: harness.director.currentBudget
         )
 

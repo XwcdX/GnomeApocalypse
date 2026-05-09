@@ -34,8 +34,10 @@ enum GameConfig {
     // MARK: - Forest Essense Orb Evolution
     static let orbEvolveTime: TimeInterval = 5.0
     static let grownOrbEvolveTime: TimeInterval = 8.0
+    static let redOrbEvolveTime: TimeInterval = 5.0
     static let orbBaseEssenceValue: Int = 10
     static let grownOrbEssenceValue: Int = 25
+    static let redOrbEssenceValue: Int = 50
     
     
     // MARK: - Shield (Level Up)

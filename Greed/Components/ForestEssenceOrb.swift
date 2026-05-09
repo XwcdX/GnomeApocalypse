@@ -4,6 +4,7 @@ final class ForestEssenceOrb: SKSpriteNode {
     enum OrbState {
         case small
         case grown
+        case red
         case mistExplosion
     }
 
@@ -33,6 +34,8 @@ final class ForestEssenceOrb: SKSpriteNode {
         case .small where stateElapsedTime >= GameConfig.orbEvolveTime:
             becomeGrown()
         case .grown where stateElapsedTime >= GameConfig.grownOrbEvolveTime:
+            becomeRed()
+        case .red where stateElapsedTime >= GameConfig.redOrbEvolveTime:
             explodeIntoMist()
             return true
         default:
@@ -54,6 +57,15 @@ final class ForestEssenceOrb: SKSpriteNode {
         color = .yellow
         size = CGSize(width: 24, height: 24)
         setupPhysics(radius: 12)
+    }
+
+    private func becomeRed() {
+        state = .red
+        stateElapsedTime = 0
+        essenceValue = GameConfig.redOrbEssenceValue
+        color = .red
+        size = CGSize(width: 32, height: 32)
+        setupPhysics(radius: 16)
     }
 
     private func explodeIntoMist() {

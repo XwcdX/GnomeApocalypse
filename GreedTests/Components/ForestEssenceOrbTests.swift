@@ -41,8 +41,30 @@ struct ForestEssenceOrbTests {
         #expect(orb.physicsBody?.contactTestBitMask == PhysicsCategory.player)
     }
 
-    @Test("grown orb becomes mist explosion and emits placeholder VFX")
-    func grownOrbBecomesMistExplosion() throws {
+    @Test("grown orb becomes red high-value tier")
+    func grownOrbBecomesRedHighValueTier() throws {
+        let orb = ForestEssenceOrb(essenceValue: GameConfig.orbBaseEssenceValue)
+        let cameraSystem = makeCameraSystem()
+
+        _ = orb.update(deltaTime: GameConfig.orbEvolveTime, cameraSystem: cameraSystem)
+        let didExplode = orb.update(
+            deltaTime: GameConfig.grownOrbEvolveTime,
+            cameraSystem: cameraSystem
+        )
+
+        #expect(didExplode == false)
+        #expect(orb.state == .red)
+        #expect(orb.essenceValue == GameConfig.redOrbEssenceValue)
+        let color = try #require(orb.color.usingColorSpace(.deviceRGB))
+        #expect(color.redComponent == 1)
+        #expect(color.greenComponent == 0)
+        #expect(color.blueComponent == 0)
+        #expect(orb.size == CGSize(width: 32, height: 32))
+        #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
+    }
+
+    @Test("red orb becomes mist explosion and emits placeholder VFX")
+    func redOrbBecomesMistExplosion() throws {
         let parent = SKNode()
         let orb = ForestEssenceOrb(essenceValue: GameConfig.orbBaseEssenceValue)
         let cameraSystem = makeCameraSystem()
@@ -56,6 +78,17 @@ struct ForestEssenceOrbTests {
 
         #expect(didExplodeEarly == false)
         #expect(orb.state == .grown)
+
+        let didExplodeAtRedTier = orb.update(deltaTime: 0.1, cameraSystem: cameraSystem)
+        #expect(didExplodeAtRedTier == false)
+        #expect(orb.state == .red)
+
+        let didExplodeFromRedEarly = orb.update(
+            deltaTime: GameConfig.redOrbEvolveTime - 0.1,
+            cameraSystem: cameraSystem
+        )
+        #expect(didExplodeFromRedEarly == false)
+        #expect(orb.state == .red)
 
         let didExplode = orb.update(deltaTime: 0.1, cameraSystem: cameraSystem)
         let mistBurst = try #require(parent.children.compactMap { $0 as? SKShapeNode }.first)
