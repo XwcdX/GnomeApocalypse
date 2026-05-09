@@ -1,6 +1,7 @@
 import SpriteKit
 
 final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
+    private let areShieldHandlersEnabled = false
     private var playerHealthCallbacks: [SKNode: (Int) -> Void] = [:]
     
     func register(player: PlayerEntity, directorSystem: DirectorSystem) {
@@ -20,8 +21,10 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
             handleEnemyProjectileHitsPlayer(contact)
         } else if matches(a, b, PhysicsCategory.player, PhysicsCategory.forestEssenceOrb) {
             handlePlayerCollectsOrb(contact)
+        } else if matches(a, b, PhysicsCategory.shield, PhysicsCategory.enemy) {
+            handleShieldPushesEnemyIfEnabled(contact)
         } else if matches(a, b, PhysicsCategory.shield, PhysicsCategory.enemyProjectile) {
-            handleShieldBlocksEnemyProjectile(contact)
+            handleShieldBlocksEnemyProjectileIfEnabled(contact)
         }
     }
     
@@ -89,8 +92,44 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
         scene.removeOrb(orb)
     }
 
-    private func handleShieldBlocksEnemyProjectile(_ contact: SKPhysicsContact) {
+    private func handleShieldPushesEnemyIfEnabled(_ contact: SKPhysicsContact) {
+        guard areShieldHandlersEnabled else { return }
+        guard let shield = shieldNode(from: contact),
+              let enemy = enemyNode(from: contact) else { return }
+
+        let offset = toroidalOffset(from: shield.position, to: enemy.position, mapSize: GameConfig.mapSize)
+        let distance = sqrt(offset.dx * offset.dx + offset.dy * offset.dy)
+        guard distance > 0.1 else { return }
+
+        let direction = CGVector(dx: offset.dx / distance, dy: offset.dy / distance)
+        enemy.physicsBody?.applyImpulse(
+            CGVector(
+                dx: direction.dx * GameConfig.shieldPushForce,
+                dy: direction.dy * GameConfig.shieldPushForce
+            )
+        )
+    }
+
+    private func handleShieldBlocksEnemyProjectileIfEnabled(_ contact: SKPhysicsContact) {
+        guard areShieldHandlersEnabled else { return }
         let projectile = (contact.bodyA.node as? Projectile) ?? (contact.bodyB.node as? Projectile)
         projectile?.deactivate()
+    }
+
+    private func shieldNode(from contact: SKPhysicsContact) -> SKNode? {
+        if contact.bodyA.categoryBitMask == PhysicsCategory.shield { return contact.bodyA.node }
+        if contact.bodyB.categoryBitMask == PhysicsCategory.shield { return contact.bodyB.node }
+        return nil
+    }
+
+    private func enemyNode(from contact: SKPhysicsContact) -> EnemyEntity? {
+        var enemy = (contact.bodyA.node as? EnemyEntity) ?? (contact.bodyB.node as? EnemyEntity)
+
+        if enemy == nil {
+            let ghostNode = contact.bodyA.node?.name == "ghost" ? contact.bodyA.node : contact.bodyB.node
+            enemy = ghostNode?.userData?["ghostOf"] as? EnemyEntity
+        }
+
+        return enemy
     }
 }
