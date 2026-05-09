@@ -30,7 +30,7 @@
 - `LevelComponent.swift` — `addXP` (returns Bool), threshold growth, `xpFraction`
 - `AnimationComponent.swift` — atlas loading, 8-direction, optional mirror, `play/stop`
 - `ToroidalRenderingComponent.swift` — ghost nodes, camera-drift-aware nearest-sector logic, color fallback for texture-less nodes
-- `ForestEssenceOrb.swift` — drops on enemy death, ghost rendering, collection via `CollisionSystem`, cleanup on collect
+- `ForestEssenceOrb.swift` — drops on enemy death, ghost rendering, collection via `CollisionSystem`, cleanup on collect, evolution state machine
 
 ### Entities
 - `PlayerEntity.swift` — movement, `clampToroidal`, ghost rendering, `takeDamage`, `addXP`, `applySkill`, skill properties
@@ -39,21 +39,39 @@
 - `EnemyEntity.swift` — movement toward target, `clampToroidal`, ghost rendering, `die()` with ghost cleanup
 - `EnemyAI.swift` — nearest toroidal target, runs post-wrap each frame
 - `SmallGnome.swift` — `LuminousWisp` atlas placeholder, mirror animation, `GameConfig` constants
-- `MiniBossGnome.swift` — ranged attack stub (fires via `spawnEnemyProjectile` which is a stub)
-- `BossGnome.swift` — two-phase ability, minion spawn stub, `handleBossDeath` on die
+- `MiniBossGnome.swift` — ranged attack through enemy projectile pool
+- `BossGnome.swift` — two-phase ability, budget-exempt minion spawn, `handleBossDeath` on die
 - `Projectile.swift` — velocity movement, `clampToroidal`, ghost rendering, lifespan, animation
 - `ProjectilePool.swift` — pre-allocated pool, `dequeue/enqueue`, `attachAll`
 
 ### Systems
 - `DirectorSystem.swift` — rolling window, kill/damage rate, budget adjustment, Boss stage timer
 - `SkillSystem.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap, `PlayerSkillState`
-- `SpawnSystem.swift` — budget-gated spawning, outside-camera positions, orb tracking + cleanup
+- `SpawnSystem.swift` — budget-gated spawning, outside-camera positions, orb tracking + cleanup, MiniBoss/Boss spawning, wave escalation
 - `CollisionSystem.swift` — projectile→enemy, projectile→player, orb→player, ghost redirect
+
+### V1 Gameplay Completion
+- `GameScene.setupSystems` — enemy projectile pool added; `spawnEnemyProjectile(at:direction:damage:)` implemented
+- `ForestEssenceOrb.swift` — state machine implemented (`small → grown → red → mistExplosion`), placeholder Mist VFX, high-value red tier
+- `SpawnSystem.swift` — orb Mist explosion wiring, budget-checked MiniBoss spawn, Boss stage spawn pause, `BossGnome` spawn, wave escalation
+- `GameScene.swift` — Boss death records `DirectorSystem.recordBossDeath()`, active budget passed to Director each frame
+- `GameScene.swift` / `CameraSystem.swift` — Boss stage camera lock and player leash
+- `SpawnSystem.swift` — `spawnBossMinions(count:around:)` implemented for Boss ability minions
+- `SkillCardOverlay.swift` — level-up skill card overlay, 3 cards, mouse click/controller confirm, applies selected skill
+- `HUD.swift` — health, level, XP/Essence progress, item/power-up slots, camera-anchored responsive layout, timer HUD
+- `AudioManager.swift` — AVFoundation manager with preloaded placeholder music/SFX hooks
+- `ParticleAssets.swift` — preloaded placeholder emitter infrastructure for VFX
+- `HomeScene.swift` — placeholder title screen, press anywhere or any key to start
+- `GameOverOverlay.swift` — game-over screen with survival time and replay button
 
 ### Tests
 - `ToroidalMathTest.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
 - `HealthComponentTests.swift` — all boundary conditions
 - `LevelComponentTests.swift` — XP accumulation, multi-level-up, threshold growth
+- `EnemyProjectilePoolTests.swift` — enemy projectile activation
+- `ForestEssenceOrbTests.swift` — orb evolution through grown/red/Mist states
+- `SpawnSystemTests.swift` — MiniBoss orb spawn, Boss spawn, Boss minions, wave escalation
+- `CameraSystemTests.swift` — locked camera behavior
 
 ---
 
@@ -61,11 +79,9 @@
 
 | File | What's missing |
 |------|---------------|
-| `GameScene.swift` | `handleLevelUp` is a stub, `spawnBossMinions` is a stub, `spawnEnemyProjectile` is a stub, no enemy projectile pool |
-| `ForestEssenceOrb.swift` | State machine (`small → grown → mistExplosion`) not implemented — orb is static |
-| `MiniBossGnome.swift` | Ranged attack calls `spawnEnemyProjectile` stub — does nothing |
-| `BossGnome.swift` | `spawnBossMinions` calls `GameScene` stub — minions never spawn |
-| `SpawnSystem.swift` | No wave escalation, no orb state machine wiring, no MiniBoss spawn from orb, no Boss stage trigger, `activeBudgetUsed` not passed to Director |
+| `ShieldComponent.swift` | File kept, but active shield behavior is intentionally disabled because physics is currently unstable |
+| `CollisionSystem.swift` | Shield push / enemy projectile destroy handlers exist only as disabled infrastructure until shield behavior is re-enabled |
+| `MiniBossGnome.swift` / `BossGnome.swift` | Uses placeholder/missing final art assets for some enemy sprites |
 
 ---
 
@@ -73,72 +89,10 @@
 
 ### Must be done in order (each blocks the next)
 
-1. **Enemy projectile pool** — `GameScene.setupSystems`
-   - Add a second `ProjectilePool` for enemy projectiles
-   - Implement `spawnEnemyProjectile(at:direction:damage:)` in `GameScene`
-   - Unblocks: `MiniBossGnome` ranged attack
-
-2. **`ForestEssenceOrb` state machine** — `ForestEssenceOrb.swift`
-   - `small → grown` after `GameConfig.orbEvolveTime`
-   - `grown → mistExplosion` after `GameConfig.grownOrbEvolveTime`
-   - `mistExplosion`: VFX placeholder, notify `SpawnSystem` to spawn `MiniBossGnome`
-   - Unblocks: Greed system, MiniBoss natural spawn
-
-3. **`SpawnSystem` — remaining items**
-   - Wire orb state machine: `ForestEssenceOrb` notifies `SpawnSystem` on `mistExplosion`
-   - MiniBoss spawn from orb explosion (budget-checked, outside camera)
-   - Boss stage: when `isBossStageActive`, pause regular spawning, spawn `BossGnome`
-   - On Boss death: call `DirectorSystem.recordBossDeath()`
-   - Pass `activeBudgetUsed` to `DirectorSystem.update()` each frame
-
-4. **`ShieldComponent.swift`** — new file
-   - Triggered by level-up
-   - Freeze player, expand `SKShapeNode` radius
-   - Physics impulse to entities in radius
-   - `isTargetingActive = false` on player during expansion
-   - Burst knockback on skill select, then dissolve
-   - Unblocks: `SkillCardOverlay`
-
-5. **`SkillCardOverlay.swift`** — new file
-   - Full-screen pause (solo V1)
-   - 3 skill cards: icon + name
-   - Mouse click or controller confirm to select
-   - Calls `PlayerEntity.applySkill(_:)`
-   - Wire `GameScene.handleLevelUp` to trigger this
-
-6. **`CollisionSystem` — shield handlers**
-   - Shield pushes enemies (physics impulse)
-   - Shield destroys enemy projectiles
-
-7. **`GameScene` — Boss stage**
-   - `spawnBossMinions(count:around:)` — actual implementation using enemy projectile pool + `SpawnSystem`
-   - Camera lock when `isBossStageActive`
+- _None currently active._
+- Shield physics and shield collision handlers are intentionally held in **Partial** until the physics behavior is fixed.
 
 ### Independent (no blocking dependency, assign freely)
-
-- **`HUD.swift`** — new file
-  - Health bar (fill based on `health.fraction`)
-  - Current level label
-  - XP/Essence progress bar
-  - Anchored to camera node (screen-space)
-  - Reads from `PlayerEntity` each frame
-
-- **`AudioManager.swift`** — new file
-  - Background music loop
-  - SFX: hit, death, level-up, orb collect, Mist explosion, Boss appear
-  - AVFoundation, preloaded at scene start
-
-- **`ParticleAssets.swift`** — new file
-  - Preload all `SKEmitterNode` at scene start
-  - Effects: orb collect, gnome death, shield expand, shield burst, Mist explosion
-
-- **Placeholder home screen** — `GameScene` or new `HomeScene`
-  - Single "Start Game" button
-  - Launches into `GameScene`
-
-- **Wave escalation in `SpawnSystem`**
-  - Escalating spawn interval / gnome count over time
-  - Parameters in `GameConfig`
 
 - **SmallGnome atlas** — art task
   - Replace `LuminousWisp` placeholder with actual `SmallGnome.spriteatlas`
