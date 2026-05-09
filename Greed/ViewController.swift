@@ -36,6 +36,9 @@ final class ViewController: NSViewController {
 
     private func startGame() {
         let scene = GameScene(size: metalRenderer.mtkView.bounds.size)
+        scene.onReplayRequested = { [weak self] in
+            self?.startGame()
+        }
         scene.setup(view: metalRenderer.mtkView)
         gameScene = scene
         metalRenderer.present(scene: scene)
