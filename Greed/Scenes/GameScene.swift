@@ -12,6 +12,8 @@ final class GameScene: SKScene {
     private var enemyAI: EnemyAI!
     private var playerProjectilePool: ProjectilePool!
     private var hud: HUD!
+    private let audioManager = AudioManager.shared
+    private let particleAssets = ParticleAssets.shared
     
     private var players: [PlayerEntity] = []
     private var enemies: [EnemyEntity] = []
@@ -29,6 +31,7 @@ final class GameScene: SKScene {
         setupCamera(viewSize: view.bounds.size)
         setupSystems(viewSize: view.bounds.size)
         setupPhysics()
+        preloadAssets()
         spawnPlayer()
     }
     
@@ -112,6 +115,12 @@ final class GameScene: SKScene {
     private func setupPhysics() {
         physicsWorld.gravity = .zero
         physicsWorld.speed   = 1.0
+    }
+
+    private func preloadAssets() {
+        audioManager.preloadAll()
+        audioManager.playBackgroundMusic()
+        particleAssets.preloadAll()
     }
 
     func updateViewport(_ size: CGSize) {
