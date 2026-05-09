@@ -2,18 +2,19 @@ import SpriteKit
 
 final class HUD: SKNode {
     private enum Metrics {
-        static let sizeMultiplier: CGFloat = 3.0
         static let margin: CGFloat = 0
-        static let avatarSize = CGSize(width: 96, height: 84)
-        static let essenceBarHeight: CGFloat = 20
-        static let healthBarSize = CGSize(width: 420, height: 20)
+        static let baseWidth: CGFloat = 1440
+        static let baseHeight: CGFloat = 810
+        static let avatarSize = CGSize(width: 104, height: 82)
+        static let essenceBarHeight: CGFloat = 26
+        static let healthBarHeight: CGFloat = 22
+        static let healthBarMaxWidth: CGFloat = 470
         static let healthFramePadding: CGFloat = 6
         static let levelRightInset: CGFloat = 0
     }
 
     private weak var player: PlayerEntity?
     private var screenSize: CGSize
-    private var cameraScale: CGFloat
 
     private let avatarNode = SKShapeNode()
     private let essenceTrack = SKSpriteNode(color: .white, size: .zero)
@@ -26,10 +27,9 @@ final class HUD: SKNode {
     private let stageLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
     private let timerLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
 
-    init(player: PlayerEntity, screenSize: CGSize, cameraScale: CGFloat) {
+    init(player: PlayerEntity, screenSize: CGSize) {
         self.player = player
         self.screenSize = screenSize
-        self.cameraScale = cameraScale
         super.init()
 
         name = "hud"
@@ -43,9 +43,9 @@ final class HUD: SKNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
-    func updateViewport(_ screenSize: CGSize, cameraScale: CGFloat) {
+    func updateViewport(_ screenSize: CGSize) {
+        guard self.screenSize != screenSize else { return }
         self.screenSize = screenSize
-        self.cameraScale = cameraScale
         layout()
     }
 
@@ -119,13 +119,13 @@ final class HUD: SKNode {
     }
 
     private func layout() {
-        let visibleSize = CGSize(width: screenSize.width * cameraScale, height: screenSize.height * cameraScale)
-        let left = -visibleSize.width / 2 + scaled(Metrics.margin)
-        let right = visibleSize.width / 2 - scaled(Metrics.margin)
-        let top = visibleSize.height / 2 - scaled(Metrics.margin)
+        let visibleSize = screenSize
+        let scale = layoutScale(for: visibleSize)
+        let left = -visibleSize.width / 2 + scaled(Metrics.margin, scale)
+        let right = visibleSize.width / 2 - scaled(Metrics.margin, scale)
+        let top = visibleSize.height / 2 - scaled(Metrics.margin, scale)
         let avatarSize = scaled(Metrics.avatarSize)
-        let healthBarSize = scaled(Metrics.healthBarSize)
-        let essenceBarHeight = scaled(Metrics.essenceBarHeight)
+        let essenceBarHeight = scaled(Metrics.essenceBarHeight, scale)
 
         avatarNode.path = rectPath(size: avatarSize)
         avatarNode.position = CGPoint(
@@ -139,29 +139,35 @@ final class HUD: SKNode {
         essenceTrack.size = CGSize(width: essenceWidth, height: essenceBarHeight)
         essenceFill.position = essenceTrack.position
 
-        levelLabel.fontSize = scaled(28)
+        levelLabel.fontSize = scaled(30, scale)
         levelLabel.position = CGPoint(
-            x: right - scaled(Metrics.levelRightInset),
+            x: right - scaled(Metrics.levelRightInset, scale),
             y: essenceTrack.position.y
         )
 
         let healthLeft = essenceLeft
-        let healthY = top - scaled(52)
-        healthTrack.position = CGPoint(x: healthLeft + scaled(34), y: healthY)
+        let healthY = top - scaled(60, scale)
+        let healthIconSize = scaled(CGSize(width: 30, height: 30), scale)
+        let healthBarWidth = min(
+            scaled(Metrics.healthBarMaxWidth, scale),
+            max(0, right - healthLeft - healthIconSize.width - scaled(28, scale))
+        )
+        let healthBarSize = CGSize(width: healthBarWidth, height: scaled(Metrics.healthBarHeight, scale))
+        healthTrack.position = CGPoint(x: healthLeft + healthIconSize.width + scaled(18, scale), y: healthY)
         healthTrack.size = healthBarSize
         healthFill.position = healthTrack.position
-        healthIcon.path = diamondPath(size: scaled(CGSize(width: 28, height: 28)))
-        healthIcon.lineWidth = scaled(2)
-        healthIcon.position = CGPoint(x: healthLeft + scaled(16), y: healthY)
+        healthIcon.path = diamondPath(size: healthIconSize)
+        healthIcon.lineWidth = scaled(2, scale)
+        healthIcon.position = CGPoint(x: healthLeft + healthIconSize.width / 2 + scaled(4, scale), y: healthY)
 
         let frameSize = CGSize(
-            width: healthBarSize.width + scaled(28),
-            height: healthBarSize.height + scaled(Metrics.healthFramePadding * 2)
+            width: healthBarSize.width + healthIconSize.width + scaled(30, scale),
+            height: healthBarSize.height + scaled(Metrics.healthFramePadding * 2, scale)
         )
-        healthFrame.lineWidth = scaled(2)
+        healthFrame.lineWidth = scaled(2, scale)
         healthFrame.path = CGPath(
             rect: CGRect(
-                x: healthLeft - scaled(Metrics.healthFramePadding),
+                x: healthLeft,
                 y: healthY - frameSize.height / 2,
                 width: frameSize.width,
                 height: frameSize.height
@@ -169,10 +175,10 @@ final class HUD: SKNode {
             transform: nil
         )
 
-        stageLabel.fontSize = scaled(22)
-        timerLabel.fontSize = scaled(38)
-        stageLabel.position = CGPoint(x: 0, y: top - scaled(120))
-        timerLabel.position = CGPoint(x: 0, y: top - scaled(152))
+        stageLabel.fontSize = scaled(18, scale)
+        timerLabel.fontSize = scaled(32, scale)
+        stageLabel.position = CGPoint(x: 0, y: top - scaled(128, scale))
+        timerLabel.position = CGPoint(x: 0, y: top - scaled(156, scale))
 
         setEssenceFraction(player?.level.xpFraction ?? 0)
         setHealthFraction(player?.health.fraction ?? 0)
@@ -180,15 +186,15 @@ final class HUD: SKNode {
 
     private func setHealthFraction(_ fraction: CGFloat) {
         healthFill.size = CGSize(
-            width: scaled(Metrics.healthBarSize.width) * clampedFraction(fraction),
-            height: scaled(Metrics.healthBarSize.height)
+            width: healthTrack.size.width * clampedFraction(fraction),
+            height: healthTrack.size.height
         )
     }
 
     private func setEssenceFraction(_ fraction: CGFloat) {
         essenceFill.size = CGSize(
             width: essenceTrack.size.width * clampedFraction(fraction),
-            height: scaled(Metrics.essenceBarHeight)
+            height: essenceTrack.size.height
         )
     }
 
@@ -201,12 +207,23 @@ final class HUD: SKNode {
         return String(format: "%02d:%02d", totalSeconds / 60, totalSeconds % 60)
     }
 
-    private func scaled(_ value: CGFloat) -> CGFloat {
-        value * cameraScale * Metrics.sizeMultiplier
+    private func layoutScale(for visibleSize: CGSize) -> CGFloat {
+        let widthScale = visibleSize.width / Metrics.baseWidth
+        let heightScale = visibleSize.height / Metrics.baseHeight
+        return min(max(min(widthScale, heightScale), 0.55), 1.45)
     }
 
     private func scaled(_ size: CGSize) -> CGSize {
-        CGSize(width: scaled(size.width), height: scaled(size.height))
+        let scale = layoutScale(for: screenSize)
+        return scaled(size, scale)
+    }
+
+    private func scaled(_ value: CGFloat, _ scale: CGFloat) -> CGFloat {
+        value * scale
+    }
+
+    private func scaled(_ size: CGSize, _ scale: CGFloat) -> CGSize {
+        CGSize(width: scaled(size.width, scale), height: scaled(size.height, scale))
     }
 
     private func rectPath(size: CGSize) -> CGPath {

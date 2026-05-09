@@ -27,9 +27,11 @@ final class GameScene: SKScene {
     private var lastUpdateTime: TimeInterval = 0
 
     func setup(view: MTKView) {
+        let renderSize = view.drawableSize == .zero ? view.bounds.size : view.drawableSize
+        size = renderSize
         setupLayers()
-        setupCamera(viewSize: view.bounds.size)
-        setupSystems(viewSize: view.bounds.size)
+        setupCamera(viewSize: renderSize)
+        setupSystems(viewSize: renderSize)
         setupPhysics()
         preloadAssets()
         spawnPlayer()
@@ -64,6 +66,7 @@ final class GameScene: SKScene {
         directorSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
 
         spawnSystem.update(deltaTime: deltaTime)
+        hud.updateViewport(size)
         hud.update(elapsedTime: elapsedRunTime)
         cameraSystem.update(deltaTime: deltaTime)
         floorRenderer.update(cameraPosition: cameraSystem.cameraNode.position)
@@ -126,7 +129,7 @@ final class GameScene: SKScene {
     func updateViewport(_ size: CGSize) {
         cameraSystem.updateViewport(size)
         floorRenderer.updateViewport(size)
-        hud?.updateViewport(size, cameraScale: cameraSystem.cameraNode.xScale)
+        hud?.updateViewport(size)
     }
 
     private func spawnPlayer() {
@@ -143,7 +146,7 @@ final class GameScene: SKScene {
     }
 
     private func setupHUD(for player: PlayerEntity) {
-        let hud = HUD(player: player, screenSize: size, cameraScale: cameraSystem.cameraNode.xScale)
+        let hud = HUD(player: player, screenSize: size)
         cameraSystem.cameraNode.addChild(hud)
         self.hud = hud
     }
