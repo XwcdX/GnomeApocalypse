@@ -8,7 +8,7 @@ final class SpawnSystem {
     private weak var activeBoss: BossGnome?
     
     private var spawnAccumulator: TimeInterval = 0
-    private let spawnInterval: TimeInterval = 2.0
+    private var waveAccumulator: TimeInterval = 0
     
     init(entityLayer: SKNode, cameraSystem: CameraSystem, directorSystem: DirectorSystem) {
         self.entityLayer = entityLayer
@@ -29,10 +29,11 @@ final class SpawnSystem {
             return
         }
         
+        waveAccumulator += deltaTime
         spawnAccumulator += deltaTime
-        if spawnAccumulator >= spawnInterval {
+        if spawnAccumulator >= currentSpawnInterval {
             spawnAccumulator = 0
-            attemptSpawn(camera: camera, layer: layer, director: director, activeBudgetUsed: budgetUsed)
+            spawnWave(camera: camera, layer: layer, director: director, activeBudgetUsed: budgetUsed)
         }
     }
     
@@ -98,19 +99,42 @@ final class SpawnSystem {
         return spawnedBudget
     }
 
-    private func attemptSpawn(camera: CameraSystem, layer: SKNode, director: DirectorSystem, activeBudgetUsed: Int) {
+    var currentWaveIndex: Int {
+        Int(waveAccumulator / GameConfig.spawnWaveEscalationInterval)
+    }
+
+    var currentSpawnInterval: TimeInterval {
+        let reduction = TimeInterval(currentWaveIndex) * GameConfig.spawnIntervalReductionPerWave
+        return max(GameConfig.minimumSpawnInterval, GameConfig.baseSpawnInterval - reduction)
+    }
+
+    var currentGnomesPerSpawn: Int {
+        let count = GameConfig.baseGnomesPerSpawn + (currentWaveIndex * GameConfig.gnomesPerSpawnIncreasePerWave)
+        return min(GameConfig.maximumGnomesPerSpawn, count)
+    }
+
+    private func spawnWave(camera: CameraSystem, layer: SKNode, director: DirectorSystem, activeBudgetUsed: Int) {
+        var budgetUsed = activeBudgetUsed
+        for _ in 0..<currentGnomesPerSpawn {
+            guard attemptSpawn(camera: camera, layer: layer, director: director, activeBudgetUsed: budgetUsed) else { return }
+            budgetUsed += GameConfig.smallGnomeBudgetWeight
+        }
+    }
+
+    private func attemptSpawn(camera: CameraSystem, layer: SKNode, director: DirectorSystem, activeBudgetUsed: Int) -> Bool {
         let weight = GameConfig.smallGnomeBudgetWeight
-        guard activeBudgetUsed + weight <= director.currentBudget else { return }
+        guard activeBudgetUsed + weight <= director.currentBudget else { return false }
 
         let spawnPos = randomPositionOutsideCamera(camera: camera)
         let gnome = SmallGnome()
         gnome.position = spawnPos
 
-        guard let scene = layer.scene as? GameScene else { return }
+        guard let scene = layer.scene as? GameScene else { return false }
         gnome.gameScene = scene
         scene.register(enemy: gnome)
         layer.addChild(gnome)
         gnome.targetPosition = scene.nearestPlayerPosition(to: spawnPos)
+        return true
     }
 
     private func spawnMiniBossGnome(camera: CameraSystem, director: DirectorSystem, activeBudgetUsed: Int) -> Bool {

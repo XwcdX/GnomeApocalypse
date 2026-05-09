@@ -83,11 +83,44 @@ struct SpawnSystemTests {
         let harness = makeHarness()
 
         harness.spawnSystem.update(
-            deltaTime: 2.1,
+            deltaTime: GameConfig.baseSpawnInterval + 0.1,
             activeBudgetUsed: harness.director.currentBudget
         )
 
         #expect(children(of: SmallGnome.self, in: harness.layer).isEmpty)
+    }
+
+    @Test("wave escalation shortens interval and increases gnome count")
+    func waveEscalationShortensIntervalAndIncreasesGnomeCount() {
+        let harness = makeHarness()
+
+        #expect(harness.spawnSystem.currentWaveIndex == 0)
+        #expect(harness.spawnSystem.currentSpawnInterval == GameConfig.baseSpawnInterval)
+        #expect(harness.spawnSystem.currentGnomesPerSpawn == GameConfig.baseGnomesPerSpawn)
+
+        harness.spawnSystem.update(
+            deltaTime: GameConfig.spawnWaveEscalationInterval * 2,
+            activeBudgetUsed: 0
+        )
+
+        #expect(harness.spawnSystem.currentWaveIndex == 2)
+        #expect(harness.spawnSystem.currentSpawnInterval < GameConfig.baseSpawnInterval)
+        #expect(harness.spawnSystem.currentGnomesPerSpawn == GameConfig.baseGnomesPerSpawn + 2)
+        #expect(children(of: SmallGnome.self, in: harness.layer).count == GameConfig.baseGnomesPerSpawn + 2)
+    }
+
+    @Test("wave batch respects remaining Director budget")
+    func waveBatchRespectsRemainingDirectorBudget() {
+        let harness = makeHarness()
+        let remainingBudget = 2
+
+        harness.spawnSystem.update(
+            deltaTime: GameConfig.spawnWaveEscalationInterval * 10,
+            activeBudgetUsed: harness.director.currentBudget - remainingBudget
+        )
+
+        #expect(harness.spawnSystem.currentGnomesPerSpawn == GameConfig.maximumGnomesPerSpawn)
+        #expect(children(of: SmallGnome.self, in: harness.layer).count == remainingBudget)
     }
 
     private func makeHarness() -> Harness {

@@ -127,6 +127,13 @@ enum GameConfig {
     
     // MARK: - Enemy Spawn
     static let spawnMarginOutsideCamera: CGFloat = 60
+    static let spawnWaveEscalationInterval: TimeInterval = 30.0
+    static let baseSpawnInterval: TimeInterval = 2.0
+    static let minimumSpawnInterval: TimeInterval = 0.7
+    static let spawnIntervalReductionPerWave: TimeInterval = 0.15
+    static let baseGnomesPerSpawn: Int = 1
+    static let maximumGnomesPerSpawn: Int = 6
+    static let gnomesPerSpawnIncreasePerWave: Int = 1
 
     // MARK: - MiniBoss
     static let miniBossShootInterval: TimeInterval = 2.0
