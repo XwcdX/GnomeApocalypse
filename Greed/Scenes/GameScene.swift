@@ -12,6 +12,9 @@ final class GameScene: SKScene {
     private var enemyAI: EnemyAI!
     private var playerProjectilePool: ProjectilePool!
     private var enemyProjectilePool: ProjectilePool!
+    private var hud: HUD!
+    private let audioManager = AudioManager.shared
+    private let particleAssets = ParticleAssets.shared
     
     private var players: [PlayerEntity] = []
     private var enemies: [EnemyEntity] = []
@@ -21,19 +24,24 @@ final class GameScene: SKScene {
     private let environmentLayer = SKNode()
     private let entityLayer = SKNode()
     
+    private var elapsedRunTime: TimeInterval = 0
     private var lastUpdateTime: TimeInterval = 0
 
     func setup(view: MTKView) {
+        let renderSize = view.drawableSize == .zero ? view.bounds.size : view.drawableSize
+        size = renderSize
         setupLayers()
-        setupCamera(viewSize: view.bounds.size)
-        setupSystems(viewSize: view.bounds.size)
+        setupCamera(viewSize: renderSize)
+        setupSystems(viewSize: renderSize)
         setupPhysics()
+        preloadAssets()
         spawnPlayer()
     }
     
     override func update(_ currentTime: TimeInterval) {
         let deltaTime = computeDeltaTime(currentTime)
         guard deltaTime > 0 else { return }
+        elapsedRunTime += deltaTime
 
         // Players move and wrap first
         let visibleEnemies = enemies.filter { isVisible($0.position) }
@@ -60,6 +68,8 @@ final class GameScene: SKScene {
         directorSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
 
         spawnSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
+        hud.updateViewport(size)
+        hud.update(elapsedTime: elapsedRunTime)
         cameraSystem.update(deltaTime: deltaTime)
         floorRenderer.update(cameraPosition: cameraSystem.cameraNode.position)
     }
@@ -121,9 +131,16 @@ final class GameScene: SKScene {
         physicsWorld.speed   = 1.0
     }
 
+    private func preloadAssets() {
+        audioManager.preloadAll()
+        audioManager.playBackgroundMusic()
+        particleAssets.preloadAll()
+    }
+
     func updateViewport(_ size: CGSize) {
         cameraSystem.updateViewport(size)
         floorRenderer.updateViewport(size)
+        hud?.updateViewport(size)
     }
 
     private func spawnPlayer() {
@@ -136,6 +153,13 @@ final class GameScene: SKScene {
         player.attack = playerAttack
         playerAttacks.append(playerAttack)
         collisionSystem.register(player: player, directorSystem: directorSystem)
+        setupHUD(for: player)
+    }
+
+    private func setupHUD(for player: PlayerEntity) {
+        let hud = HUD(player: player, screenSize: size)
+        cameraSystem.cameraNode.addChild(hud)
+        self.hud = hud
     }
 
     private func computeDeltaTime(_ currentTime: TimeInterval) -> TimeInterval {
