@@ -64,6 +64,7 @@ class EnemyEntity: SKSpriteNode {
         body.restitution = 0
         body.linearDamping = 8
         body.angularDamping = 0
+        body.friction = 0
         physicsBody = body
     }
 }
