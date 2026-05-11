@@ -43,6 +43,8 @@ class PlayerEntity: SKSpriteNode {
         position.x += movement.dx * currentSpeed * deltaTime
         position.y += movement.dy * currentSpeed * deltaTime
         scene.cameraSystem.clampToroidal(&position)
+        physicsBody?.velocity = .zero
+        physicsBody?.angularVelocity = 0
         ghostRenderer?.update(cameraPosition: scene.cameraSystem.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
     }
 

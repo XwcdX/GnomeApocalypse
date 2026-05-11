@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		D69740352FA53576000D428B /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D69740332FA53576000D428B /* GameController.framework */; };
 		D69740362FA53576000D428B /* GameKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D69740342FA53576000D428B /* GameKit.framework */; };
-		D69741A72FABDA5A000D428B /* GnomeApocalypse.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = D69741A62FABDA5A000D428B /* GnomeApocalypse.xctestplan */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,7 +34,6 @@
 		D6973F5A2FA260F6000D428B /* GreedUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GreedUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D69740332FA53576000D428B /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		D69740342FA53576000D428B /* GameKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameKit.framework; path = System/Library/Frameworks/GameKit.framework; sourceTree = SDKROOT; };
-		D69741A62FABDA5A000D428B /* GnomeApocalypse.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = GnomeApocalypse.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -86,7 +84,6 @@
 		D6973F312FA260F5000D428B = {
 			isa = PBXGroup;
 			children = (
-				D69741A62FABDA5A000D428B /* GnomeApocalypse.xctestplan */,
 				D6973F3C2FA260F5000D428B /* Greed */,
 				D6973F532FA260F6000D428B /* GreedTests */,
 				D6973F5D2FA260F6000D428B /* GreedUITests */,
@@ -234,7 +231,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D69741A72FABDA5A000D428B /* GnomeApocalypse.xctestplan in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

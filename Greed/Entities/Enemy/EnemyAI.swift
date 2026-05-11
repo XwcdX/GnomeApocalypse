@@ -2,16 +2,12 @@ import SpriteKit
 
 final class EnemyAI {
     func update(enemies: [EnemyEntity], players: [PlayerEntity]) {
-        let targets = players.filter { $0.health.isDead == false && $0.isTargetingActive }
+        let targets = players.filter { !$0.health.isDead && $0.isTargetingActive }
         guard !targets.isEmpty else { return }
 
         for enemy in enemies {
             guard let nearest = nearestPlayer(to: enemy.position, among: targets) else { continue }
-            enemy.targetPosition = nearestToroidalTarget(
-                from: enemy.position,
-                to: nearest.position,
-                mapSize: GameConfig.mapSize
-            )
+            enemy.targetPosition = nearest.position
         }
     }
 

@@ -27,8 +27,6 @@ final class CameraSystem {
         players.removeAll { $0 === player }
     }
 
-    /// Keeps `position` within one map-width of the camera — no hard wrap, no visual snap.
-    /// Call every frame from any entity after moving.
     func clampToroidal(_ position: inout CGPoint) {
         let camPos = cameraNode.position
         let hw = GameConfig.mapSize.width / 2

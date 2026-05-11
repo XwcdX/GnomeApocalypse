@@ -29,13 +29,13 @@ final class SmallGnome: EnemyEntity {
     }
     
     private func updateAnimation() {
-        let offset = toroidalOffset(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
-        let isMoving = sqrt(offset.dx * offset.dx + offset.dy * offset.dy) > 1
-        
+        let delta = movementDelta
+        let isMoving = abs(delta.x) > 0.01 || abs(delta.y) > 0.01
+
         if isMoving {
-            lastDirection = animator.setDirection(dx: offset.dx, dy: offset.dy)
+            lastDirection = animator.setDirection(dx: delta.x, dy: delta.y)
         }
-        
+
         let animationName = isMoving ? "right_walk" : "right_shoot"
         animator.play(animation: animationName, timePerFrame: 0.1, repeat: true)
     }

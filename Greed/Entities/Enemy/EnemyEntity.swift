@@ -20,11 +20,17 @@ class EnemyEntity: SKSpriteNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
+    private var lastPosition: CGPoint = .zero
+    var movementDelta: CGPoint { CGPoint(x: position.x - lastPosition.x, y: position.y - lastPosition.y) }
+
     func update(deltaTime: TimeInterval) {
         if ghostRenderer == nil {
             ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
         }
+        lastPosition = position
         moveTowardTarget(deltaTime: deltaTime)
+        physicsBody?.velocity = .zero
+        physicsBody?.angularVelocity = 0
         guard let cam = gameScene?.cameraSystem else { return }
         cam.clampToroidal(&position)
         ghostRenderer?.update(cameraPosition: cam.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
@@ -43,11 +49,9 @@ class EnemyEntity: SKSpriteNode {
         let offset = toroidalOffset(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
         let distance = sqrt(offset.dx * offset.dx + offset.dy * offset.dy)
         guard distance > 1 else { return }
-        
-        let speed = moveSpeed * CGFloat(deltaTime)
-        let ratio = min(speed / distance, 1.0)
-        position.x += offset.dx * ratio
-        position.y += offset.dy * ratio
+        let step = min(moveSpeed * CGFloat(deltaTime), distance)
+        position.x += (offset.dx / distance) * step
+        position.y += (offset.dy / distance) * step
     }
 
     private func setupPhysics() {
@@ -57,6 +61,8 @@ class EnemyEntity: SKSpriteNode {
         body.collisionBitMask = PhysicsCategory.none
         body.affectedByGravity = false
         body.allowsRotation = false
+        body.linearDamping = 0
+        body.angularDamping = 0
         physicsBody = body
     }
 }

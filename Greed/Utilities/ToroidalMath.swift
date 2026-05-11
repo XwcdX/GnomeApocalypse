@@ -3,15 +3,15 @@ import CoreGraphics
 func toroidalOffset(from a: CGPoint, to b: CGPoint, mapSize: CGSize) -> CGVector {
     let w = mapSize.width
     let h = mapSize.height
-    
-    var dx = b.x - a.x
-    if dx > w / 2 { dx -= w }
+
+    var dx = (b.x - a.x).truncatingRemainder(dividingBy: w)
+    if dx > w / 2  { dx -= w }
     if dx < -w / 2 { dx += w }
-    
-    var dy = b.y - a.y
-    if dy > h / 2 { dy -= h }
+
+    var dy = (b.y - a.y).truncatingRemainder(dividingBy: h)
+    if dy > h / 2  { dy -= h }
     if dy < -h / 2 { dy += h }
-    
+
     return CGVector(dx: dx, dy: dy)
 }
 

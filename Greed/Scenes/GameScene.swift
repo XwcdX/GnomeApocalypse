@@ -332,6 +332,7 @@ final class GameScene: SKScene {
         skillCardOverlay = nil
         skillSelectionPlayer = nil
         wasSkillConfirmPressed = false
+        lastUpdateTime = 0
     }
 
     private func updateSkillSelectionInput() {
