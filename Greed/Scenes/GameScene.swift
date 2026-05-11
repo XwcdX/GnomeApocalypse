@@ -3,7 +3,7 @@ import MetalKit
 
 final class GameScene: SKScene {
     private(set) var cameraSystem: CameraSystem!
-    private(set) var inputSystem: InputSystem!
+    var inputSystem: InputSystem { InputSystem.shared }
     private(set) var directorSystem: DirectorSystem!
     private var spawnSystem: SpawnSystem!
     private var collisionSystem: CollisionSystem!
@@ -57,7 +57,6 @@ final class GameScene: SKScene {
         cameraSystem.isLocked = directorSystem.isBossStageActive
         elapsedRunTime += deltaTime
 
-        // Players move and wrap first
         let visibleEnemies = enemies.filter { isVisible($0.position) }
         for player in players {
             player.aimDirection = inputSystem.aimVector(
@@ -107,8 +106,7 @@ final class GameScene: SKScene {
     }
 
     private func setupSystems(viewSize: CGSize) {
-        inputSystem = InputSystem.shared
-        inputSystem.setup()
+        InputSystem.shared.setup()
         directorSystem = DirectorSystem()
         collisionSystem = CollisionSystem()
         physicsWorld.contactDelegate = collisionSystem
