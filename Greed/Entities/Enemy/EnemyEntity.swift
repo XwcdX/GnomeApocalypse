@@ -55,13 +55,14 @@ class EnemyEntity: SKSpriteNode {
     }
 
     private func setupPhysics() {
-        let body = SKPhysicsBody(circleOfRadius: size.width / 2)
+        let body = SKPhysicsBody(circleOfRadius: size.width * 0.35)
         body.categoryBitMask = PhysicsCategory.enemy
         body.contactTestBitMask = PhysicsCategory.playerProjectile | PhysicsCategory.shield
-        body.collisionBitMask = PhysicsCategory.none
+        body.collisionBitMask = PhysicsCategory.enemy
         body.affectedByGravity = false
         body.allowsRotation = false
-        body.linearDamping = 0
+        body.restitution = 0
+        body.linearDamping = 8
         body.angularDamping = 0
         physicsBody = body
     }
