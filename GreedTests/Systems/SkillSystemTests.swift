@@ -32,11 +32,13 @@ struct SkillSystemTests {
     }
 
     @Test("draw does not offer new weapons when weapon cap is reached")
+    @MainActor
     func drawNoNewWeaponsAtCap() {
         var state = PlayerSkillState()
-        let weapons = system.draw(for: state).filter { $0.type == .weapon }
-        for w in weapons.prefix(GameConfig.maxWeaponSlots) { state.upgrade(w) }
-
+        for id in ["orbiting_spell", "lightning_strike", "poisonous_mist"] {
+            state.upgrade(Skill(id: id, name: id, type: .weapon, iconName: "", maxLevel: 3))
+        }
+        #expect(state.weaponCapReached)
         for _ in 0..<20 {
             let drawn = system.draw(for: state)
             let newWeapons = drawn.filter { $0.type == .weapon && !state.owns($0) }
@@ -45,22 +47,25 @@ struct SkillSystemTests {
     }
 
     @Test("draw still offers weapon upgrades when weapon cap is reached")
+    @MainActor
     func drawOffersWeaponUpgradesAtCap() {
         var state = PlayerSkillState()
-        let weapons = system.draw(for: state).filter { $0.type == .weapon }
-        for w in weapons.prefix(GameConfig.maxWeaponSlots) { state.upgrade(w) }
-
+        for id in ["orbiting_spell", "lightning_strike", "poisonous_mist"] {
+            state.upgrade(Skill(id: id, name: id, type: .weapon, iconName: "", maxLevel: 3))
+        }
         let drawn = system.draw(for: state)
         let ownedWeaponUpgrades = drawn.filter { $0.type == .weapon && state.owns($0) }
         #expect(!ownedWeaponUpgrades.isEmpty)
     }
 
     @Test("draw does not offer new power-ups when power-up cap is reached")
+    @MainActor
     func drawNoNewPowerUpsAtCap() {
         var state = PlayerSkillState()
-        let powerUps = system.draw(for: state).filter { $0.type == .powerUp }
-        for p in powerUps.prefix(GameConfig.maxPowerUpSlots) { state.upgrade(p) }
-
+        for id in ["ancient_tome", "spirit_fruit", "life_bloom"] {
+            state.upgrade(Skill(id: id, name: id, type: .powerUp, iconName: "", maxLevel: 3))
+        }
+        #expect(state.powerUpCapReached)
         for _ in 0..<20 {
             let drawn = system.draw(for: state)
             let newPowerUps = drawn.filter { $0.type == .powerUp && !state.owns($0) }
@@ -178,3 +183,4 @@ struct PlayerSkillStateTests {
         Skill(id: id, name: id, type: type, iconName: "", maxLevel: 3)
     }
 }
+

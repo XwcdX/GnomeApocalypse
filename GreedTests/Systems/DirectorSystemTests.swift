@@ -21,10 +21,20 @@ struct DirectorSystemTests {
 
     @Test("low kills + high damage decreases budget")
     func lowKillsHighDamageDecreasesBudget() {
-        let director = makeDirectorWithSignal(kills: 0, damage: highDamageAmount())
+        let director = DirectorSystem()
+        for _ in 0..<5 {
+            for _ in 0..<highKillCount() { director.recordKill() }
+            director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
+        }
         let before = director.currentBudget
+        #expect(before > GameConfig.directorMinBudget)
+        for _ in 0..<Int(GameConfig.directorRollingWindowDuration / GameConfig.directorPollInterval) {
+            director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
+        }
+        director.recordDamageTaken(highDamageAmount())
+        let beforeDecrease = director.currentBudget
         director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
-        #expect(director.currentBudget < before)
+        #expect(director.currentBudget < beforeDecrease)
     }
 
     @Test("low kills + low damage increases budget by passive step")
@@ -67,7 +77,10 @@ struct DirectorSystemTests {
     func oldKillEventsAreEvicted() {
         let director = DirectorSystem()
         for _ in 0..<highKillCount() { director.recordKill() }
-        director.update(deltaTime: GameConfig.directorRollingWindowDuration + GameConfig.directorPollInterval, activeBudgetUsed: 0)
+        let pollsToEvict = Int(GameConfig.directorRollingWindowDuration / GameConfig.directorPollInterval) + 1
+        for _ in 0..<pollsToEvict {
+            director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
+        }
         let budgetAfterEviction = director.currentBudget
         director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
         #expect(director.currentBudget == budgetAfterEviction + GameConfig.directorPassiveStep)
