@@ -12,7 +12,7 @@ struct SpawnSystemTests {
 
         harness.spawnSystem.spawnForestEssenceOrb(at: .zero)
         harness.spawnSystem.update(
-            deltaTime: GameConfig.orbEvolveTime,
+            deltaTime: GameConfig.smallOrbEvolveTime,
             activeBudgetUsed: harness.director.currentBudget
         )
         harness.spawnSystem.update(
@@ -36,7 +36,7 @@ struct SpawnSystemTests {
 
         harness.spawnSystem.spawnForestEssenceOrb(at: .zero)
         harness.spawnSystem.update(
-            deltaTime: GameConfig.orbEvolveTime,
+            deltaTime: GameConfig.smallOrbEvolveTime,
             activeBudgetUsed: harness.director.currentBudget
         )
         harness.spawnSystem.update(

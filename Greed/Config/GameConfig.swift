@@ -31,11 +31,11 @@ enum GameConfig {
     static let xpThresholdGrowthFactor: Double = 1.4
     
     
-    // MARK: - Forest Essense Orb Evolution
-    static let orbEvolveTime: TimeInterval = 5.0
+    // MARK: - Forest Essence Orb Evolution
+    static let smallOrbEvolveTime: TimeInterval = 5.0
     static let grownOrbEvolveTime: TimeInterval = 8.0
     static let redOrbEvolveTime: TimeInterval = 5.0
-    static let orbBaseEssenceValue: Int = 10
+    static let smallOrbEssenceValue: Int = 10
     static let grownOrbEssenceValue: Int = 25
     static let redOrbEssenceValue: Int = 50
     

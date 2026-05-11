@@ -2,8 +2,8 @@ import SpriteKit
 
 final class SkillCardOverlay: SKNode {
     private enum Metrics {
-        static let baseWidth: CGFloat = 1440
-        static let baseHeight: CGFloat = 810
+        static let baseWidth: CGFloat = GameConfig.mapSize.width
+        static let baseHeight: CGFloat = GameConfig.mapSize.height
     }
 
     private let skills: [Skill]

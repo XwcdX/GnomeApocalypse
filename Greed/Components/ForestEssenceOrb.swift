@@ -13,7 +13,7 @@ final class ForestEssenceOrb: SKSpriteNode {
     private(set) var essenceValue: Int
     private var stateElapsedTime: TimeInterval = 0
     
-    init(essenceValue: Int) {
+    init(essenceValue: Int = GameConfig.smallOrbEssenceValue) {
         self.essenceValue = essenceValue
         super.init(texture: nil, color: .green, size: CGSize(width: 16, height: 16))
         self.zPosition = Layer.orb
@@ -31,7 +31,7 @@ final class ForestEssenceOrb: SKSpriteNode {
 
         stateElapsedTime += deltaTime
         switch state {
-        case .small where stateElapsedTime >= GameConfig.orbEvolveTime:
+        case .small where stateElapsedTime >= GameConfig.smallOrbEvolveTime:
             becomeGrown()
         case .grown where stateElapsedTime >= GameConfig.grownOrbEvolveTime:
             becomeRed()

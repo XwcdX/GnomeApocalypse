@@ -8,28 +8,28 @@ import Testing
 struct ForestEssenceOrbTests {
     @Test("orb stays small before evolve time")
     func orbStaysSmallBeforeEvolveTime() {
-        let orb = ForestEssenceOrb(essenceValue: GameConfig.orbBaseEssenceValue)
+        let orb = ForestEssenceOrb()
         let cameraSystem = makeCameraSystem()
 
         let didExplode = orb.update(
-            deltaTime: GameConfig.orbEvolveTime - 0.1,
+            deltaTime: GameConfig.smallOrbEvolveTime - 0.1,
             cameraSystem: cameraSystem
         )
 
         #expect(didExplode == false)
         #expect(orb.state == .small)
-        #expect(orb.essenceValue == GameConfig.orbBaseEssenceValue)
+        #expect(orb.essenceValue == GameConfig.smallOrbEssenceValue)
         #expect(orb.size == CGSize(width: 16, height: 16))
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
     }
 
     @Test("orb grows at evolve time")
     func orbGrowsAtEvolveTime() {
-        let orb = ForestEssenceOrb(essenceValue: GameConfig.orbBaseEssenceValue)
+        let orb = ForestEssenceOrb()
         let cameraSystem = makeCameraSystem()
 
         let didExplode = orb.update(
-            deltaTime: GameConfig.orbEvolveTime,
+            deltaTime: GameConfig.smallOrbEvolveTime,
             cameraSystem: cameraSystem
         )
 
@@ -43,10 +43,10 @@ struct ForestEssenceOrbTests {
 
     @Test("grown orb becomes red high-value tier")
     func grownOrbBecomesRedHighValueTier() throws {
-        let orb = ForestEssenceOrb(essenceValue: GameConfig.orbBaseEssenceValue)
+        let orb = ForestEssenceOrb()
         let cameraSystem = makeCameraSystem()
 
-        _ = orb.update(deltaTime: GameConfig.orbEvolveTime, cameraSystem: cameraSystem)
+        _ = orb.update(deltaTime: GameConfig.smallOrbEvolveTime, cameraSystem: cameraSystem)
         let didExplode = orb.update(
             deltaTime: GameConfig.grownOrbEvolveTime,
             cameraSystem: cameraSystem
@@ -66,11 +66,11 @@ struct ForestEssenceOrbTests {
     @Test("red orb becomes mist explosion and emits placeholder VFX")
     func redOrbBecomesMistExplosion() throws {
         let parent = SKNode()
-        let orb = ForestEssenceOrb(essenceValue: GameConfig.orbBaseEssenceValue)
+        let orb = ForestEssenceOrb()
         let cameraSystem = makeCameraSystem()
         parent.addChild(orb)
 
-        _ = orb.update(deltaTime: GameConfig.orbEvolveTime, cameraSystem: cameraSystem)
+        _ = orb.update(deltaTime: GameConfig.smallOrbEvolveTime, cameraSystem: cameraSystem)
         let didExplodeEarly = orb.update(
             deltaTime: GameConfig.grownOrbEvolveTime - 0.1,
             cameraSystem: cameraSystem

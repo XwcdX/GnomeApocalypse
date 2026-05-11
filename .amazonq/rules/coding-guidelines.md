@@ -558,7 +558,7 @@ enum GameConfig {
     static let basePlayerHealth: Int = 100
 
     // Forest Essence Orb Evolution
-    static let orbEvolveTime: TimeInterval = 5.0
+    static let smallOrbEvolveTime: TimeInterval = 5.0
     static let grownOrbEvolveTime: TimeInterval = 8.0
 
     // Shield

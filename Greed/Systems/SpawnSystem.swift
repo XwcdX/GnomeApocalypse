@@ -40,7 +40,7 @@ final class SpawnSystem {
     func spawnForestEssenceOrb(at position: CGPoint) {
         guard let layer = entityLayer else { return }
         
-        let orb = ForestEssenceOrb(essenceValue: GameConfig.orbBaseEssenceValue)
+        let orb = ForestEssenceOrb()
         orb.position = position
         layer.addChild(orb)
         orbs.append(orb)

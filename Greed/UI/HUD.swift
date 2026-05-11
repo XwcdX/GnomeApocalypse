@@ -5,9 +5,8 @@ import AppKit
 
 final class HUD: SKNode {
     private enum Metrics {
-        static let margin: CGFloat = 0
-        static let baseWidth: CGFloat = 1440
-        static let baseHeight: CGFloat = 810
+        static let baseWidth: CGFloat = GameConfig.mapSize.width
+        static let baseHeight: CGFloat = GameConfig.mapSize.height
         static let avatarSize = CGSize(width: 104, height: 82)
         static let essenceBarHeight: CGFloat = 26
         static let healthBarHeight: CGFloat = 22
@@ -146,9 +145,9 @@ final class HUD: SKNode {
     private func layout() {
         let visibleSize = screenSize
         let scale = layoutScale(for: visibleSize)
-        let left = -visibleSize.width / 2 + scaled(Metrics.margin, scale)
-        let right = visibleSize.width / 2 - scaled(Metrics.margin, scale)
-        let top = visibleSize.height / 2 - scaled(Metrics.margin, scale)
+        let left = -visibleSize.width / 2
+        let right = visibleSize.width / 2
+        let top = visibleSize.height / 2
         let avatarSize = scaled(Metrics.avatarSize)
         let essenceBarHeight = scaled(Metrics.essenceBarHeight, scale)
 
