@@ -120,7 +120,7 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 
 ### Forest Essence & Greed System
 
-- [x] **`ForestEssenceOrb.swift`** (basic implementation)
+- [x] **`EssenceOrbComponent.swift`** (basic implementation)
   - Drops at enemy death position, collectable by player contact
   - Toroidal ghost rendering via `ToroidalRenderingComponent`
   - Position kept within one map-width of camera (no hard wrap)
@@ -142,24 +142,24 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
   - Filters dead players from target list
   - Output: sets `targetPosition` on each enemy toward shortest toroidal path
 
-- [x] **`SmallGnome.swift`**
+- [x] **`Grove.swift`**
   - Basic melee/contact gnome, low health, `budgetWeight = 1`
-  - Load animations from `SmallGnome.spriteatlas` when available
+  - Load animations from `Grove.spriteatlas` when available
 
-- [~] **`MiniBossGnome.swift`**
+- [~] **`Grumble.swift`**
   - Spawned by Forest Essence Mist explosion
   - Ranged attack pattern, moderate health, `budgetWeight = 10`
-  - Load animations from `MiniBossGnome.spriteatlas` when available
+  - Load animations from `Grumble.spriteatlas` when available
   - ⚠️ Ranged attack broken — depends on `GameScene.spawnEnemyProjectile` which is a stub
 
-- [~] **`BossGnome.swift`**
+- [~] **`Grand.swift`**
   - Triggered by `DirectorSystem` on `GameConfig.bossSpawnInterval` timer — not by wave or budget logic
   - Multi-phase attack pattern, high health, no budget weight (exempt from Director budget)
   - May independently spawn mini gnomes as a Boss ability — those spawns are also budget-exempt
   - On Boss trigger: `SpawnSystem` pauses all regular gnome spawning; `CameraSystem` locks camera position; player leash tightens to enforce no escape from current view
   - Boss remains until killed — no time limit. Camera lock and spawn pause persist for the Boss's entire lifetime
   - On Boss death: camera lock releases, regular spawning resumes, Director recalibrates from current rolling window
-  - Load animations from `BossGnome.spriteatlas` when available
+  - Load animations from `Grand.spriteatlas` when available
   - ⚠️ `spawnBossMinions` delegates to `GameScene` which only logs a debug message — actual minion spawning is a stub
 
 - [x] **Gnome spawn positioning rule**
@@ -208,11 +208,11 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
   - All gnome spawn positions fall outside current camera view rect
   - Tracks `ForestEssenceOrb` instances, updates their toroidal position each frame
   - `removeOrb(_:)` cleans up ghosts before removing orb from scene
-  - ⚠️ `spawnForestEssenceOrb` spawns a basic colored orb — full `ForestEssenceOrb` state machine not yet wired
+  - ⚠️ `spawnForestEssenceOrb` spawns a basic colored orb — full `EssenceOrbComponent` state machine not yet wired
   - [ ] Wave-based gnome spawning with escalating difficulty (wave parameters in `GameConfig`)
   - [ ] Forest Essence orb drop logic — orb evolution state machine (`small → grown → mistExplosion`)
-  - [ ] MiniBoss spawn request from `ForestEssenceOrb` Mist explosion — subject to budget check; spawns outside camera
-  - [ ] Boss stage: when `DirectorSystem.isBossStageActive` becomes true, pause regular spawning and trigger `BossGnome` spawn outside budget
+  - [ ] MiniBoss spawn request from `EssenceOrbComponent` Mist explosion — subject to budget check; spawns outside camera
+  - [ ] Boss stage: when `DirectorSystem.isBossStageActive` becomes true, pause regular spawning and trigger `Grand` spawn outside budget
   - [ ] On Boss death: call `DirectorSystem.recordBossDeath()` to end Boss stage
   - [ ] Pass `activeBudgetUsed` to `DirectorSystem.update()` each frame
 
@@ -325,9 +325,9 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 - [ ] Validate toroidal button positions — ensure buttons near map boundary edges remain visually and physically consistent
 
 - [ ] **`SwarmGnome` (V3 spawn unit)**
-  - Spawns as a group of ~20 `SmallGnome` instances
+  - Spawns as a group of ~20 `Grove` instances
   - Treated as a single Director budget unit costing 20
-  - `SpawnSystem` handles the group spawn; individual `SmallGnome` entities behave independently after spawn
+  - `SpawnSystem` handles the group spawn; individual `Grove` entities behave independently after spawn
   - All spawn positions must still fall outside the current camera view
   - Add `swarmBudgetWeight` constant to `GameConfig`
 

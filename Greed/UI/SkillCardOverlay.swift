@@ -1,4 +1,7 @@
 import SpriteKit
+#if os(macOS)
+import AppKit
+#endif
 
 final class SkillCardOverlay: SKNode {
     private enum Metrics {
@@ -75,11 +78,19 @@ final class SkillCardOverlay: SKNode {
         card.strokeColor = .clear
         card.zPosition = 1
 
+        if let texture = iconTexture(named: skill.iconName) {
+            let art = SKSpriteNode(texture: texture)
+            art.name = "skillCardArt"
+            art.zPosition = 1
+            card.addChild(art)
+        }
+
         let icon = SKShapeNode(rectOf: .zero)
         icon.name = "skillCardIcon"
         icon.fillColor = SKColor(red: 0.50, green: 0.60, blue: 0.98, alpha: 1.0)
         icon.strokeColor = .clear
         icon.zPosition = 1
+        icon.isHidden = card.childNode(withName: "skillCardArt") != nil
         card.addChild(icon)
 
         let nameLabel = SKLabelNode(fontNamed: "HelveticaNeue")
@@ -122,6 +133,12 @@ final class SkillCardOverlay: SKNode {
             card.strokeColor = index == selectedIndex ? SKColor.white : .clear
             card.lineWidth = scaled(4, scale)
 
+            if let art = card.childNode(withName: "skillCardArt") as? SKSpriteNode {
+                let artSize = CGSize(width: scaled(168, scale), height: scaled(168, scale))
+                art.size = artSize
+                art.position = CGPoint(x: 0, y: scaled(70, scale))
+            }
+
             if let icon = card.childNode(withName: "skillCardIcon") as? SKShapeNode {
                 let iconSize = CGSize(width: scaled(170, scale), height: scaled(170, scale))
                 icon.path = CGPath(
@@ -163,5 +180,25 @@ final class SkillCardOverlay: SKNode {
 
     private func scaled(_ value: CGFloat, _ scale: CGFloat) -> CGFloat {
         value * scale
+    }
+
+    private func texture(named name: String) -> SKTexture? {
+        #if os(macOS)
+        guard let image = NSImage(named: name) else { return nil }
+        let texture = SKTexture(image: image)
+        #else
+        let texture = SKTexture(imageNamed: name)
+        #endif
+        texture.filteringMode = .nearest
+        return texture
+    }
+
+    private func iconTexture(named name: String) -> SKTexture? {
+        guard let baseTexture = texture(named: name) else { return nil }
+
+        let rect = CGRect(x: 0.14, y: 0.34, width: 0.72, height: 0.50)
+        let texture = SKTexture(rect: rect, in: baseTexture)
+        texture.filteringMode = .nearest
+        return texture
     }
 }

@@ -31,7 +31,7 @@
 - `LevelComponent.swift` — `addXP` (returns Bool), threshold growth, `xpFraction`
 - `AnimationComponent.swift` — atlas loading, 8-direction, optional mirror, `play/stop`
 - `ToroidalRenderingComponent.swift` — ghost nodes, camera-drift-aware nearest-sector logic, color fallback
-- `ForestEssenceOrb.swift` — full state machine (`small → grown → red → mistExplosion`), ghost rendering, collection
+- `EssenceOrbComponent.swift` — full state machine (`small → grown → red → mistExplosion`), ghost rendering, collection
 
 ### Entities
 - `PlayerEntity.swift` — movement, `clampToroidal`, ghost rendering, `takeDamage`, `addXP`, `applySkill`, `equippedWeapons/equippedPowerUps`
@@ -39,9 +39,9 @@
 - `LuminousWisp.swift` — full 8-direction animation, aim-priority facing, shoot/walk/idle states
 - `EnemyEntity.swift` — movement toward target, `clampToroidal`, ghost rendering, `die()` with ghost cleanup
 - `EnemyAI.swift` — nearest toroidal target, runs post-wrap each frame
-- `SmallGnome.swift` — placeholder atlas, mirror animation, `GameConfig` constants
-- `MiniBossGnome.swift` — ranged attack via enemy projectile pool (functional)
-- `BossGnome.swift` — two-phase ability, minion spawn via `SpawnSystem`
+- `Grove.swift` — placeholder atlas, mirror animation, `GameConfig` constants
+- `Grumble.swift` — ranged attack via enemy projectile pool (functional)
+- `Grand.swift` — two-phase ability, minion spawn via `SpawnSystem`
 - `Projectile.swift` — velocity movement, `clampToroidal`, ghost rendering, lifespan, animation
 - `ProjectilePool.swift` — pre-allocated pool, `dequeue/enqueue`, `attachAll`
 
@@ -64,7 +64,7 @@
 - `ToroidalMathTest.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
 - `HealthComponentTests.swift` — all boundary conditions
 - `LevelComponentTests.swift` — XP accumulation, multi-level-up, threshold growth
-- `ForestEssenceOrbTests.swift` — full state machine transitions, timer thresholds
+- `EssenceOrbComponentTests.swift` — full state machine transitions, timer thresholds
 - `EnemyProjectilePoolTests.swift` — enemy projectile spawns active with correct bitmasks
 - `CameraSystemTests.swift` — locked camera does not follow players
 - `SpawnSystemTests.swift` — orb explosion → MiniBoss, Boss stage, wave escalation, budget respect
@@ -98,7 +98,7 @@
 
 ### Independent (assign freely)
 
-- **SmallGnome atlas** — replace `LuminousWisp` placeholder with actual `SmallGnome.spriteatlas`
+- **Grove atlas** — replace `LuminousWisp` placeholder with actual `Grove.spriteatlas`
 - **Audio wiring** — call `AudioManager.shared.play(...)` at hit, death, level-up, orb collect, Mist explosion, Boss appear in `GameScene` and `CollisionSystem`
 - **Particle wiring** — call `ParticleAssets.shared.emit(...)` at gnome death, orb collect, shield expand/burst, Mist explosion
 - **`HomeScene` polish** — currently placeholder; improve visuals before milestone

@@ -29,6 +29,31 @@ final class ProjectilePool {
             pool.append(projectile)
         }
     }
+
+    init(
+        size: Int,
+        textureNames: [String],
+        projectileSize: CGSize,
+        category: UInt32,
+        contactTestBitMask: UInt32,
+        frameTime: TimeInterval
+    ) {
+        let frames = textureNames.map { textureName in
+            let texture = SKTexture(imageNamed: textureName)
+            texture.filteringMode = .nearest
+            return texture
+        }
+
+        for _ in 0..<size {
+            let projectile = Projectile(texture: frames.first, color: .clear, size: projectileSize)
+            projectile.name = "EnemyProjectile"
+            projectile.zPosition = Layer.projectile
+            projectile.isHidden = true
+            projectile.configurePhysics(category: category, contactTestBitMask: contactTestBitMask)
+            projectile.configureAnimation(frames: frames, frameTime: frameTime)
+            pool.append(projectile)
+        }
+    }
     
     func dequeue() -> Projectile? {
         pool.first { !$0.isActive }

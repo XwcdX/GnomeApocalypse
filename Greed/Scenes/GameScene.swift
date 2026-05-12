@@ -2,6 +2,16 @@ import SpriteKit
 import MetalKit
 
 final class GameScene: SKScene {
+    private struct ActiveMistCloud {
+        weak var owner: PlayerEntity?
+        let node: SKNode
+        var position: CGPoint
+        var damage: Int
+        var radius: CGFloat
+        var remainingDuration: TimeInterval
+        var tickAccumulator: TimeInterval
+    }
+
     private(set) var cameraSystem: CameraSystem!
     var inputSystem: InputSystem { InputSystem.shared }
     private(set) var directorSystem: DirectorSystem!
@@ -9,6 +19,7 @@ final class GameScene: SKScene {
     private var collisionSystem: CollisionSystem!
     private var skillSystem: SkillSystem!
     private var floorRenderer: FloorTileRenderer!
+    private var environmentRenderers: [FloorTileRenderer] = []
     private var enemyAI: EnemyAI!
     private var playerProjectilePool: ProjectilePool!
     private var enemyProjectilePool: ProjectilePool!
@@ -19,6 +30,10 @@ final class GameScene: SKScene {
     private var gameOverOverlay: GameOverOverlay?
     private weak var skillSelectionPlayer: PlayerEntity?
     private var wasSkillConfirmPressed = false
+    private var lightningCooldowns: [ObjectIdentifier: TimeInterval] = [:]
+    private var activeMistClouds: [ObjectIdentifier: ActiveMistCloud] = [:]
+    private let lightningAtlas = SKTextureAtlas(named: "LightningEffect")
+    private let mistAtlas = SKTextureAtlas(named: "MistEffect")
     var onReplayRequested: (() -> Void)?
     
     private var players: [PlayerEntity] = []
@@ -68,14 +83,15 @@ final class GameScene: SKScene {
             enforceBossCameraLeash(for: player)
         }
 
+        updateLightningSkills(deltaTime: deltaTime)
+        updateMistSkills(deltaTime: deltaTime)
+
         for attack in playerAttacks { attack.update(deltaTime: deltaTime) }
         playerProjectilePool.updateAll(deltaTime: deltaTime)
 
-        // Enemies move and wrap
         for enemy in enemies { enemy.update(deltaTime: deltaTime) }
         enemyProjectilePool.updateAll(deltaTime: deltaTime)
 
-        // AI runs after move+wrap so offsets are computed from correct wrapped positions
         enemyAI.update(enemies: enemies, players: players)
 
         let activeBudget = enemies.reduce(0) { $0 + $1.budgetWeight }
@@ -86,6 +102,9 @@ final class GameScene: SKScene {
         hud.update(elapsedTime: elapsedRunTime)
         cameraSystem.update(deltaTime: deltaTime)
         floorRenderer.update(cameraPosition: cameraSystem.cameraNode.position)
+        for renderer in environmentRenderers {
+            renderer.update(cameraPosition: cameraSystem.cameraNode.position)
+        }
     }
 
     private func setupLayers() {
@@ -124,8 +143,7 @@ final class GameScene: SKScene {
         )
         enemyProjectilePool = ProjectilePool(
             size: GameConfig.projectilePoolSize,
-            atlasName: "PlayerProjectile",
-            frameNames: ["tile000", "tile001", "tile002", "tile003"],
+            textureNames: ["GrumbleBullet"],
             projectileSize: GameConfig.playerProjectileSize,
             category: PhysicsCategory.enemyProjectile,
             contactTestBitMask: PhysicsCategory.player,
@@ -134,9 +152,31 @@ final class GameScene: SKScene {
         
         let tileTexture = SKTexture(imageNamed: "tile_ground")
         tileTexture.filteringMode = .nearest
-        let tileSize = CGSize(width: 1440, height: 810)
-        floorRenderer = FloorTileRenderer(tileTexture: tileTexture, tileSize: tileSize, viewportSize: viewSize)
+        floorRenderer = FloorTileRenderer(tileTexture: tileTexture, tileSize: GameConfig.mapSize, viewportSize: viewSize)
         groundLayer.addChild(floorRenderer.rootNode)
+        if GameConfig.showsEnvironmentDecorations {
+            setupEnvironmentRenderers(tileSize: GameConfig.mapSize, viewSize: viewSize)
+        }
+    }
+
+    private func setupEnvironmentRenderers(tileSize: CGSize, viewSize: CGSize) {
+        let layerNames = [
+            "map_layer_rock_small",
+            "map_layer_rock_arch_large",
+            "map_layer_flower_white",
+            "map_layer_flower_red",
+            "map_layer_mushroom",
+            "map_layer_tree_round",
+            "map_layer_tree_pine"
+        ]
+
+        environmentRenderers = layerNames.map { layerName in
+            let texture = SKTexture(imageNamed: layerName)
+            texture.filteringMode = .nearest
+            let renderer = FloorTileRenderer(tileTexture: texture, tileSize: tileSize, viewportSize: viewSize)
+            environmentLayer.addChild(renderer.rootNode)
+            return renderer
+        }
     }
 
     private func setupPhysics() {
@@ -153,6 +193,9 @@ final class GameScene: SKScene {
     func updateViewport(_ size: CGSize) {
         cameraSystem.updateViewport(size)
         floorRenderer.updateViewport(size)
+        for renderer in environmentRenderers {
+            renderer.updateViewport(size)
+        }
         hud?.updateViewport(size)
         skillCardOverlay?.updateViewport(size)
         gameOverOverlay?.updateViewport(size)
@@ -175,6 +218,207 @@ final class GameScene: SKScene {
         let hud = HUD(player: player, screenSize: size)
         cameraSystem.cameraNode.addChild(hud)
         self.hud = hud
+    }
+
+    private func updateLightningSkills(deltaTime: TimeInterval) {
+        for player in players {
+            let playerID = ObjectIdentifier(player)
+            guard player.lightningChainCount > 0 else {
+                lightningCooldowns.removeValue(forKey: playerID)
+                continue
+            }
+
+            let updatedCooldown = max(0, (lightningCooldowns[playerID] ?? 0) - deltaTime)
+            lightningCooldowns[playerID] = updatedCooldown
+
+            guard updatedCooldown == 0 else { continue }
+            guard castLightning(for: player) else { continue }
+            lightningCooldowns[playerID] = GameConfig.lightningCooldown
+        }
+    }
+
+    private func castLightning(for player: PlayerEntity) -> Bool {
+        guard !enemies.isEmpty else { return false }
+
+        var availableTargets = enemies.filter { $0.parent != nil }
+        guard let initialTarget = availableTargets.randomElement() else { return false }
+
+        let strikeCount = max(1, player.lightningChainCount)
+        let damage = GameConfig.lightningBaseDamage
+        var currentTarget = initialTarget
+
+        for _ in 0..<strikeCount {
+            strikeLightning(on: currentTarget, damage: damage)
+            availableTargets.removeAll { $0 === currentTarget }
+
+            guard !availableTargets.isEmpty else { break }
+            guard let nextTarget = availableTargets.min(by: {
+                toroidalDistance(from: currentTarget.position, to: $0.position, mapSize: GameConfig.mapSize) <
+                toroidalDistance(from: currentTarget.position, to: $1.position, mapSize: GameConfig.mapSize)
+            }) else { break }
+            currentTarget = nextTarget
+        }
+
+        return true
+    }
+
+    private func strikeLightning(on enemy: EnemyEntity, damage: Int) {
+        let strike = makeLightningStrikeNode(at: enemy.position, radius: GameConfig.playerReferenceSpriteSize.height * 0.8)
+        entityLayer.addChild(strike)
+        enemy.health.takeDamage(damage)
+        if enemy.health.isDead { enemy.die() }
+    }
+
+    private func updateMistSkills(deltaTime: TimeInterval) {
+        for player in players {
+            let playerID = ObjectIdentifier(player)
+            guard player.mistDamage > 0, player.mistDuration > 0 else {
+                removeMistCloud(for: playerID)
+                continue
+            }
+
+            if activeMistClouds[playerID] == nil {
+                spawnMistCloud(for: player)
+            }
+
+            guard var cloud = activeMistClouds[playerID], cloud.node.parent != nil else {
+                spawnMistCloud(for: player)
+                continue
+            }
+
+            cloud.damage = player.mistDamage
+            cloud.remainingDuration -= deltaTime
+            cloud.tickAccumulator += deltaTime
+
+            while cloud.tickAccumulator >= GameConfig.mistTickInterval {
+                cloud.tickAccumulator -= GameConfig.mistTickInterval
+                applyMistDamage(from: cloud)
+            }
+
+            if cloud.remainingDuration <= 0 {
+                removeMistCloud(for: playerID)
+                spawnMistCloud(for: player)
+            } else {
+                activeMistClouds[playerID] = cloud
+            }
+        }
+    }
+
+    private func spawnMistCloud(for player: PlayerEntity) {
+        let playerID = ObjectIdentifier(player)
+        removeMistCloud(for: playerID)
+
+        let position = randomPointInCameraView()
+        let cloudNode = makeMistCloudNode(radius: GameConfig.mistRadius)
+        cloudNode.position = position
+        cloudNode.zPosition = Layer.projectile
+        entityLayer.addChild(cloudNode)
+
+        activeMistClouds[playerID] = ActiveMistCloud(
+            owner: player,
+            node: cloudNode,
+            position: position,
+            damage: player.mistDamage,
+            radius: GameConfig.mistRadius,
+            remainingDuration: player.mistDuration,
+            tickAccumulator: 0
+        )
+    }
+
+    private func applyMistDamage(from cloud: ActiveMistCloud) {
+        for enemy in enemies where enemy.parent != nil {
+            let distance = toroidalDistance(from: cloud.position, to: enemy.position, mapSize: GameConfig.mapSize)
+            guard distance <= cloud.radius else { continue }
+            enemy.health.takeDamage(cloud.damage)
+            if enemy.health.isDead { enemy.die() }
+        }
+    }
+
+    private func removeMistCloud(for playerID: ObjectIdentifier) {
+        guard let cloud = activeMistClouds.removeValue(forKey: playerID) else { return }
+        cloud.node.removeFromParent()
+    }
+
+    private func makeMistCloudNode(radius: CGFloat) -> SKNode {
+        let node = SKNode()
+        let sprite = SKSpriteNode(texture: mistTexture(named: "mist_000"))
+        sprite.zPosition = 0
+        sprite.alpha = 0.72
+        sprite.size = CGSize(width: radius * 2, height: radius * 2)
+        node.addChild(sprite)
+
+        let frames = (0..<3).map { mistTexture(named: "mist_\(String(format: "%03d", $0))") }
+        let animate = SKAction.repeatForever(.animate(with: frames, timePerFrame: 0.14))
+        sprite.run(animate)
+
+        return node
+    }
+
+    private func mistTexture(named name: String) -> SKTexture {
+        let texture = mistAtlas.textureNamed(name)
+        texture.filteringMode = .nearest
+        return texture
+    }
+
+    private func makeLightningStrikeNode(at position: CGPoint, radius: CGFloat) -> SKNode {
+        let strikeNode = SKNode()
+        strikeNode.position = position
+        strikeNode.zPosition = Layer.projectile + 1
+
+        let boltHeight = max(radius * 1.6, GameConfig.playerReferenceSpriteSize.height * 1.5)
+        let bolt = SKSpriteNode(texture: lightningTexture(named: "lightning_002"))
+        bolt.anchorPoint = CGPoint(x: 0.5, y: 0.0)
+        bolt.position = CGPoint(x: 0, y: -GameConfig.playerReferenceSpriteSize.height * 0.15)
+        bolt.size = CGSize(width: max(28, radius * 0.45), height: boltHeight)
+        bolt.alpha = 0.95
+        strikeNode.addChild(bolt)
+
+        let frames = [
+            lightningTexture(named: "lightning_001"),
+            lightningTexture(named: "lightning_002"),
+            lightningTexture(named: "lightning_003"),
+            lightningTexture(named: "lightning_002")
+        ]
+        bolt.run(.animate(with: frames, timePerFrame: 0.04))
+
+        let impact = SKShapeNode(circleOfRadius: max(10, radius * 0.12))
+        impact.fillColor = SKColor(red: 0.72, green: 0.96, blue: 1.0, alpha: 0.9)
+        impact.strokeColor = .white
+        impact.lineWidth = 1.5
+        impact.position = bolt.position
+        strikeNode.addChild(impact)
+
+        impact.run(.sequence([
+            .group([
+                .scale(to: 1.5, duration: 0.12),
+                .fadeOut(withDuration: 0.12)
+            ]),
+            .removeFromParent()
+        ]))
+
+        strikeNode.run(.sequence([
+            .wait(forDuration: 0.18),
+            .removeFromParent()
+        ]))
+        return strikeNode
+    }
+
+    private func lightningTexture(named name: String) -> SKTexture {
+        let baseTexture = lightningAtlas.textureNamed(name)
+        baseTexture.filteringMode = .nearest
+
+        let visibleRect = CGRect(x: 0.14, y: 0.05, width: 0.34, height: 0.90)
+        let texture = SKTexture(rect: visibleRect, in: baseTexture)
+        texture.filteringMode = .nearest
+        return texture
+    }
+
+    private func randomPointInCameraView() -> CGPoint {
+        let rect = cameraSystem.visibleRect
+        return CGPoint(
+            x: CGFloat.random(in: rect.minX...rect.maxX),
+            y: CGFloat.random(in: rect.minY...rect.maxY)
+        )
     }
 
     private func computeDeltaTime(_ currentTime: TimeInterval) -> TimeInterval {
@@ -218,11 +462,11 @@ final class GameScene: SKScene {
         enemies.removeAll { $0 === enemy }
     }
     
-    func spawnForestEssenceOrb(at position: CGPoint) {
-        spawnSystem.spawnForestEssenceOrb(at: position)
+    func spawnEssenceOrb(at position: CGPoint) {
+        spawnSystem.spawnEssenceOrb(at: position)
     }
 
-    func removeOrb(_ orb: ForestEssenceOrb) {
+    func removeOrb(_ orb: EssenceOrbComponent) {
         spawnSystem.removeOrb(orb)
     }
     
@@ -276,7 +520,13 @@ final class GameScene: SKScene {
         spawnSystem.spawnBossMinions(count: count, around: position)
     }
     
-    func spawnEnemyProjectile(at position: CGPoint, direction: CGVector, damage: Int) {
+    func spawnEnemyProjectile(
+        at position: CGPoint,
+        direction: CGVector,
+        damage: Int,
+        textureName: String = "GrumbleBullet",
+        lifespan: TimeInterval = GameConfig.projectileLifeSpan
+    ) {
         guard let projectile = enemyProjectilePool.dequeue() else { return }
         
         let magnitude = sqrt(direction.dx * direction.dx + direction.dy * direction.dy)
@@ -287,8 +537,12 @@ final class GameScene: SKScene {
             dx: normalisedDirection.dx * GameConfig.projectileSpeed,
             dy: normalisedDirection.dy * GameConfig.projectileSpeed
         )
-        
-        projectile.activate(at: position, velocity: velocity, damage: damage, lifespan: GameConfig.projectileLifeSpan)
+
+        let texture = SKTexture(imageNamed: textureName)
+        texture.filteringMode = .nearest
+        projectile.texture = texture
+
+        projectile.activate(at: position, velocity: velocity, damage: damage, lifespan: lifespan)
         entityLayer.addChild(projectile)
     }
 

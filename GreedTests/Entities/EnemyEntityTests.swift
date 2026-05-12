@@ -8,7 +8,7 @@ import Testing
 struct EnemyEntityTests {
     @Test("enemy physics bodies collide with other enemies")
     func enemyPhysicsBodiesCollideWithOtherEnemies() throws {
-        let enemy = SmallGnome()
+        let enemy = Grove()
         let body = try #require(enemy.physicsBody)
 
         #expect(body.categoryBitMask == PhysicsCategory.enemy)

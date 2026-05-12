@@ -25,9 +25,9 @@ Challenge2/                             # Xcode project root
 │   │   │   ├── EnemyEntity.swift           # Base gnome class (health, targeting, death)
 │   │   │   ├── EnemyAI.swift               # Toroidal shortest-path pathfinding
 │   │   │   └── Types/
-│   │   │       ├── SmallGnome.swift
-│   │   │       ├── MiniBossGnome.swift
-│   │   │       └── BossGnome.swift
+│   │   │       ├── Grove.swift
+│   │   │       ├── Grumble.swift
+│   │   │       └── Grand.swift
 │   │   └── Projectile/
 │   │       ├── Projectile.swift            # Base projectile (direction, speed, damage, lifespan)
 │   │       └── ProjectilePool.swift        # Object pool for performance
@@ -37,7 +37,7 @@ Challenge2/                             # Xcode project root
 │   │   ├── ToroidalRenderingComponent.swift # Ghost node rendering for toroidal boundary visibility
 │   │   ├── AnimationComponent.swift        # Directional animation handler with atlas loading and optional mirroring
 │   │   ├── ShieldComponent.swift           # Level-up shield radius expansion and collision
-│   │   ├── ForestEssenceOrb.swift          # Forest Essence orb entity + evolution state machine (small → grown → MistExplosion → MiniBoss)
+│   │   ├── EssenceOrbComponent.swift       # Forest Essence orb entity + evolution state machine (small → grown → MistExplosion → Grumble)
 │   │   └── SideQuestComponent.swift        # Button proximity detection, chest spawn trigger (V3)
 │   ├── Scenes/
 │   │   ├── GameScene.swift                 # Primary game loop scene, owns update cycle
@@ -87,7 +87,7 @@ Challenge2/                             # Xcode project root
 │   ├── Components/
 │   │   ├── HealthComponentTests.swift
 │   │   ├── LevelComponentTests.swift
-│   │   └── ForestEssenceOrbTests.swift
+│   │   └── EssenceOrbComponentTests.swift
 │   └── Entities/
 │       └── ProjectilePoolTests.swift
 │
@@ -160,13 +160,13 @@ class EnemyEntity: SKSpriteNode {
     func die() { }
 }
 
-class SmallGnome: EnemyEntity {
+class Grove: EnemyEntity {
     override var budgetWeight: Int { 1 }
 }
-class MiniBossGnome: EnemyEntity {
+class Grumble: EnemyEntity {
     override var budgetWeight: Int { 10 }
 }
-class BossGnome: EnemyEntity {
+class Grand: EnemyEntity {
     // Operates outside the Director budget — triggered by time interval, not budget logic
     // May spawn its own mini gnomes independently; those spawns are also budget-exempt
 }
@@ -408,13 +408,13 @@ struct Skill {
 
 ## Forest Essence Orb Evolution State Machine
 
-Managed inside `ForestEssenceOrb.swift`. The orb is a self-contained entity that runs its own timer.
+Managed inside `EssenceOrbComponent.swift`. The orb is a self-contained entity that runs its own timer.
 
 ```swift
 enum OrbState {
     case small          // base drop, small visual
     case grown          // larger visual, larger hitbox, more Essence value
-    case mistExplosion  // triggers MiniBossGnome spawn at orb position via Mist burst VFX, orb is consumed
+    case mistExplosion  // triggers Grumble spawn at orb position via Mist burst VFX, orb is consumed
 }
 ```
 
@@ -607,7 +607,7 @@ enum GameConfig {
 | Functions | lowerCamelCase | `toroidalWrap(_:mapSize:)` |
 | Constants | lowerCamelCase inside `enum` namespace | `GameConfig.directorMaxBudget` |
 | Files | Match primary type name exactly | `DirectorSystem.swift` |
-| Physics bitmasks | lowerCamelCase inside struct | `PhysicsCategory.shield` |
+| Physics bitmasks | lowerCamelCase inside enum | `PhysicsCategory.shield` |
 | Texture atlases | UpperCamelCase | `LuminousOrb.spriteatlas` |
 | Atlas frames | `action_###` format | `walk_000`, `attack_012` |
 
@@ -638,7 +638,7 @@ Use **Swift Testing** (`import Testing`) for all unit and integration tests. XCT
 - `LevelComponent` — XP accumulation, threshold crossing, level-up return value
 - `ProjectilePool` — dequeue/enqueue cycle, pool exhaustion behavior
 - `SkillSystem` — draw returns exactly 3 non-duplicate skills, seeded reproducibility
-- `ForestEssenceOrb` — state machine transitions (`small → grown → mistExplosion`), timer thresholds
+- `EssenceOrbComponent` — state machine transitions (`small → grown → mistExplosion`), timer thresholds
 
 **Naming convention:** Test files live in `GreedTests/` and mirror the source file name. See the full folder structure above.
 

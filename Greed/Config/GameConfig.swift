@@ -5,9 +5,11 @@ enum GameConfig {
     // MARK: - Map
     /// The logical size of the toroidal world. Positions outside this range are wrapped.
     static let mapSize: CGSize = CGSize(width: 1440, height: 810)
+    static let showsEnvironmentDecorations: Bool = false
     
     
     // MARK: - Player
+    static let playerReferenceSpriteSize: CGSize = CGSize(width: 32, height: 48)
     static let basePlayerSpeed: CGFloat = 200
     static let basePlayerHealth: Int = 100
     static let basePlayerDamage: Int = 10
@@ -35,6 +37,9 @@ enum GameConfig {
     static let smallOrbEvolveTime: TimeInterval = 5.0
     static let grownOrbEvolveTime: TimeInterval = 8.0
     static let redOrbEvolveTime: TimeInterval = 5.0
+    static let smallOrbTargetHeight: CGFloat = playerReferenceSpriteSize.height * 0.82
+    static let grownOrbTargetHeight: CGFloat = playerReferenceSpriteSize.height * 0.98
+    static let redOrbTargetHeight: CGFloat = playerReferenceSpriteSize.height * 1.12
     static let smallOrbEssenceValue: Int = 10
     static let grownOrbEssenceValue: Int = 25
     static let redOrbEssenceValue: Int = 50
@@ -140,6 +145,8 @@ enum GameConfig {
     static let miniBossProjectileDamage: Int = 15
     static let miniBossMoveSpeed: CGFloat = 60
     static let miniBossHealth: Int = 200
+    static let miniBossPreferredRange: CGFloat = 180
+    static let miniBossTargetHeight: CGFloat = playerReferenceSpriteSize.height * 1.35
 
     // MARK: - Boss
     static let bossAbilityInterval: TimeInterval = 8.0
@@ -147,16 +154,22 @@ enum GameConfig {
     static let bossHealth: Int = 2000
     static let bossPhase1MinionCount: Int = 3
     static let bossPhase2MinionCount: Int = 6
+    static let bossTargetHeight: CGFloat = playerReferenceSpriteSize.height * 1.8
     
     
     // MARK: - Gnome Budget Weights
     static let smallGnomeBudgetWeight: Int = 1
-    static let miniBossGnomeBudgetWeight: Int = 10
+    static let grumbleBudgetWeight: Int = 10
     static let swarmBudgetWeight: Int = 20
 
     // MARK: - Small Gnome
     static let smallGnomeHealth: Int = 30
     static let smallGnomeMoveSpeed: CGFloat = 80
+    static let smallGnomeAttackInterval: TimeInterval = 1.0
+    static let smallGnomeAttackWindup: TimeInterval = 0.28
+    static let smallGnomeAttackDamage: Int = 5
+    static let smallGnomeAttackRange: CGFloat = 54
+    static let smallGnomeTargetHeight: CGFloat = playerReferenceSpriteSize.height * 0.62
     
     
     // MARK: - Side Quest
