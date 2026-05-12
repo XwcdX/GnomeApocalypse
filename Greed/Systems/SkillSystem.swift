@@ -28,8 +28,8 @@ struct Skill {
         case "lightning_strike":
             return .lightningStrike(chainCount: level)
         case "poisonous_mist":
-            let baseDamage   = GameConfig.mistBaseDamage
-            let baseDuration = GameConfig.mistBaseDuration
+            let baseDamage   = SkillConfig.mistBaseDamage
+            let baseDuration = SkillConfig.mistBaseDuration
             let damage       = level == 3 ? baseDamage * 2 : baseDamage
             let duration     = level >= 2 ? baseDuration * 1.5 : baseDuration
             return .poisonousMist(damage: damage, duration: duration)
@@ -38,7 +38,7 @@ struct Skill {
         case "spirit_fruit":
             return .increaseMovementSpeed(multiplier: 1.0 + Float(level) * 0.1)
         case "life_bloom":
-            return .increaseMaxHealth(amount: level * GameConfig.healthBoostPerLevel)
+            return .increaseMaxHealth(amount: level * SkillConfig.healthBoostPerLevel)
         default:
             return .increaseAttackSpeed(multiplier: 1.0)
         }

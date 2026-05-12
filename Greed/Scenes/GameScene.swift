@@ -1,5 +1,10 @@
 import SpriteKit
-import MetalKit
+
+private let visibilityCheckMargin: CGFloat = 100
+private let referenceSpriteHeight: CGFloat = 48
+private let lightningStrikeRadiusFactor: CGFloat = 0.8
+private let lightningBoltHeightFactor: CGFloat = 1.5
+private let lightningBoltOffsetFactor: CGFloat = 0.15
 
 final class GameScene: SKScene {
     private struct ActiveMistCloud {
@@ -233,7 +238,7 @@ final class GameScene: SKScene {
 
             guard updatedCooldown == 0 else { continue }
             guard castLightning(for: player) else { continue }
-            lightningCooldowns[playerID] = GameConfig.lightningCooldown
+            lightningCooldowns[playerID] = SkillConfig.lightningCooldown
         }
     }
 
@@ -244,7 +249,7 @@ final class GameScene: SKScene {
         guard let initialTarget = availableTargets.randomElement() else { return false }
 
         let strikeCount = max(1, player.lightningChainCount)
-        let damage = GameConfig.lightningBaseDamage
+        let damage = SkillConfig.lightningBaseDamage
         var currentTarget = initialTarget
 
         for _ in 0..<strikeCount {
@@ -263,7 +268,7 @@ final class GameScene: SKScene {
     }
 
     private func strikeLightning(on enemy: EnemyEntity, damage: Int) {
-        let strike = makeLightningStrikeNode(at: enemy.position, radius: GameConfig.playerReferenceSpriteSize.height * 0.8)
+        let strike = makeLightningStrikeNode(at: enemy.position, radius: referenceSpriteHeight * lightningStrikeRadiusFactor)
         entityLayer.addChild(strike)
         enemy.health.takeDamage(damage)
         if enemy.health.isDead { enemy.die() }
@@ -290,8 +295,8 @@ final class GameScene: SKScene {
             cloud.remainingDuration -= deltaTime
             cloud.tickAccumulator += deltaTime
 
-            while cloud.tickAccumulator >= GameConfig.mistTickInterval {
-                cloud.tickAccumulator -= GameConfig.mistTickInterval
+            while cloud.tickAccumulator >= SkillConfig.mistTickInterval {
+                cloud.tickAccumulator -= SkillConfig.mistTickInterval
                 applyMistDamage(from: cloud)
             }
 
@@ -309,7 +314,7 @@ final class GameScene: SKScene {
         removeMistCloud(for: playerID)
 
         let position = randomPointInCameraView()
-        let cloudNode = makeMistCloudNode(radius: GameConfig.mistRadius)
+        let cloudNode = makeMistCloudNode(radius: SkillConfig.mistRadius)
         cloudNode.position = position
         cloudNode.zPosition = Layer.projectile
         entityLayer.addChild(cloudNode)
@@ -319,7 +324,7 @@ final class GameScene: SKScene {
             node: cloudNode,
             position: position,
             damage: player.mistDamage,
-            radius: GameConfig.mistRadius,
+            radius: SkillConfig.mistRadius,
             remainingDuration: player.mistDuration,
             tickAccumulator: 0
         )
@@ -343,12 +348,12 @@ final class GameScene: SKScene {
         let node = SKNode()
         let sprite = SKSpriteNode(texture: mistTexture(named: "mist_000"))
         sprite.zPosition = 0
-        sprite.alpha = 0.72
+        sprite.alpha = SkillConfig.mistCloudAlpha
         sprite.size = CGSize(width: radius * 2, height: radius * 2)
         node.addChild(sprite)
 
         let frames = (0..<3).map { mistTexture(named: "mist_\(String(format: "%03d", $0))") }
-        let animate = SKAction.repeatForever(.animate(with: frames, timePerFrame: 0.14))
+        let animate = SKAction.repeatForever(.animate(with: frames, timePerFrame: SkillConfig.mistCloudAnimFrameTime))
         sprite.run(animate)
 
         return node
@@ -365,12 +370,12 @@ final class GameScene: SKScene {
         strikeNode.position = position
         strikeNode.zPosition = Layer.projectile + 1
 
-        let boltHeight = max(radius * 1.6, GameConfig.playerReferenceSpriteSize.height * 1.5)
+        let boltHeight = max(radius * 1.6, referenceSpriteHeight * lightningBoltHeightFactor)
         let bolt = SKSpriteNode(texture: lightningTexture(named: "lightning_002"))
         bolt.anchorPoint = CGPoint(x: 0.5, y: 0.0)
-        bolt.position = CGPoint(x: 0, y: -GameConfig.playerReferenceSpriteSize.height * 0.15)
-        bolt.size = CGSize(width: max(28, radius * 0.45), height: boltHeight)
-        bolt.alpha = 0.95
+        bolt.position = CGPoint(x: 0, y: -referenceSpriteHeight * lightningBoltOffsetFactor)
+        bolt.size = CGSize(width: max(SkillConfig.lightningBoltMinWidth, radius * SkillConfig.lightningBoltWidthFactor), height: boltHeight)
+        bolt.alpha = SkillConfig.lightningBoltAlpha
         strikeNode.addChild(bolt)
 
         let frames = [
@@ -379,9 +384,9 @@ final class GameScene: SKScene {
             lightningTexture(named: "lightning_003"),
             lightningTexture(named: "lightning_002")
         ]
-        bolt.run(.animate(with: frames, timePerFrame: 0.04))
+        bolt.run(.animate(with: frames, timePerFrame: SkillConfig.lightningBoltAnimFrameTime))
 
-        let impact = SKShapeNode(circleOfRadius: max(10, radius * 0.12))
+        let impact = SKShapeNode(circleOfRadius: max(SkillConfig.lightningImpactMinRadius, radius * SkillConfig.lightningImpactRadiusFactor))
         impact.fillColor = SKColor(red: 0.72, green: 0.96, blue: 1.0, alpha: 0.9)
         impact.strokeColor = .white
         impact.lineWidth = 1.5
@@ -390,14 +395,14 @@ final class GameScene: SKScene {
 
         impact.run(.sequence([
             .group([
-                .scale(to: 1.5, duration: 0.12),
-                .fadeOut(withDuration: 0.12)
+                .scale(to: SkillConfig.lightningImpactScale, duration: SkillConfig.lightningImpactDuration),
+                .fadeOut(withDuration: SkillConfig.lightningImpactDuration)
             ]),
             .removeFromParent()
         ]))
 
         strikeNode.run(.sequence([
-            .wait(forDuration: 0.18),
+            .wait(forDuration: SkillConfig.lightningStrikeLifetime),
             .removeFromParent()
         ]))
         return strikeNode
@@ -407,7 +412,7 @@ final class GameScene: SKScene {
         let baseTexture = lightningAtlas.textureNamed(name)
         baseTexture.filteringMode = .nearest
 
-        let visibleRect = CGRect(x: 0.14, y: 0.05, width: 0.34, height: 0.90)
+        let visibleRect = SkillConfig.lightningTextureCropRect
         let texture = SKTexture(rect: visibleRect, in: baseTexture)
         texture.filteringMode = .nearest
         return texture
@@ -433,7 +438,7 @@ final class GameScene: SKScene {
     private func isVisible(_ position: CGPoint) -> Bool {
         let cameraPos = cameraSystem.cameraNode.position
         let viewport = GameConfig.cameraViewportSize
-        let margin: CGFloat = 100
+        let margin: CGFloat = visibilityCheckMargin
         let rect = CGRect(
             x: cameraPos.x - viewport.width / 2 - margin,
             y: cameraPos.y - viewport.height / 2 - margin,

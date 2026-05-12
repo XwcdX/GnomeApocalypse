@@ -1,5 +1,22 @@
 import SpriteKit
 
+private let orbSpriteHeight: CGFloat = 48
+private let smallOrbTargetHeight: CGFloat = orbSpriteHeight * 0.82
+private let grownOrbTargetHeight: CGFloat = orbSpriteHeight * 0.98
+private let redOrbTargetHeight: CGFloat = orbSpriteHeight * 1.12
+private let smallOrbPhysicsRadius: CGFloat = 8
+private let grownOrbPhysicsRadius: CGFloat = 12
+private let redOrbPhysicsRadius: CGFloat = 16
+private let orbBobAmplitudeFactor: CGFloat = 0.08
+private let orbBobMinAmplitude: CGFloat = 2
+private let orbBobDurationMin: TimeInterval = 0.6
+private let orbBobDurationMax: TimeInterval = 0.9
+private let orbBobInitialDelayMax: TimeInterval = 0.35
+private let orbMistBurstSize: CGFloat = orbSpriteHeight * 2.2
+private let orbMistBurstAnimFrameTime: TimeInterval = 0.08
+private let orbMistBurstScale: CGFloat = 1.5
+private let orbMistBurstDuration: TimeInterval = 0.24
+
 final class EssenceOrbComponent: SKSpriteNode {
     enum OrbState {
         case small
@@ -19,7 +36,7 @@ final class EssenceOrbComponent: SKSpriteNode {
         self.essenceValue = essenceValue
         let texture = SKTextureAtlas(named: "EssenceOrb").textureNamed("orb_000")
         texture.filteringMode = .nearest
-        super.init(texture: texture, color: .clear, size: Self.scaledSize(for: texture, targetHeight: GameConfig.smallOrbTargetHeight))
+        super.init(texture: texture, color: .clear, size: Self.scaledSize(for: texture, targetHeight: smallOrbTargetHeight))
         self.zPosition = Layer.orb
         setupPhysics()
         startIdleBob()
@@ -62,8 +79,8 @@ final class EssenceOrbComponent: SKSpriteNode {
         essenceValue = GameConfig.grownOrbEssenceValue
         let nextTexture = orbTexture("orb_001")
         texture = nextTexture
-        size = Self.scaledSize(for: nextTexture, targetHeight: GameConfig.grownOrbTargetHeight)
-        setupPhysics(radius: 12)
+        size = Self.scaledSize(for: nextTexture, targetHeight: grownOrbTargetHeight)
+        setupPhysics(radius: grownOrbPhysicsRadius)
     }
 
     private func becomeRed() {
@@ -72,8 +89,8 @@ final class EssenceOrbComponent: SKSpriteNode {
         essenceValue = GameConfig.redOrbEssenceValue
         let nextTexture = orbTexture("orb_002")
         texture = nextTexture
-        size = Self.scaledSize(for: nextTexture, targetHeight: GameConfig.redOrbTargetHeight)
-        setupPhysics(radius: 16)
+        size = Self.scaledSize(for: nextTexture, targetHeight: redOrbTargetHeight)
+        setupPhysics(radius: redOrbPhysicsRadius)
     }
 
     private func explodeIntoMist() {
@@ -91,14 +108,14 @@ final class EssenceOrbComponent: SKSpriteNode {
 
         let mistBurst = SKSpriteNode(texture: mistTexture("mist_000"))
         mistBurst.position = position
-        mistBurst.size = CGSize(width: GameConfig.playerReferenceSpriteSize.width * 2.2, height: GameConfig.playerReferenceSpriteSize.width * 2.2)
+        mistBurst.size = CGSize(width: orbMistBurstSize, height: orbMistBurstSize)
         mistBurst.zPosition = zPosition + 1
         parent.addChild(mistBurst)
 
         let frames = (0..<3).map { mistTexture("mist_\(String(format: "%03d", $0))") }
-        let animate = SKAction.animate(with: frames, timePerFrame: 0.08)
-        let expand = SKAction.scale(to: 1.5, duration: 0.24)
-        let fade = SKAction.fadeOut(withDuration: 0.24)
+        let animate = SKAction.animate(with: frames, timePerFrame: orbMistBurstAnimFrameTime)
+        let expand = SKAction.scale(to: orbMistBurstScale, duration: orbMistBurstDuration)
+        let fade = SKAction.fadeOut(withDuration: orbMistBurstDuration)
         mistBurst.run(.sequence([.group([animate, expand, fade]), .removeFromParent()]))
     }
 
@@ -125,19 +142,19 @@ final class EssenceOrbComponent: SKSpriteNode {
     }
 
     private func startIdleBob() {
-        let amplitude = max(2, size.height * 0.08)
-        let duration = TimeInterval.random(in: 0.6...0.9)
+        let amplitude = max(orbBobMinAmplitude, size.height * orbBobAmplitudeFactor)
+        let duration = TimeInterval.random(in: orbBobDurationMin...orbBobDurationMax)
         let driftUp = SKAction.moveBy(x: 0, y: amplitude, duration: duration)
         let driftDown = SKAction.moveBy(x: 0, y: -amplitude, duration: duration)
         driftUp.timingMode = .easeInEaseOut
         driftDown.timingMode = .easeInEaseOut
 
-        let initialDelay = SKAction.wait(forDuration: TimeInterval.random(in: 0...0.35))
+        let initialDelay = SKAction.wait(forDuration: TimeInterval.random(in: 0...orbBobInitialDelayMax))
         let bob = SKAction.repeatForever(.sequence([driftUp, driftDown]))
         run(.sequence([initialDelay, bob]), withKey: "idleBob")
     }
 
-    private func setupPhysics(radius: CGFloat = 8) {
+    private func setupPhysics(radius: CGFloat = smallOrbPhysicsRadius) {
         let body = SKPhysicsBody(circleOfRadius: radius)
         body.categoryBitMask = PhysicsCategory.forestEssenceOrb
         body.contactTestBitMask = PhysicsCategory.player

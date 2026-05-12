@@ -1,5 +1,7 @@
 import SpriteKit
 
+private let grumbleTargetHeight: CGFloat = 48 * 1.35
+
 final class Grumble: EnemyEntity {
 
     override var budgetWeight: Int { GameConfig.grumbleBudgetWeight }
@@ -15,7 +17,7 @@ final class Grumble: EnemyEntity {
         let firstFrame = atlas.textureNamed("grumble_walk_000")
         super.init(
             texture: firstFrame,
-            displaySize: EnemyEntity.scaledSize(for: firstFrame, targetHeight: GameConfig.miniBossTargetHeight),
+            displaySize: EnemyEntity.scaledSize(for: firstFrame, targetHeight: grumbleTargetHeight),
             health: GameConfig.miniBossHealth
         )
         self.name = "Grumble"

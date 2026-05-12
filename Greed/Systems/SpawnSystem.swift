@@ -1,5 +1,7 @@
 import SpriteKit
 
+private let bossMinionsSpawnRadius: CGFloat = 72
+
 final class SpawnSystem {
     private weak var entityLayer: SKNode?
     private weak var cameraSystem: CameraSystem?
@@ -57,7 +59,7 @@ final class SpawnSystem {
               let camera = cameraSystem,
               let scene = layer.scene as? GameScene else { return }
 
-        let spawnRadius: CGFloat = 72
+        let spawnRadius: CGFloat = bossMinionsSpawnRadius
         for index in 0..<count {
             let angle = (CGFloat(index) / CGFloat(count)) * .pi * 2
             var spawnPos = CGPoint(

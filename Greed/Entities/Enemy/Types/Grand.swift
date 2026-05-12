@@ -1,5 +1,7 @@
 import SpriteKit
 
+private let grandTargetHeight: CGFloat = 48 * 1.8
+
 final class Grand: EnemyEntity {
     override var budgetWeight: Int { 0 }
     override var moveSpeed: CGFloat { GameConfig.bossMoveSpeed }
@@ -15,7 +17,7 @@ final class Grand: EnemyEntity {
         let firstFrame = atlas.textureNamed("grand_walk_000")
         super.init(
             texture: firstFrame,
-            displaySize: EnemyEntity.scaledSize(for: firstFrame, targetHeight: GameConfig.bossTargetHeight),
+            displaySize: EnemyEntity.scaledSize(for: firstFrame, targetHeight: grandTargetHeight),
             health: GameConfig.bossHealth
         )
         self.name = "Grand"

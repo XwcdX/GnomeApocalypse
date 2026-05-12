@@ -1,5 +1,7 @@
 import SpriteKit
 
+private let groveTargetHeight: CGFloat = 48 * 0.62
+
 final class Grove: EnemyEntity {
     private var animator: AnimationComponent!
     private var lastDirection: String = "right"
@@ -13,7 +15,7 @@ final class Grove: EnemyEntity {
         let firstFrame = atlas.textureNamed("grove_walk_000")
         super.init(
             texture: firstFrame,
-            displaySize: EnemyEntity.scaledSize(for: firstFrame, targetHeight: GameConfig.smallGnomeTargetHeight),
+            displaySize: EnemyEntity.scaledSize(for: firstFrame, targetHeight: groveTargetHeight),
             health: GameConfig.smallGnomeHealth
         )
         self.name = "Grove"
