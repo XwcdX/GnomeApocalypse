@@ -90,9 +90,9 @@ struct PlayerSkillState {
 
 final class SkillSystem {
     private let pool: [Skill] = [
-        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "orbit_icon",     maxLevel: 3),
-        Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon,  iconName: "lightning_icon", maxLevel: 3),
-        Skill(id: "poisonous_mist",   name: "Poisonous Mist",   type: .weapon,  iconName: "mist_icon",      maxLevel: 3),
+        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "orbiting_placeholder",  maxLevel: 3),
+        Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon,  iconName: "LightningCard",  maxLevel: 3),
+        Skill(id: "poisonous_mist",   name: "Poisonous Mist",   type: .weapon,  iconName: "MistCard",       maxLevel: 3),
         Skill(id: "ancient_tome",     name: "Ancient Tome",     type: .powerUp, iconName: "tome_icon",      maxLevel: 3),
         Skill(id: "spirit_fruit",     name: "Spirit Fruit",     type: .powerUp, iconName: "fruit_icon",     maxLevel: 3),
         Skill(id: "life_bloom",       name: "Life Bloom",       type: .powerUp, iconName: "bloom_icon",     maxLevel: 3),

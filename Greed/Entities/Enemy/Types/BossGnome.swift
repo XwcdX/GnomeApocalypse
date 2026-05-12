@@ -6,20 +6,48 @@ final class BossGnome: EnemyEntity {
 
     private var timeSinceLastAbility: TimeInterval = 0
     private var phase: Phase = .one
+    private var animator: AnimationComponent!
+    private var lastDirection: String = "right"
     private enum Phase { case one, two }
 
     init() {
-        let texture = SKTexture(imageNamed: "gnome_boss")
-        super.init(texture: texture, health: GameConfig.bossHealth)
+        let atlas = SKTextureAtlas(named: "Grand")
+        let firstFrame = atlas.textureNamed("grand_walk_000")
+        super.init(
+            texture: firstFrame,
+            displaySize: EnemyEntity.scaledSize(for: firstFrame, targetHeight: GameConfig.bossTargetHeight),
+            health: GameConfig.bossHealth
+        )
         self.name = "BossGnome"
+        setupAnimations()
     }
     
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
     
     override func update(deltaTime: TimeInterval) {
         super.update(deltaTime: deltaTime)
+        updateAnimation()
         updatePhase()
         updateAbility(deltaTime: deltaTime)
+    }
+
+    private func setupAnimations() {
+        animator = AnimationComponent(atlasName: "Grand", owner: self, canMirror: true)
+        animator.loadAnimation(name: "grand_walk", frameCount: 7)
+        animator.loadAnimation(name: "grand_attack", frameCount: 5)
+    }
+
+    private func updateAnimation() {
+        let delta = movementDelta
+        let isMoving = abs(delta.x) > 0.01 || abs(delta.y) > 0.01
+
+        if isMoving {
+            lastDirection = delta.x < 0 ? "left" : "right"
+            xScale = lastDirection == "left" ? 1 : -1
+        }
+
+        let animationName = isMoving ? "grand_walk" : "grand_attack"
+        animator.play(animation: animationName, timePerFrame: 0.12, repeat: true)
     }
     
     override func die() {

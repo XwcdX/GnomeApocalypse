@@ -8,17 +8,28 @@ class EnemyEntity: SKSpriteNode {
     var isTargetingActive: Bool = true
     var budgetWeight: Int { 1 }
     var moveSpeed: CGFloat { GameConfig.smallGnomeMoveSpeed }
+    var preferredTargetRange: CGFloat { 0 }
     
     weak var gameScene: GameScene?
 
-    init(texture: SKTexture, health: Int) {
+    init(texture: SKTexture, displaySize: CGSize? = nil, health: Int) {
         self.health = HealthComponent(maximum: health)
-        super.init(texture: texture, color: .clear, size: texture.size())
+        super.init(texture: texture, color: .clear, size: displaySize ?? texture.size())
         self.zPosition = Layer.enemy
         setupPhysics()
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
+
+    static func scaledSize(for texture: SKTexture, targetHeight: CGFloat) -> CGSize {
+        let sourceSize = texture.size()
+        guard sourceSize.height > 0 else {
+            return CGSize(width: targetHeight, height: targetHeight)
+        }
+
+        let scale = targetHeight / sourceSize.height
+        return CGSize(width: sourceSize.width * scale, height: targetHeight)
+    }
 
     private var lastPosition: CGPoint = .zero
     var movementDelta: CGPoint { CGPoint(x: position.x - lastPosition.x, y: position.y - lastPosition.y) }
@@ -48,8 +59,9 @@ class EnemyEntity: SKSpriteNode {
     private func moveTowardTarget(deltaTime: TimeInterval) {
         let offset = toroidalOffset(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
         let distance = sqrt(offset.dx * offset.dx + offset.dy * offset.dy)
-        guard distance > 1 else { return }
-        let step = min(moveSpeed * CGFloat(deltaTime), distance)
+        let remainingDistance = max(0, distance - preferredTargetRange)
+        guard remainingDistance > 1 else { return }
+        let step = min(moveSpeed * CGFloat(deltaTime), remainingDistance)
         position.x += (offset.dx / distance) * step
         position.y += (offset.dy / distance) * step
     }
