@@ -52,6 +52,9 @@ final class GameScene: SKScene {
     
     private var elapsedRunTime: TimeInterval = 0
     private var lastUpdateTime: TimeInterval = 0
+    private var lastReportedAimMode: InputSystem.AimMode?
+    var onAimModeChanged: ((InputSystem.AimMode) -> Void)?
+    var onGameOverPresented: (() -> Void)?
 
     func setup(view: MTKView) {
         let renderSize = view.drawableSize == .zero ? view.bounds.size : view.drawableSize
@@ -105,6 +108,8 @@ final class GameScene: SKScene {
 
         spawnSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
         hud.updateViewport(size)
+        updateControlGuideDismissal()
+        updateAimCursorMode()
         hud.update(elapsedTime: elapsedRunTime)
         cameraSystem.update(deltaTime: deltaTime)
         floorRenderer.update(cameraPosition: cameraSystem.cameraNode.position)
@@ -132,6 +137,7 @@ final class GameScene: SKScene {
 
     private func setupSystems(viewSize: CGSize) {
         InputSystem.shared.setup()
+        InputSystem.shared.resetControlGuideTracking()
         directorSystem = DirectorSystem()
         collisionSystem = CollisionSystem()
         physicsWorld.contactDelegate = collisionSystem
@@ -576,6 +582,7 @@ final class GameScene: SKScene {
         skillCardOverlay = nil
         skillSelectionPlayer = nil
         physicsWorld.speed = 0
+        onGameOverPresented?()
 
         let overlay = GameOverOverlay(survivedTime: elapsedRunTime, screenSize: size) { [weak self] in
             self?.onReplayRequested?()
@@ -600,6 +607,20 @@ final class GameScene: SKScene {
             skillCardOverlay?.selectHighlightedCard()
         }
         wasSkillConfirmPressed = isConfirmPressed
+    }
+
+    private func updateControlGuideDismissal() {
+        guard players.contains(where: {
+            inputSystem.hasControlGuideDismissInput(for: $0.controllerIndex ?? 0)
+        }) else { return }
+        hud.dismissControlGuide()
+    }
+
+    private func updateAimCursorMode() {
+        let mode = inputSystem.aimMode(for: players.first?.controllerIndex ?? 0)
+        guard mode != lastReportedAimMode else { return }
+        lastReportedAimMode = mode
+        onAimModeChanged?(mode)
     }
 
     private func enforceBossCameraLeash(for player: PlayerEntity) {
