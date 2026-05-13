@@ -531,6 +531,7 @@ final class GameScene: SKScene {
         direction: CGVector,
         damage: Int,
         textureName: String = "GrumbleBullet",
+        speed: CGFloat = GameConfig.projectileSpeed,
         lifespan: TimeInterval = GameConfig.projectileLifeSpan
     ) {
         guard let projectile = enemyProjectilePool.dequeue() else { return }
@@ -540,8 +541,8 @@ final class GameScene: SKScene {
         
         let normalisedDirection = CGVector(dx: direction.dx / magnitude, dy: direction.dy / magnitude)
         let velocity = CGVector(
-            dx: normalisedDirection.dx * GameConfig.projectileSpeed,
-            dy: normalisedDirection.dy * GameConfig.projectileSpeed
+            dx: normalisedDirection.dx * speed,
+            dy: normalisedDirection.dy * speed
         )
 
         let texture = SKTexture(imageNamed: textureName)

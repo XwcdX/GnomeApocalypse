@@ -2,6 +2,12 @@ import Foundation
 import CoreGraphics
 
 enum GameConfig {
+    struct PassiveLevelUpBonuses {
+        let damageMultiplier: CGFloat
+        let attackSpeedMultiplier: CGFloat
+        let movementSpeedMultiplier: CGFloat
+    }
+
     // MARK: - Map
     /// The logical size of the toroidal world. Positions outside this range are wrapped.
     static let mapSize: CGSize = CGSize(width: 1440, height: 810)
@@ -11,9 +17,12 @@ enum GameConfig {
     // MARK: - Player
     static let basePlayerSpeed: CGFloat = 200
     static let basePlayerHealth: Int = 100
-    static let basePlayerDamage: Int = 10
+    static let basePlayerDamage: Int = 30
     static let baseFireRate: TimeInterval = 1
-    static let projectileSpeed: CGFloat = 500
+    static let levelUpDamageBonusPerLevel: CGFloat = 0.5
+    static let levelUpAttackSpeedBonusPerLevel: CGFloat = 0.5
+    static let levelUpMovementSpeedBonusPerLevel: CGFloat = 0.05
+    static let projectileSpeed: CGFloat = 400
     static var projectileLifeSpan: TimeInterval {
         TimeInterval((cameraViewportSize.width / 2) / projectileSpeed)
     }
@@ -121,6 +130,7 @@ enum GameConfig {
     // MARK: - Grumble (Mini-Boss)
     static let grumbleBudgetWeight: Int = 10
     static let miniBossShootInterval: TimeInterval = 2.0
+    static let miniBossProjectileSpeed: CGFloat = 400
     static let miniBossProjectileDamage: Int = 15
     static let miniBossMoveSpeed: CGFloat = 60
     static let miniBossHealth: Int = 200
@@ -148,4 +158,13 @@ enum GameConfig {
     static let maxLuckUpgradeLevel: Int = 10
     static let maxHealthUpgradeLevel: Int = 10
     static let essenceCostPerUpgradeLevel: Int = 100
+
+    static func passiveLevelUpBonuses(forLevel level: Int) -> PassiveLevelUpBonuses {
+        let completedLevelUps = max(0, level - 1)
+        return PassiveLevelUpBonuses(
+            damageMultiplier: 1 + (CGFloat(completedLevelUps) * levelUpDamageBonusPerLevel),
+            attackSpeedMultiplier: 1 + (CGFloat(completedLevelUps) * levelUpAttackSpeedBonusPerLevel),
+            movementSpeedMultiplier: 1 + (CGFloat(completedLevelUps) * levelUpMovementSpeedBonusPerLevel)
+        )
+    }
 }

@@ -13,8 +13,11 @@ class PlayerEntity: SKSpriteNode {
     var isMovementFrozen: Bool = false
     var isTargetingActive: Bool = true
     
+    private var powerUpAttackSpeedMultiplier: CGFloat = 1.0
+    private var powerUpMovementSpeedMultiplier: CGFloat = 1.0
     private(set) var attackSpeedMultiplier: CGFloat = 1.0
     private(set) var movementSpeedMultiplier: CGFloat = 1.0
+    private(set) var damageMultiplier: CGFloat = 1.0
     private(set) var orbitCount: Int = 0
     private(set) var lightningChainCount: Int = 0
     private(set) var mistDamage: Int = 0
@@ -23,6 +26,7 @@ class PlayerEntity: SKSpriteNode {
     private(set) var equippedPowerUps: [Skill] = []
     
     var currentSpeed: CGFloat { GameConfig.basePlayerSpeed * movementSpeedMultiplier }
+    var currentDamage: Int { max(1, Int((CGFloat(GameConfig.basePlayerDamage) * damageMultiplier).rounded())) }
 
     init(texture: SKTexture, health: Int = GameConfig.basePlayerHealth) {
         self.health = HealthComponent(maximum: health)
@@ -54,6 +58,7 @@ class PlayerEntity: SKSpriteNode {
 
     func addXP(_ amount: Int) {
         if level.addXP(amount) {
+            applyLevelUpBonuses()
             guard let scene = scene as? GameScene else { return }
             scene.handleLevelUp(for: self)
         }
@@ -74,12 +79,29 @@ class PlayerEntity: SKSpriteNode {
             mistDamage = damage
             mistDuration = duration
         case .increaseAttackSpeed(let multiplier):
-            attackSpeedMultiplier = CGFloat(multiplier)
+            powerUpAttackSpeedMultiplier = CGFloat(multiplier)
+            refreshDerivedMultipliers()
         case .increaseMovementSpeed(let multiplier):
-            movementSpeedMultiplier = CGFloat(multiplier)
+            powerUpMovementSpeedMultiplier = CGFloat(multiplier)
+            refreshDerivedMultipliers()
         case .increaseMaxHealth(let amount):
             health.increaseMaximum(amount)
         }
+    }
+
+    private func applyLevelUpBonuses() {
+        let passiveBonuses = GameConfig.passiveLevelUpBonuses(forLevel: level.currentLevel)
+        damageMultiplier = passiveBonuses.damageMultiplier
+        attackSpeedMultiplier = passiveBonuses.attackSpeedMultiplier
+        movementSpeedMultiplier = passiveBonuses.movementSpeedMultiplier
+        refreshDerivedMultipliers()
+    }
+
+    private func refreshDerivedMultipliers() {
+        let passiveBonuses = GameConfig.passiveLevelUpBonuses(forLevel: level.currentLevel)
+        damageMultiplier = passiveBonuses.damageMultiplier
+        attackSpeedMultiplier = passiveBonuses.attackSpeedMultiplier * powerUpAttackSpeedMultiplier
+        movementSpeedMultiplier = passiveBonuses.movementSpeedMultiplier * powerUpMovementSpeedMultiplier
     }
 
     private func rememberEquipped(_ skill: Skill) {

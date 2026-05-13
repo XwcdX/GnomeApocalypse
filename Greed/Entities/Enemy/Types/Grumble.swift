@@ -68,7 +68,8 @@ final class Grumble: EnemyEntity {
             at: position,
             direction: direction,
             damage: GameConfig.miniBossProjectileDamage,
-            textureName: "GrumbleBullet"
+            textureName: "GrumbleBullet",
+            speed: GameConfig.miniBossProjectileSpeed
         )
     }
 }

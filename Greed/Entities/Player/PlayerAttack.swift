@@ -38,7 +38,7 @@ final class PlayerAttack {
     }
 
     private func fire(from owner: PlayerEntity) {
-        spawnProjectile(from: owner.position, direction: owner.aimDirection, damage: GameConfig.basePlayerDamage)
+        spawnProjectile(from: owner.position, direction: owner.aimDirection, damage: owner.currentDamage)
     }
 
     private func spawnProjectile(from position: CGPoint, direction: CGVector, damage: Int) {
