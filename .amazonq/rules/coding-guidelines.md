@@ -25,9 +25,9 @@ Challenge2/                             # Xcode project root
 │   │   │   ├── EnemyEntity.swift           # Base gnome class (health, targeting, death)
 │   │   │   ├── EnemyAI.swift               # Toroidal shortest-path pathfinding
 │   │   │   └── Types/
-│   │   │       ├── SmallGnome.swift
-│   │   │       ├── MiniBossGnome.swift
-│   │   │       └── BossGnome.swift
+│   │   │       ├── Grove.swift
+│   │   │       ├── Grumble.swift
+│   │   │       └── Grand.swift
 │   │   └── Projectile/
 │   │       ├── Projectile.swift            # Base projectile (direction, speed, damage, lifespan)
 │   │       └── ProjectilePool.swift        # Object pool for performance
@@ -37,7 +37,7 @@ Challenge2/                             # Xcode project root
 │   │   ├── ToroidalRenderingComponent.swift # Ghost node rendering for toroidal boundary visibility
 │   │   ├── AnimationComponent.swift        # Directional animation handler with atlas loading and optional mirroring
 │   │   ├── ShieldComponent.swift           # Level-up shield radius expansion and collision
-│   │   ├── ForestEssenceOrb.swift          # Forest Essence orb entity + evolution state machine (small → grown → MistExplosion → MiniBoss)
+│   │   ├── EssenceOrbComponent.swift       # Forest Essence orb entity + evolution state machine (small → grown → MistExplosion → Grumble)
 │   │   └── SideQuestComponent.swift        # Button proximity detection, chest spawn trigger (V3)
 │   ├── Scenes/
 │   │   ├── GameScene.swift                 # Primary game loop scene, owns update cycle
@@ -72,7 +72,8 @@ Challenge2/                             # Xcode project root
 │   ├── Audio/
 │   │   └── AudioManager.swift              # Sound effect and music playback (AVFoundation)
 │   ├── Config/
-│   │   └── GameConfig.swift                # Central tuning file: speeds, damage values, XP thresholds, timers, Director constants
+│   │   ├── GameConfig.swift                # System-level tuning: map, player, camera, input, director, spawn, gnome stats
+│   │   └── SkillConfig.swift               # Skill and power-up tuning: orbiting spell, lightning, mist, power-ups
 │   ├── Assets.xcassets/                    # All sprites, textures, icons
 │   ├── GameData.swift                      # Transient run state (current score, active players, run seed)
 │   ├── GameManager.swift                   # App entry, bootstraps scene, owns top-level state machine
@@ -87,7 +88,7 @@ Challenge2/                             # Xcode project root
 │   ├── Components/
 │   │   ├── HealthComponentTests.swift
 │   │   ├── LevelComponentTests.swift
-│   │   └── ForestEssenceOrbTests.swift
+│   │   └── EssenceOrbComponentTests.swift
 │   └── Entities/
 │       └── ProjectilePoolTests.swift
 │
@@ -160,13 +161,13 @@ class EnemyEntity: SKSpriteNode {
     func die() { }
 }
 
-class SmallGnome: EnemyEntity {
+class Grove: EnemyEntity {
     override var budgetWeight: Int { 1 }
 }
-class MiniBossGnome: EnemyEntity {
+class Grumble: EnemyEntity {
     override var budgetWeight: Int { 10 }
 }
-class BossGnome: EnemyEntity {
+class Grand: EnemyEntity {
     // Operates outside the Director budget — triggered by time interval, not budget logic
     // May spawn its own mini gnomes independently; those spawns are also budget-exempt
 }
@@ -408,13 +409,13 @@ struct Skill {
 
 ## Forest Essence Orb Evolution State Machine
 
-Managed inside `ForestEssenceOrb.swift`. The orb is a self-contained entity that runs its own timer.
+Managed inside `EssenceOrbComponent.swift`. The orb is a self-contained entity that runs its own timer.
 
 ```swift
 enum OrbState {
     case small          // base drop, small visual
     case grown          // larger visual, larger hitbox, more Essence value
-    case mistExplosion  // triggers MiniBossGnome spawn at orb position via Mist burst VFX, orb is consumed
+    case mistExplosion  // triggers Grumble spawn at orb position via Mist burst VFX, orb is consumed
 }
 ```
 
@@ -547,18 +548,63 @@ Leaderboard IDs and achievement IDs are string constants in `Achievements.swift`
 
 ---
 
+## Config Files
+
+Tuning constants are split across two config files and private file-level constants.
+
+### GameConfig.swift — system-level balance tuning
+
+Contains values that a designer touches during balance and playtesting. Read by multiple systems.
+
+```
+Map, Player stats, Projectile, XP/Levelling, Orb evolution timers + essence values,
+Shield, Skill draw caps, Camera, Input, Director, Spawn waves, Grove/Grumble/Grand stats
+```
+
+### SkillConfig.swift — skill and power-up tuning
+
+Contains all weapon and power-up balance values. Read by `SkillSystem` and `GameScene`.
+
+```
+Orbiting Spell, Lightning Strike, Poisonous Mist, Power-ups
+```
+
+### Private file-level constants — visual set-and-forget values
+
+Values that are fixed once and never tuned during balance live as `private let` constants at the top of the file that uses them. Never go in a config file.
+
+Examples:
+- Orb bob animation timing, physics radii, sprite target heights → top of `EssenceOrbComponent.swift`
+- Gnome sprite target heights → top of `Grove.swift`, `Grumble.swift`, `Grand.swift`
+- Lightning visual sizing factors → top of `GameScene.swift`
+- Boss minion spawn radius → top of `SpawnSystem.swift`
+
+### Decision rule
+
+| Value type | Where it lives |
+|---|---|
+| Balance/gameplay tuning — tweaked during playtesting | `GameConfig` or `SkillConfig` |
+| Skill weapon/powerup tuning | `SkillConfig` |
+| Visual polish — set once, never tuned | `private let` at top of the file that uses it |
+| UI layout constants | `private` inside the UI file (e.g. `HUD.Metrics`) |
+
+---
+
 ## GameConfig.swift (Central Tuning)
 
 All magic numbers live here. Nothing is hardcoded in entity or system files.
 
 ```swift
 enum GameConfig {
+    // Map
+    static let mapSize: CGSize = CGSize(width: 2160, height: 1215)
+
     // Player
     static let basePlayerSpeed: CGFloat = 200
     static let basePlayerHealth: Int = 100
 
     // Forest Essence Orb Evolution
-    static let orbEvolveTime: TimeInterval = 5.0
+    static let smallOrbEvolveTime: TimeInterval = 5.0
     static let grownOrbEvolveTime: TimeInterval = 8.0
 
     // Shield
@@ -567,31 +613,48 @@ enum GameConfig {
 
     // Camera
     static let cameraFollowSpeed: CGFloat = 0.1
-    static let cameraZoom: CGFloat = 3.0          // SKCameraNode scale = 1/cameraZoom
-    static var cameraViewportSize: CGSize {        // computed — never hardcode
+    static let cameraZoom: CGFloat = 2.5
+    static var cameraViewportSize: CGSize {
         CGSize(width: mapSize.width / cameraZoom, height: mapSize.height / cameraZoom)
     }
     static let cameraLeashFactor: CGFloat = 0.95
 
     // Skill Draw
     static let skillDrawCount: Int = 3
+    static let maxWeaponSlots: Int = 3
+    static let maxPowerUpSlots: Int = 3
+    static let maxLevel3Items: Int = 3
 
     // Input
-    static let autoAimIdleThreshold: TimeInterval = 0.2   // seconds of mouse/trackpad inactivity before auto-aim engages
-    static let stickDeadzone: CGFloat = 0.15               // right stick magnitude below which auto-aim engages
+    static let autoAimIdleThreshold: TimeInterval = 0.2
+    static let stickDeadzone: CGFloat = 0.15
 
     // Director
     static let directorPollInterval: TimeInterval = 5.0
     static let directorRollingWindowDuration: TimeInterval = 20.0
-    static let directorMinBudget: Int = 20
-    static let directorMaxBudget: Int = 300                // soft ceiling — Director slows steps as it approaches this value
-    static let directorBudgetStep: Int = 15                // normal up/down step per poll
-    static let directorPassiveStep: Int = 5                // smaller step for passive-play nudge
-    static let directorKillRateThreshold: Double = 2.0     // kills/sec considered "high"
-    static let directorDamageRateThreshold: Double = 10.0  // damage/sec considered "high"
+    static let directorMinBudget: Int = 100
+    static let directorMaxBudget: Int = 300
+    static let directorBudgetStep: Int = 20
+    static let directorPassiveStep: Int = 10
+    static let directorKillRateThreshold: Double = 2.0
+    static let directorDamageRateThreshold: Double = 5.0
 
     // Boss Stage
-    static let bossSpawnInterval: TimeInterval = 600.0     // 10 minutes; Boss triggers regardless of Director budget
+    static let bossSpawnInterval: TimeInterval = 600.0
+
+    // Grove (Small Gnome)
+    static let smallGnomeBudgetWeight: Int = 1
+    static let smallGnomeHealth: Int = 30
+    static let smallGnomeMoveSpeed: CGFloat = 80
+
+    // Grumble (Mini-Boss)
+    static let grumbleBudgetWeight: Int = 10
+    static let miniBossHealth: Int = 200
+    static let miniBossMoveSpeed: CGFloat = 60
+
+    // Grand (Boss)
+    static let bossHealth: Int = 2000
+    static let bossMoveSpeed: CGFloat = 40
 }
 ```
 
@@ -607,7 +670,7 @@ enum GameConfig {
 | Functions | lowerCamelCase | `toroidalWrap(_:mapSize:)` |
 | Constants | lowerCamelCase inside `enum` namespace | `GameConfig.directorMaxBudget` |
 | Files | Match primary type name exactly | `DirectorSystem.swift` |
-| Physics bitmasks | lowerCamelCase inside struct | `PhysicsCategory.shield` |
+| Physics bitmasks | lowerCamelCase inside enum | `PhysicsCategory.shield` |
 | Texture atlases | UpperCamelCase | `LuminousOrb.spriteatlas` |
 | Atlas frames | `action_###` format | `walk_000`, `attack_012` |
 
@@ -617,7 +680,7 @@ enum GameConfig {
 
 - No `print()` in production paths. Use a `Log.swift` debug wrapper that strips in release builds.
 - No force unwraps (`!`) except in `@IBOutlet` / `@IBAction` if ever used. Use `guard let` or `if let`.
-- No magic numbers outside `GameConfig.swift`. This includes all Director tuning values.
+- No magic numbers. Balance/gameplay values go in `GameConfig` or `SkillConfig`. Visual set-and-forget values go as `private let` constants at the top of the file that uses them.
 - All `update(deltaTime:)` methods must be O(n) or better. No nested loops over full entity lists in the update cycle.
 - Object pooling is mandatory for projectiles and XP orbs. Both are high-frequency spawn/despawn objects.
 - `SKAction` sequences are acceptable for one-off animations. Never use `SKAction` for game logic that needs to be queryable or cancellable at runtime — use explicit state machines instead.
@@ -638,7 +701,7 @@ Use **Swift Testing** (`import Testing`) for all unit and integration tests. XCT
 - `LevelComponent` — XP accumulation, threshold crossing, level-up return value
 - `ProjectilePool` — dequeue/enqueue cycle, pool exhaustion behavior
 - `SkillSystem` — draw returns exactly 3 non-duplicate skills, seeded reproducibility
-- `ForestEssenceOrb` — state machine transitions (`small → grown → mistExplosion`), timer thresholds
+- `EssenceOrbComponent` — state machine transitions (`small → grown → mistExplosion`), timer thresholds
 
 **Naming convention:** Test files live in `GreedTests/` and mirror the source file name. See the full folder structure above.
 

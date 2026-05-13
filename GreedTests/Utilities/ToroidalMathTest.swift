@@ -5,7 +5,6 @@ import Testing
 
 private let map = CGSize(width: 1000, height: 1000)
 
-// MARK: - toroidalOffset
 @Suite("toroidalOffset")
 struct ToroidalOffsetTests {
     @Test("offset between two nearby points - direct path")
@@ -91,9 +90,29 @@ struct ToroidalOffsetTests {
         #expect(abs(offset.dx) <= map.width / 2)
         #expect(abs(offset.dy) <= map.height / 2)
     }
+
+    @Test("offset correct when positions are far outside map bounds due to drift")
+    func offsetCorrectWithDriftedPositions() {
+        let offset = toroidalOffset(
+            from: CGPoint(x: 5000, y: 3000),
+            to: CGPoint(x: 5100, y: 3050),
+            mapSize: map
+        )
+        #expect(abs(offset.dx - 100) < 0.001)
+        #expect(abs(offset.dy - 50) < 0.001)
+    }
+
+    @Test("offset wraps correctly when drifted positions cross boundary")
+    func offsetWrapsWithDriftedPositions() {
+        let offset = toroidalOffset(
+            from: CGPoint(x: 5400, y: 0),
+            to: CGPoint(x: 5100, y: 0),
+            mapSize: map
+        )
+        #expect(abs(offset.dx - (-300)) < 0.001)
+    }
 }
 
-// MARK: - nearestToroidalTarget
 @Suite("nearestToroidalTarget")
 struct NearestToroidalTargetTests {
     @Test("same-sector target returned unchanged")
@@ -175,7 +194,6 @@ struct NearestToroidalTargetTests {
     }
 }
 
-// MARK: - toroidalDistance
 @Suite("toroidalDistance")
 struct ToroidalDistanceTests {
     @Test("distance between identical points is zero")

@@ -1,11 +1,13 @@
 import SpriteKit
 
+private let bossMinionsSpawnRadius: CGFloat = 72
+
 final class SpawnSystem {
     private weak var entityLayer: SKNode?
     private weak var cameraSystem: CameraSystem?
     private weak var directorSystem: DirectorSystem?
-    private var orbs: [ForestEssenceOrb] = []
-    private weak var activeBoss: BossGnome?
+    private var orbs: [EssenceOrbComponent] = []
+    private weak var activeBoss: Grand?
     
     private var spawnAccumulator: TimeInterval = 0
     private var waveAccumulator: TimeInterval = 0
@@ -37,16 +39,16 @@ final class SpawnSystem {
         }
     }
     
-    func spawnForestEssenceOrb(at position: CGPoint) {
+    func spawnEssenceOrb(at position: CGPoint) {
         guard let layer = entityLayer else { return }
         
-        let orb = ForestEssenceOrb(essenceValue: GameConfig.orbBaseEssenceValue)
+        let orb = EssenceOrbComponent()
         orb.position = position
         layer.addChild(orb)
         orbs.append(orb)
     }
     
-    func removeOrb(_ orb: ForestEssenceOrb) {
+    func removeOrb(_ orb: EssenceOrbComponent) {
         orbs.removeAll { $0 === orb }
         orb.cleanup()
     }
@@ -57,7 +59,7 @@ final class SpawnSystem {
               let camera = cameraSystem,
               let scene = layer.scene as? GameScene else { return }
 
-        let spawnRadius: CGFloat = 72
+        let spawnRadius: CGFloat = bossMinionsSpawnRadius
         for index in 0..<count {
             let angle = (CGFloat(index) / CGFloat(count)) * .pi * 2
             var spawnPos = CGPoint(
@@ -66,7 +68,7 @@ final class SpawnSystem {
             )
             camera.clampToroidal(&spawnPos)
 
-            let gnome = SmallGnome()
+            let gnome = Grove()
             gnome.position = spawnPos
             gnome.gameScene = scene
             scene.register(enemy: gnome)
@@ -82,7 +84,7 @@ final class SpawnSystem {
         activeBudgetUsed: Int
     ) -> Int {
         var spawnedBudget = 0
-        var explodedOrbs: [ForestEssenceOrb] = []
+        var explodedOrbs: [EssenceOrbComponent] = []
         for orb in orbs {
             if orb.update(deltaTime: deltaTime, cameraSystem: camera) {
                 explodedOrbs.append(orb)
@@ -90,8 +92,8 @@ final class SpawnSystem {
         }
 
         for orb in explodedOrbs {
-            if spawnMiniBossGnome(camera: camera, director: director, activeBudgetUsed: activeBudgetUsed + spawnedBudget) {
-                spawnedBudget += GameConfig.miniBossGnomeBudgetWeight
+            if spawnGrumble(camera: camera, director: director, activeBudgetUsed: activeBudgetUsed + spawnedBudget) {
+                spawnedBudget += GameConfig.grumbleBudgetWeight
             }
             removeOrb(orb)
         }
@@ -126,7 +128,7 @@ final class SpawnSystem {
         guard activeBudgetUsed + weight <= director.currentBudget else { return false }
 
         let spawnPos = randomPositionOutsideCamera(camera: camera)
-        let gnome = SmallGnome()
+        let gnome = Grove()
         gnome.position = spawnPos
 
         guard let scene = layer.scene as? GameScene else { return false }
@@ -137,14 +139,14 @@ final class SpawnSystem {
         return true
     }
 
-    private func spawnMiniBossGnome(camera: CameraSystem, director: DirectorSystem, activeBudgetUsed: Int) -> Bool {
-        let weight = GameConfig.miniBossGnomeBudgetWeight
+    private func spawnGrumble(camera: CameraSystem, director: DirectorSystem, activeBudgetUsed: Int) -> Bool {
+        let weight = GameConfig.grumbleBudgetWeight
         guard activeBudgetUsed + weight <= director.currentBudget,
               let layer = entityLayer,
               let scene = layer.scene as? GameScene else { return false }
 
         let spawnPos = randomPositionOutsideCamera(camera: camera)
-        let miniBoss = MiniBossGnome()
+        let miniBoss = Grumble()
         miniBoss.position = spawnPos
         miniBoss.gameScene = scene
         scene.register(enemy: miniBoss)
@@ -158,7 +160,7 @@ final class SpawnSystem {
         guard let scene = layer.scene as? GameScene else { return }
 
         let spawnPos = randomPositionOutsideCamera(camera: camera)
-        let boss = BossGnome()
+        let boss = Grand()
         boss.position = spawnPos
         boss.gameScene = scene
         scene.register(enemy: boss)

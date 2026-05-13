@@ -28,8 +28,8 @@ struct Skill {
         case "lightning_strike":
             return .lightningStrike(chainCount: level)
         case "poisonous_mist":
-            let baseDamage   = GameConfig.mistBaseDamage
-            let baseDuration = GameConfig.mistBaseDuration
+            let baseDamage   = SkillConfig.mistBaseDamage
+            let baseDuration = SkillConfig.mistBaseDuration
             let damage       = level == 3 ? baseDamage * 2 : baseDamage
             let duration     = level >= 2 ? baseDuration * 1.5 : baseDuration
             return .poisonousMist(damage: damage, duration: duration)
@@ -38,7 +38,7 @@ struct Skill {
         case "spirit_fruit":
             return .increaseMovementSpeed(multiplier: 1.0 + Float(level) * 0.1)
         case "life_bloom":
-            return .increaseMaxHealth(amount: level * GameConfig.healthBoostPerLevel)
+            return .increaseMaxHealth(amount: level * SkillConfig.healthBoostPerLevel)
         default:
             return .increaseAttackSpeed(multiplier: 1.0)
         }
@@ -90,9 +90,9 @@ struct PlayerSkillState {
 
 final class SkillSystem {
     private let pool: [Skill] = [
-        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "orbit_icon",     maxLevel: 3),
-        Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon,  iconName: "lightning_icon", maxLevel: 3),
-        Skill(id: "poisonous_mist",   name: "Poisonous Mist",   type: .weapon,  iconName: "mist_icon",      maxLevel: 3),
+        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "orbiting_placeholder",  maxLevel: 3),
+        Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon,  iconName: "LightningCard",  maxLevel: 3),
+        Skill(id: "poisonous_mist",   name: "Poisonous Mist",   type: .weapon,  iconName: "MistCard",       maxLevel: 3),
         Skill(id: "ancient_tome",     name: "Ancient Tome",     type: .powerUp, iconName: "tome_icon",      maxLevel: 3),
         Skill(id: "spirit_fruit",     name: "Spirit Fruit",     type: .powerUp, iconName: "fruit_icon",     maxLevel: 3),
         Skill(id: "life_bloom",       name: "Life Bloom",       type: .powerUp, iconName: "bloom_icon",     maxLevel: 3),

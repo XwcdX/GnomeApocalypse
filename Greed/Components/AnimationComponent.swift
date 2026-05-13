@@ -62,7 +62,6 @@ final class AnimationComponent {
         let angle = atan2(dy, dx)
         let degrees = angle * 180 / .pi
 
-        // Resolve the canonical direction using right-side names
         let rightSide: String
         if degrees >= -22.5 && degrees < 22.5 {
             rightSide = "right"
@@ -84,6 +83,7 @@ final class AnimationComponent {
 
         guard canMirror else { return rightSide }
 
+        owner.yScale = abs(owner.yScale)
         switch rightSide {
         case "right":
             owner.xScale = 1

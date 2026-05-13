@@ -10,33 +10,33 @@ struct SpawnSystemTests {
     func orbMistExplosionSpawnsBudgetedMiniBossOutsideCamera() throws {
         let harness = makeHarness()
 
-        harness.spawnSystem.spawnForestEssenceOrb(at: .zero)
+        harness.spawnSystem.spawnEssenceOrb(at: .zero)
         harness.spawnSystem.update(
-            deltaTime: GameConfig.orbEvolveTime,
+            deltaTime: GameConfig.smallOrbEvolveTime,
             activeBudgetUsed: harness.director.currentBudget
         )
         harness.spawnSystem.update(
             deltaTime: GameConfig.grownOrbEvolveTime,
             activeBudgetUsed: 0
         )
-        #expect(children(of: MiniBossGnome.self, in: harness.layer).isEmpty)
+        #expect(children(of: Grumble.self, in: harness.layer).isEmpty)
         harness.spawnSystem.update(
             deltaTime: GameConfig.redOrbEvolveTime,
             activeBudgetUsed: 0
         )
 
-        let miniBoss = try #require(children(of: MiniBossGnome.self, in: harness.layer).first)
+        let miniBoss = try #require(children(of: Grumble.self, in: harness.layer).first)
         #expect(!harness.camera.visibleRect.contains(miniBoss.position))
-        #expect(children(of: ForestEssenceOrb.self, in: harness.layer).isEmpty)
+        #expect(children(of: EssenceOrbComponent.self, in: harness.layer).isEmpty)
     }
 
     @Test("orb mist explosion consumes orb without MiniBoss when budget is full")
     func orbMistExplosionDoesNotSpawnMiniBossWhenBudgetIsFull() {
         let harness = makeHarness()
 
-        harness.spawnSystem.spawnForestEssenceOrb(at: .zero)
+        harness.spawnSystem.spawnEssenceOrb(at: .zero)
         harness.spawnSystem.update(
-            deltaTime: GameConfig.orbEvolveTime,
+            deltaTime: GameConfig.smallOrbEvolveTime,
             activeBudgetUsed: harness.director.currentBudget
         )
         harness.spawnSystem.update(
@@ -48,11 +48,11 @@ struct SpawnSystemTests {
             activeBudgetUsed: harness.director.currentBudget
         )
 
-        #expect(children(of: MiniBossGnome.self, in: harness.layer).isEmpty)
-        #expect(children(of: ForestEssenceOrb.self, in: harness.layer).isEmpty)
+        #expect(children(of: Grumble.self, in: harness.layer).isEmpty)
+        #expect(children(of: EssenceOrbComponent.self, in: harness.layer).isEmpty)
     }
 
-    @Test("boss stage pauses regular spawning and spawns one BossGnome outside camera")
+    @Test("boss stage pauses regular spawning and spawns one Grand outside camera")
     func bossStageSpawnsSingleBossAndPausesRegularSpawning() throws {
         let harness = makeHarness()
         harness.director.update(deltaTime: GameConfig.bossSpawnInterval, activeBudgetUsed: 0)
@@ -60,9 +60,9 @@ struct SpawnSystemTests {
         harness.spawnSystem.update(deltaTime: 0.1, activeBudgetUsed: 0)
         harness.spawnSystem.update(deltaTime: 2.1, activeBudgetUsed: 0)
 
-        let boss = try #require(children(of: BossGnome.self, in: harness.layer).first)
-        #expect(children(of: BossGnome.self, in: harness.layer).count == 1)
-        #expect(children(of: SmallGnome.self, in: harness.layer).isEmpty)
+        let boss = try #require(children(of: Grand.self, in: harness.layer).first)
+        #expect(children(of: Grand.self, in: harness.layer).count == 1)
+        #expect(children(of: Grove.self, in: harness.layer).isEmpty)
         #expect(!harness.camera.visibleRect.contains(boss.position))
     }
 
@@ -73,7 +73,7 @@ struct SpawnSystemTests {
 
         harness.spawnSystem.spawnBossMinions(count: 3, around: bossPosition)
 
-        let minions = children(of: SmallGnome.self, in: harness.layer)
+        let minions = children(of: Grove.self, in: harness.layer)
         #expect(minions.count == 3)
         #expect(minions.allSatisfy { $0.gameScene === harness.scene })
     }
@@ -87,7 +87,7 @@ struct SpawnSystemTests {
             activeBudgetUsed: harness.director.currentBudget
         )
 
-        #expect(children(of: SmallGnome.self, in: harness.layer).isEmpty)
+        #expect(children(of: Grove.self, in: harness.layer).isEmpty)
     }
 
     @Test("wave escalation shortens interval and increases gnome count")
@@ -106,7 +106,7 @@ struct SpawnSystemTests {
         #expect(harness.spawnSystem.currentWaveIndex == 2)
         #expect(harness.spawnSystem.currentSpawnInterval < GameConfig.baseSpawnInterval)
         #expect(harness.spawnSystem.currentGnomesPerSpawn == GameConfig.baseGnomesPerSpawn + 2)
-        #expect(children(of: SmallGnome.self, in: harness.layer).count == GameConfig.baseGnomesPerSpawn + 2)
+        #expect(children(of: Grove.self, in: harness.layer).count == GameConfig.baseGnomesPerSpawn + 2)
     }
 
     @Test("wave batch respects remaining Director budget")
@@ -120,7 +120,7 @@ struct SpawnSystemTests {
         )
 
         #expect(harness.spawnSystem.currentGnomesPerSpawn == GameConfig.maximumGnomesPerSpawn)
-        #expect(children(of: SmallGnome.self, in: harness.layer).count == remainingBudget)
+        #expect(children(of: Grove.self, in: harness.layer).count == remainingBudget)
     }
 
     private func makeHarness() -> Harness {

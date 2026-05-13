@@ -85,7 +85,7 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
         }
 
         guard let player = playerNode,
-              let orb = orbNode as? ForestEssenceOrb,
+              let orb = orbNode as? EssenceOrbComponent,
               let scene = player.scene as? GameScene else { return }
 
         player.addXP(orb.essenceValue)

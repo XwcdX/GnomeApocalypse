@@ -1,0 +1,31 @@
+{
+  "configurations" : [
+    {
+      "id" : "EA8FAC56-CEC5-4042-9753-63091D2E06F8",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Greed.xcodeproj",
+        "identifier" : "D6973F4F2FA260F6000D428B",
+        "name" : "GreedTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:Greed.xcodeproj",
+        "identifier" : "D6973F592FA260F6000D428B",
+        "name" : "GreedUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
