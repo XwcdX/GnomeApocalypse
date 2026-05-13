@@ -10,7 +10,7 @@ struct SpawnSystemTests {
     func orbMistExplosionSpawnsBudgetedMiniBossOutsideCamera() throws {
         let harness = makeHarness()
 
-        harness.spawnSystem.spawnEssenceOrbComponent(at: .zero)
+        harness.spawnSystem.spawnEssenceOrb(at: .zero)
         harness.spawnSystem.update(
             deltaTime: GameConfig.smallOrbEvolveTime,
             activeBudgetUsed: harness.director.currentBudget
@@ -34,7 +34,7 @@ struct SpawnSystemTests {
     func orbMistExplosionDoesNotSpawnMiniBossWhenBudgetIsFull() {
         let harness = makeHarness()
 
-        harness.spawnSystem.spawnEssenceOrbComponent(at: .zero)
+        harness.spawnSystem.spawnEssenceOrb(at: .zero)
         harness.spawnSystem.update(
             deltaTime: GameConfig.smallOrbEvolveTime,
             activeBudgetUsed: harness.director.currentBudget
