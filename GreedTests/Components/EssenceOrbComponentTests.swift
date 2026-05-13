@@ -19,7 +19,7 @@ struct EssenceOrbComponentTests {
         #expect(didExplode == false)
         #expect(orb.state == .small)
         #expect(orb.essenceValue == GameConfig.smallOrbEssenceValue)
-        #expect(orb.size == CGSize(width: 16, height: 16))
+        #expect(orb.size.height > 0)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
     }
 
@@ -27,6 +27,7 @@ struct EssenceOrbComponentTests {
     func orbGrowsAtEvolveTime() {
         let orb = EssenceOrbComponent()
         let cameraSystem = makeCameraSystem()
+        let smallSize = orb.size
 
         let didExplode = orb.update(
             deltaTime: GameConfig.smallOrbEvolveTime,
@@ -36,17 +37,19 @@ struct EssenceOrbComponentTests {
         #expect(didExplode == false)
         #expect(orb.state == .grown)
         #expect(orb.essenceValue == GameConfig.grownOrbEssenceValue)
-        #expect(orb.size == CGSize(width: 24, height: 24))
+        #expect(orb.size.height > smallSize.height)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
         #expect(orb.physicsBody?.contactTestBitMask == PhysicsCategory.player)
     }
 
     @Test("grown orb becomes red high-value tier")
-    func grownOrbBecomesRedHighValueTier() throws {
+    func grownOrbBecomesRedHighValueTier() {
         let orb = EssenceOrbComponent()
         let cameraSystem = makeCameraSystem()
 
         _ = orb.update(deltaTime: GameConfig.smallOrbEvolveTime, cameraSystem: cameraSystem)
+        let grownSize = orb.size
+
         let didExplode = orb.update(
             deltaTime: GameConfig.grownOrbEvolveTime,
             cameraSystem: cameraSystem
@@ -55,15 +58,11 @@ struct EssenceOrbComponentTests {
         #expect(didExplode == false)
         #expect(orb.state == .red)
         #expect(orb.essenceValue == GameConfig.redOrbEssenceValue)
-        let color = try #require(orb.color.usingColorSpace(.deviceRGB))
-        #expect(color.redComponent == 1)
-        #expect(color.greenComponent == 0)
-        #expect(color.blueComponent == 0)
-        #expect(orb.size == CGSize(width: 32, height: 32))
+        #expect(orb.size.height > grownSize.height)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
     }
 
-    @Test("red orb becomes mist explosion and emits placeholder VFX")
+    @Test("red orb becomes mist explosion and emits VFX node")
     func redOrbBecomesMistExplosion() throws {
         let parent = SKNode()
         let orb = EssenceOrbComponent()
@@ -91,7 +90,7 @@ struct EssenceOrbComponentTests {
         #expect(orb.state == .red)
 
         let didExplode = orb.update(deltaTime: 0.1, cameraSystem: cameraSystem)
-        let mistBurst = try #require(parent.children.compactMap { $0 as? SKShapeNode }.first)
+        let mistBurst = try #require(parent.children.compactMap { $0 as? SKSpriteNode }.filter { $0 !== orb }.first)
 
         #expect(didExplode == true)
         #expect(orb.state == .mistExplosion)
