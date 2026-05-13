@@ -1,4 +1,5 @@
 import SpriteKit
+import MetalKit
 
 private let visibilityCheckMargin: CGFloat = 100
 private let referenceSpriteHeight: CGFloat = 48
