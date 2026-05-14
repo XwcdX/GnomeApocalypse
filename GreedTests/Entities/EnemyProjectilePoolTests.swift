@@ -23,7 +23,7 @@ struct EnemyProjectilePoolTests {
         #expect(projectile.isActive)
         #expect(projectile.damage == GameConfig.miniBossProjectileDamage)
         #expect(projectile.physicsBody?.categoryBitMask == PhysicsCategory.enemyProjectile)
-        #expect(projectile.physicsBody?.contactTestBitMask == PhysicsCategory.player)
+        #expect(projectile.physicsBody?.contactTestBitMask == PhysicsCategory.player | PhysicsCategory.decoration)
 
         projectile.update(deltaTime: 0.1)
         #expect(projectile.position.x > 0)

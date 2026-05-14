@@ -53,7 +53,7 @@ struct SkillSystemTests {
         for id in ["orbiting_spell", "lightning_strike", "poisonous_mist"] {
             state.upgrade(Skill(id: id, name: id, type: .weapon, iconName: "", maxLevel: 3))
         }
-        let drawn = system.draw(for: state)
+        let drawn = system.draw(for: state, count: 99)
         let ownedWeaponUpgrades = drawn.filter { $0.type == .weapon && state.owns($0) }
         #expect(!ownedWeaponUpgrades.isEmpty)
     }
@@ -216,6 +216,39 @@ struct SkillEffectTests {
             return
         }
         #expect(amount == SkillConfig.lifeBloomMaxHealthBonuses[level - 1])
+    }
+
+    @Test("Poisonous Mist L1: base damage, base duration")
+    func mistL1() {
+        let skill = Skill(id: "poisonous_mist", name: "Poisonous Mist", type: .weapon, iconName: "", maxLevel: 3)
+        guard case let .poisonousMist(damage, duration) = skill.effect(at: 1) else {
+            Issue.record("expected poisonousMist")
+            return
+        }
+        #expect(damage == SkillConfig.mistBaseDamage)
+        #expect(duration == SkillConfig.mistBaseDuration)
+    }
+
+    @Test("Poisonous Mist L2: base damage, 1.5x duration")
+    func mistL2() {
+        let skill = Skill(id: "poisonous_mist", name: "Poisonous Mist", type: .weapon, iconName: "", maxLevel: 3)
+        guard case let .poisonousMist(damage, duration) = skill.effect(at: 2) else {
+            Issue.record("expected poisonousMist")
+            return
+        }
+        #expect(damage == SkillConfig.mistBaseDamage)
+        #expect(duration == SkillConfig.mistBaseDuration * 1.5)
+    }
+
+    @Test("Poisonous Mist L3: 2x damage, 1.5x duration")
+    func mistL3() {
+        let skill = Skill(id: "poisonous_mist", name: "Poisonous Mist", type: .weapon, iconName: "", maxLevel: 3)
+        guard case let .poisonousMist(damage, duration) = skill.effect(at: 3) else {
+            Issue.record("expected poisonousMist")
+            return
+        }
+        #expect(damage == SkillConfig.mistBaseDamage * 2)
+        #expect(duration == SkillConfig.mistBaseDuration * 1.5)
     }
 }
 

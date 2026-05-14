@@ -70,7 +70,7 @@ struct ProjectilePoolTests {
         pool.attachAll(to: parent)
         guard let projectile = pool.dequeue() else { return }
         #expect(projectile.physicsBody?.categoryBitMask == PhysicsCategory.playerProjectile)
-        #expect(projectile.physicsBody?.contactTestBitMask == PhysicsCategory.enemy)
+        #expect(projectile.physicsBody?.contactTestBitMask == PhysicsCategory.enemy | PhysicsCategory.decoration)
     }
 
     // MARK: - updateAll
