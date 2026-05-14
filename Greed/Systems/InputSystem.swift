@@ -2,6 +2,11 @@ import GameController
 import SpriteKit
 
 final class InputSystem {
+    enum AimMode {
+        case auto
+        case manual
+    }
+
     static let shared = InputSystem()
     
     private var controllers: [GCController] = []
@@ -9,6 +14,8 @@ final class InputSystem {
     private var keysDown: Set<KeyCode> = []
     private var mouseWorldPosition: CGPoint = .zero
     private var lastMouseMoveTime: TimeInterval = -GameConfig.autoAimIdleThreshold - 1
+    private var hasMouseMovedSinceGuideReset = false
+    private var ignoreControlGuideInputUntil: TimeInterval = 0
     func setup() {
         NotificationCenter.default.addObserver(
             self,
@@ -68,6 +75,24 @@ final class InputSystem {
         return autoAimVector(from: playerWorldPos, gnomes: gnomes)
     }
 
+    func aimMode(for playerIndex: Int) -> AimMode {
+        if playerIndex == 0, controllers.isEmpty {
+            let hasMoved = lastMouseMoveTime > 0
+            let idle = !hasMoved || CACurrentMediaTime() - lastMouseMoveTime > GameConfig.autoAimIdleThreshold
+            return idle ? .auto : .manual
+        }
+
+        guard let controller = controller(for: playerIndex),
+              let stick = controller.extendedGamepad?.rightThumbstick
+        else { return .auto }
+
+        let v = CGVector(
+            dx: CGFloat(stick.xAxis.value),
+            dy: CGFloat(stick.yAxis.value)
+        )
+        return magnitude(v) >= GameConfig.stickDeadzone ? .manual : .auto
+    }
+
     func confirmPressed(for playerIndex: Int) -> Bool {
         if playerIndex == 0, controllers.isEmpty {
             return false
@@ -76,6 +101,36 @@ final class InputSystem {
             return false
         }
         return controller.extendedGamepad?.buttonA.isPressed ?? false
+    }
+
+    func resetControlGuideTracking() {
+        hasMouseMovedSinceGuideReset = false
+        ignoreControlGuideInputUntil = CACurrentMediaTime() + 0.35
+    }
+
+    func hasControlGuideDismissInput(for playerIndex: Int) -> Bool {
+        guard CACurrentMediaTime() >= ignoreControlGuideInputUntil else {
+            return false
+        }
+
+        if playerIndex == 0, controllers.isEmpty {
+            return hasKeyboardMovementInput || hasMouseMovedSinceGuideReset
+        }
+
+        guard let controller = controller(for: playerIndex),
+              let gamepad = controller.extendedGamepad
+        else { return false }
+
+        let leftStick = CGVector(
+            dx: CGFloat(gamepad.leftThumbstick.xAxis.value),
+            dy: CGFloat(gamepad.leftThumbstick.yAxis.value)
+        )
+        let rightStick = CGVector(
+            dx: CGFloat(gamepad.rightThumbstick.xAxis.value),
+            dy: CGFloat(gamepad.rightThumbstick.yAxis.value)
+        )
+        return magnitude(leftStick) >= GameConfig.stickDeadzone
+            || magnitude(rightStick) >= GameConfig.stickDeadzone
     }
 
     func keyDown(with event: NSEvent) {
@@ -91,6 +146,16 @@ final class InputSystem {
     func mouseMoved(to worldPosition: CGPoint) {
         mouseWorldPosition = worldPosition
         lastMouseMoveTime = CACurrentMediaTime()
+        if lastMouseMoveTime >= ignoreControlGuideInputUntil {
+            hasMouseMovedSinceGuideReset = true
+        }
+    }
+
+    private var hasKeyboardMovementInput: Bool {
+        keysDown.contains(.w)
+            || keysDown.contains(.a)
+            || keysDown.contains(.s)
+            || keysDown.contains(.d)
     }
 
     private func keyboardMovementVector() -> CGVector {

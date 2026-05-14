@@ -6,6 +6,9 @@ final class ViewController: NSViewController {
     private var metalRenderer: MetalRenderer!
     private var homeScene: HomeScene!
     private var gameScene: GameScene?
+    private lazy var manualAimCursor = makeManualAimCursor()
+    private lazy var hiddenAimCursor = makeHiddenAimCursor()
+    private var currentAimCursor: NSCursor?
 
     override var acceptsFirstResponder: Bool { true }
 
@@ -39,10 +42,74 @@ final class ViewController: NSViewController {
         scene.onReplayRequested = { [weak self] in
             self?.startGame()
         }
+        scene.onAimModeChanged = { [weak self] mode in
+            self?.applyAimCursorMode(mode)
+        }
+        scene.onGameOverPresented = { [weak self] in
+            self?.restoreSystemCursor()
+        }
         scene.setup(view: metalRenderer.mtkView)
         gameScene = scene
         metalRenderer.present(scene: scene)
         view.window?.makeFirstResponder(self)
+        applyAimCursorMode(InputSystem.shared.aimMode(for: 0))
+    }
+
+    private func applyAimCursorMode(_ mode: InputSystem.AimMode) {
+        let cursor: NSCursor = mode == .manual ? manualAimCursor : hiddenAimCursor
+        guard currentAimCursor !== cursor else { return }
+        currentAimCursor = cursor
+        metalRenderer.mtkView.discardCursorRects()
+        metalRenderer.mtkView.addCursorRect(metalRenderer.mtkView.bounds, cursor: cursor)
+        cursor.set()
+    }
+
+    private func restoreSystemCursor() {
+        currentAimCursor = nil
+        metalRenderer.mtkView.discardCursorRects()
+        NSCursor.arrow.set()
+    }
+
+    private func makeHiddenAimCursor() -> NSCursor {
+        let image = NSImage(size: NSSize(width: 1, height: 1))
+        return NSCursor(image: image, hotSpot: .zero)
+    }
+
+    private func makeManualAimCursor() -> NSCursor {
+        let size = NSSize(width: 28, height: 28)
+        let image = NSImage(size: size, flipped: false) { rect in
+            NSColor.black.withAlphaComponent(0.82).setStroke()
+            let outerShadow = NSBezierPath(ovalIn: rect.insetBy(dx: 5, dy: 5))
+            outerShadow.lineWidth = 4
+            outerShadow.stroke()
+
+            NSColor(calibratedRed: 0.35, green: 0.9, blue: 1.0, alpha: 1).setStroke()
+            let outer = NSBezierPath(ovalIn: rect.insetBy(dx: 5, dy: 5))
+            outer.lineWidth = 2
+            outer.stroke()
+
+            NSColor.white.setFill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 12, dy: 12)).fill()
+
+            NSColor(calibratedRed: 0.35, green: 0.9, blue: 1.0, alpha: 1).setStroke()
+            let horizontal = NSBezierPath()
+            horizontal.move(to: NSPoint(x: 2, y: rect.midY))
+            horizontal.line(to: NSPoint(x: 9, y: rect.midY))
+            horizontal.move(to: NSPoint(x: 19, y: rect.midY))
+            horizontal.line(to: NSPoint(x: 26, y: rect.midY))
+            horizontal.lineWidth = 2
+            horizontal.stroke()
+
+            let vertical = NSBezierPath()
+            vertical.move(to: NSPoint(x: rect.midX, y: 2))
+            vertical.line(to: NSPoint(x: rect.midX, y: 9))
+            vertical.move(to: NSPoint(x: rect.midX, y: 19))
+            vertical.line(to: NSPoint(x: rect.midX, y: 26))
+            vertical.lineWidth = 2
+            vertical.stroke()
+            return true
+        }
+        return NSCursor(image: image, hotSpot: NSPoint(x: size.width / 2, y: size.height / 2))
     }
 
     private func setupInput() {

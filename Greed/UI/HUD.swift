@@ -15,15 +15,22 @@ final class HUD: SKNode {
         static let barLeftGap: CGFloat = 14
         static let barRowGap: CGFloat = 14
         static let levelRightInset: CGFloat = 34
-        static let xpFillInsetLeft: CGFloat = 14
-        static let xpFillInsetRight: CGFloat = 16
-        static let xpFillInsetY: CGFloat = 5
-        static let healthFillInsetLeft: CGFloat = 20
-        static let healthFillInsetRight: CGFloat = 20
-        static let healthFillInsetY: CGFloat = 5
+        static let xpFillInsetLeft: CGFloat = 0
+        static let xpFillInsetRight: CGFloat = 0
+        static let xpFillInsetY: CGFloat = 0
+        static let healthFillInsetLeft: CGFloat = 0
+        static let healthFillInsetRight: CGFloat = 0
+        static let healthFillInsetY: CGFloat = 0
+        static let healthValueGap: CGFloat = 10
+        static let healthValueReservedWidth: CGFloat = 150
         static let itemSlotSize = CGSize(width: 52, height: 52)
         static let itemSlotGapX: CGFloat = 50
         static let itemSlotGapY: CGFloat = 40
+        static let guideVerticalOffset: CGFloat = 295
+        static let guideHorizontalInsetFactor: CGFloat = 0.38
+        static let guideIconOffsetY: CGFloat = 112
+        static let guideTitleOffsetY: CGFloat = -10
+        static let guideSubtitleOffsetY: CGFloat = -70
     }
 
     private weak var player: PlayerEntity?
@@ -31,17 +38,24 @@ final class HUD: SKNode {
     private var currentLayoutScale: CGFloat = 1
     private var weaponSlots: [ItemSlotVisual] = []
     private var powerUpSlots: [ItemSlotVisual] = []
+    private var isControlGuideDismissed = false
 
     private let avatarNode = SKShapeNode()
     private let essenceTrack = SKSpriteNode(color: .white, size: .zero)
+    private let essenceFillCrop = SKCropNode()
+    private let essenceFillMask = SKSpriteNode(color: .white, size: .zero)
     private let essenceFill = SKSpriteNode(color: SKColor(red: 0.25, green: 0.72, blue: 1.0, alpha: 1), size: .zero)
     private let healthFrame = SKShapeNode()
     private let healthTrack = SKSpriteNode(color: SKColor(red: 0.08, green: 0.04, blue: 0.06, alpha: 1), size: .zero)
     private let healthFill = SKSpriteNode(color: SKColor(red: 0.94, green: 0.02, blue: 0.10, alpha: 1), size: .zero)
     private let healthIcon = SKShapeNode()
+    private let healthValueLabel = OutlinedLabel(text: "100/100")
     private let levelLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
     private let stageLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
     private let timerLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let guideRoot = SKNode()
+    private let moveGuide = GuidePromptVisual(title: "W, A, S, D", subtitle: "to move")
+    private let aimGuide = GuidePromptVisual(title: "Move Mouse", subtitle: "to aim")
 
     private final class ItemSlotVisual {
         let root = SKNode()
@@ -51,6 +65,78 @@ final class HUD: SKNode {
         let initials = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
         let levelLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
         var representedSkillID: String?
+    }
+
+    private final class GuidePromptVisual {
+        let root = SKNode()
+        let iconRoot = SKNode()
+        let title: OutlinedLabel
+        let subtitle: OutlinedLabel
+
+        init(title: String, subtitle: String) {
+            self.title = OutlinedLabel(text: title)
+            self.subtitle = OutlinedLabel(text: subtitle)
+            root.addChild(iconRoot)
+            root.addChild(self.title.root)
+            root.addChild(self.subtitle.root)
+        }
+    }
+
+    private final class OutlinedLabel {
+        let root = SKNode()
+        private let shadows: [SKLabelNode]
+        private let foreground: SKLabelNode
+
+        init(text: String) {
+            let offsets = [
+                CGPoint(x: -2, y: 0),
+                CGPoint(x: 2, y: 0),
+                CGPoint(x: 0, y: -2),
+                CGPoint(x: 0, y: 2)
+            ]
+            shadows = offsets.map { offset in
+                let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+                label.text = text
+                label.fontColor = SKColor.black.withAlphaComponent(0.78)
+                label.horizontalAlignmentMode = .center
+                label.verticalAlignmentMode = .center
+                label.position = offset
+                label.zPosition = 0
+                return label
+            }
+            foreground = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            foreground.text = text
+            foreground.fontColor = .white
+            foreground.horizontalAlignmentMode = .center
+            foreground.verticalAlignmentMode = .center
+            foreground.zPosition = 1
+
+            for shadow in shadows {
+                root.addChild(shadow)
+            }
+            root.addChild(foreground)
+        }
+
+        func setFontSize(_ fontSize: CGFloat) {
+            foreground.fontSize = fontSize
+            for shadow in shadows {
+                shadow.fontSize = fontSize
+            }
+        }
+
+        func setText(_ text: String) {
+            foreground.text = text
+            for shadow in shadows {
+                shadow.text = text
+            }
+        }
+
+        func setHorizontalAlignment(_ alignment: SKLabelHorizontalAlignmentMode) {
+            foreground.horizontalAlignmentMode = alignment
+            for shadow in shadows {
+                shadow.horizontalAlignmentMode = alignment
+            }
+        }
     }
 
     init(player: PlayerEntity, screenSize: CGSize) {
@@ -79,9 +165,17 @@ final class HUD: SKNode {
         guard let player else { return }
         setHealthFraction(player.health.fraction)
         setEssenceFraction(player.level.xpFraction)
+        healthValueLabel.setText("\(player.health.current)/\(player.health.maximum)")
         levelLabel.text = "LV \(player.level.currentLevel)"
         timerLabel.text = formatElapsedTime(elapsedTime)
         updateItemSlots(for: player)
+        updateGuideVisibility()
+    }
+
+    func dismissControlGuide() {
+        guard !isControlGuideDismissed else { return }
+        isControlGuideDismissed = true
+        updateGuideVisibility()
     }
 
     private func setupNodes() {
@@ -103,8 +197,14 @@ final class HUD: SKNode {
         essenceFill.colorBlendFactor = 0
         essenceFill.centerRect = CGRect(x: 0.045, y: 0, width: 0.91, height: 1)
         essenceFill.name = "essenceBarFill"
-        essenceFill.zPosition = 1
-        addChild(essenceFill)
+        essenceFill.zPosition = 0
+        essenceFillCrop.name = "essenceBarFillCrop"
+        essenceFillCrop.zPosition = 1
+        essenceFillMask.anchorPoint = CGPoint(x: 0, y: 0.5)
+        essenceFillMask.position = .zero
+        essenceFillCrop.maskNode = essenceFillMask
+        essenceFillCrop.addChild(essenceFill)
+        addChild(essenceFillCrop)
 
         healthFrame.strokeColor = SKColor(red: 0.38, green: 0.38, blue: 1.0, alpha: 1)
         healthFrame.lineWidth = 2
@@ -137,6 +237,11 @@ final class HUD: SKNode {
         healthIcon.isHidden = true
         addChild(healthIcon)
 
+        healthValueLabel.root.name = "healthValueLabel"
+        healthValueLabel.root.zPosition = 5
+        healthValueLabel.setHorizontalAlignment(.left)
+        addChild(healthValueLabel.root)
+
         levelLabel.fontColor = .black
         levelLabel.horizontalAlignmentMode = .right
         levelLabel.verticalAlignmentMode = .center
@@ -157,6 +262,14 @@ final class HUD: SKNode {
         timerLabel.verticalAlignmentMode = .center
         timerLabel.name = "timerLabel"
         addChild(timerLabel)
+
+        guideRoot.name = "controlGuide"
+        guideRoot.zPosition = 20
+        guideRoot.addChild(moveGuide.root)
+        guideRoot.addChild(aimGuide.root)
+        addChild(guideRoot)
+        setupMoveGuideIcon()
+        setupAimGuideIcon()
 
         weaponSlots = makeItemSlots(count: GameConfig.maxWeaponSlots)
         powerUpSlots = makeItemSlots(count: GameConfig.maxPowerUpSlots)
@@ -185,10 +298,20 @@ final class HUD: SKNode {
         let essenceWidth = max(0, right - essenceLeft)
         essenceTrack.position = CGPoint(x: essenceLeft, y: top - essenceBarHeight / 2)
         essenceTrack.size = CGSize(width: essenceWidth, height: essenceBarHeight)
-        essenceFill.position = CGPoint(
+        let essenceFillWidth = max(
+            0,
+            essenceWidth
+                - scaled(Metrics.xpFillInsetLeft, scale)
+                - scaled(Metrics.xpFillInsetRight, scale)
+        )
+        let essenceFillHeight = max(0, essenceBarHeight - scaled(Metrics.xpFillInsetY * 2, scale))
+        essenceFillCrop.position = CGPoint(
             x: essenceLeft + scaled(Metrics.xpFillInsetLeft, scale),
             y: essenceTrack.position.y
         )
+        essenceFill.position = .zero
+        essenceFill.size = CGSize(width: essenceFillWidth, height: essenceFillHeight)
+        essenceFillMask.position = .zero
 
         levelLabel.fontSize = scaled(21, scale)
         levelLabel.position = CGPoint(
@@ -203,13 +326,25 @@ final class HUD: SKNode {
             - (scaled(Metrics.healthBarHeight, scale) / 2)
         let healthBarWidth = min(
             scaled(Metrics.healthBarMaxWidth, scale),
-            max(0, right - healthLeft - scaled(18, scale))
+            max(
+                0,
+                right
+                    - healthLeft
+                    - scaled(Metrics.healthValueGap, scale)
+                    - scaled(Metrics.healthValueReservedWidth, scale)
+                    - scaled(18, scale)
+            )
         )
         let healthBarSize = CGSize(width: healthBarWidth, height: scaled(Metrics.healthBarHeight, scale))
         healthTrack.position = CGPoint(x: healthLeft, y: healthY)
         healthTrack.size = healthBarSize
         healthFill.position = CGPoint(
             x: healthLeft + scaled(Metrics.healthFillInsetLeft, scale),
+            y: healthY
+        )
+        healthValueLabel.setFontSize(scaled(24, scale))
+        healthValueLabel.root.position = CGPoint(
+            x: healthLeft + healthBarWidth + scaled(Metrics.healthValueGap, scale),
             y: healthY
         )
         healthIcon.path = nil
@@ -233,6 +368,7 @@ final class HUD: SKNode {
         timerLabel.fontSize = scaled(32, scale)
         stageLabel.position = CGPoint(x: 0, y: top - scaled(128, scale))
         timerLabel.position = CGPoint(x: 0, y: top - scaled(156, scale))
+        layoutGuide()
 
         layoutItemSlots(
             slotSize: scaled(Metrics.itemSlotSize, scale),
@@ -248,6 +384,155 @@ final class HUD: SKNode {
         if let player {
             updateItemSlots(for: player)
         }
+    }
+
+    private func layoutGuide() {
+        let visibleSize = GameConfig.cameraViewportSize
+        let scale = layoutScale(for: visibleSize)
+        let top = visibleSize.height / 2
+        let guideY = top - scaled(Metrics.guideVerticalOffset, scale)
+        let guideX = visibleSize.width * Metrics.guideHorizontalInsetFactor
+        let iconOffsetY = scaled(Metrics.guideIconOffsetY, scale)
+        let titleOffsetY = scaled(Metrics.guideTitleOffsetY, scale)
+        let subtitleOffsetY = scaled(Metrics.guideSubtitleOffsetY, scale)
+        let titleSize = scaled(64, scale)
+        let subtitleSize = scaled(45, scale)
+
+        moveGuide.root.position = CGPoint(x: -guideX, y: guideY)
+        aimGuide.root.position = CGPoint(x: guideX, y: guideY)
+
+        for guide in [moveGuide, aimGuide] {
+            guide.iconRoot.position = CGPoint(x: 0, y: iconOffsetY)
+            guide.title.root.position = CGPoint(x: 0, y: titleOffsetY)
+            guide.subtitle.root.position = CGPoint(x: 0, y: subtitleOffsetY)
+            guide.title.setFontSize(titleSize)
+            guide.subtitle.setFontSize(subtitleSize)
+        }
+
+        layoutKeyCaps(scale: scale)
+        layoutCursorIcon(scale: scale)
+    }
+
+    private func setupMoveGuideIcon() {
+        for key in ["W", "A", "S", "D"] {
+            let root = SKNode()
+            root.name = "guideKey_\(key)"
+
+            let background = SKShapeNode()
+            background.name = "guideKeyBackground"
+            background.fillColor = SKColor.white.withAlphaComponent(0.92)
+            background.strokeColor = SKColor.black.withAlphaComponent(0.74)
+            background.lineWidth = 2
+            background.zPosition = 0
+            root.addChild(background)
+
+            let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            label.text = key
+            label.name = "guideKeyLabel"
+            label.fontColor = SKColor.black.withAlphaComponent(0.88)
+            label.horizontalAlignmentMode = .center
+            label.verticalAlignmentMode = .center
+            label.zPosition = 1
+            root.addChild(label)
+
+            moveGuide.iconRoot.addChild(root)
+        }
+    }
+
+    private func setupAimGuideIcon() {
+        let cursor = SKShapeNode()
+        cursor.name = "guideCursor"
+        cursor.fillColor = .white
+        cursor.strokeColor = SKColor.black.withAlphaComponent(0.78)
+        cursor.lineJoin = .round
+        cursor.lineCap = .round
+        cursor.lineWidth = 2
+        cursor.zPosition = 2
+        aimGuide.iconRoot.addChild(cursor)
+
+        for index in 0..<4 {
+            let ray = SKShapeNode()
+            ray.name = "guideAimRay_\(index)"
+            ray.strokeColor = .white
+            ray.lineCap = .round
+            ray.lineWidth = 4
+            ray.zPosition = 1
+            aimGuide.iconRoot.addChild(ray)
+        }
+    }
+
+    private func layoutKeyCaps(scale: CGFloat) {
+        let keySize = scaled(CGSize(width: 72, height: 58), scale)
+        let gap = scaled(10, scale)
+        let positions: [CGPoint] = [
+            CGPoint(x: 0, y: keySize.height + gap),
+            CGPoint(x: -(keySize.width + gap), y: 0),
+            .zero,
+            CGPoint(x: keySize.width + gap, y: 0)
+        ]
+
+        for (index, node) in moveGuide.iconRoot.children.enumerated() {
+            guard index < positions.count else { continue }
+            node.position = positions[index]
+            guard let background = node.childNode(withName: "guideKeyBackground") as? SKShapeNode,
+                  let label = node.childNode(withName: "guideKeyLabel") as? SKLabelNode
+            else { continue }
+
+            background.path = CGPath(
+                roundedRect: CGRect(
+                    x: -keySize.width / 2,
+                    y: -keySize.height / 2,
+                    width: keySize.width,
+                    height: keySize.height
+                ),
+                cornerWidth: scaled(4, scale),
+                cornerHeight: scaled(4, scale),
+                transform: nil
+            )
+            background.lineWidth = scaled(2, scale)
+            label.fontSize = scaled(34, scale)
+        }
+    }
+
+    private func layoutCursorIcon(scale: CGFloat) {
+        guard let cursor = aimGuide.iconRoot.childNode(withName: "guideCursor") as? SKShapeNode else {
+            return
+        }
+
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: scaled(-38, scale), y: scaled(64, scale)))
+        path.addLine(to: CGPoint(x: scaled(-38, scale), y: scaled(-58, scale)))
+        path.addLine(to: CGPoint(x: scaled(58, scale), y: scaled(6, scale)))
+        path.addLine(to: CGPoint(x: scaled(12, scale), y: scaled(13, scale)))
+        path.addLine(to: CGPoint(x: scaled(34, scale), y: scaled(58, scale)))
+        path.addLine(to: CGPoint(x: scaled(13, scale), y: scaled(66, scale)))
+        path.addLine(to: CGPoint(x: scaled(-12, scale), y: scaled(25, scale)))
+        path.closeSubpath()
+        cursor.path = path
+        cursor.lineWidth = scaled(5, scale)
+
+        let rayPaths = [
+            (name: "guideAimRay_0", start: CGPoint(x: -88, y: 68), end: CGPoint(x: -120, y: 100)),
+            (name: "guideAimRay_1", start: CGPoint(x: -6, y: 106), end: CGPoint(x: -6, y: 145)),
+            (name: "guideAimRay_2", start: CGPoint(x: 80, y: 67), end: CGPoint(x: 113, y: 99)),
+            (name: "guideAimRay_3", start: CGPoint(x: 94, y: -15), end: CGPoint(x: 138, y: -15))
+        ]
+
+        for rayPath in rayPaths {
+            guard let ray = aimGuide.iconRoot.childNode(withName: rayPath.name) as? SKShapeNode else {
+                continue
+            }
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: scaled(rayPath.start.x, scale), y: scaled(rayPath.start.y, scale)))
+            path.addLine(to: CGPoint(x: scaled(rayPath.end.x, scale), y: scaled(rayPath.end.y, scale)))
+            ray.path = path
+            ray.lineWidth = scaled(9, scale)
+        }
+    }
+
+    private func updateGuideVisibility() {
+        guideRoot.alpha = isControlGuideDismissed ? 0 : 1
+        guideRoot.isHidden = isControlGuideDismissed
     }
 
     private func setHealthFraction(_ fraction: CGFloat) {
@@ -270,7 +555,7 @@ final class HUD: SKNode {
                 - scaled(Metrics.xpFillInsetLeft, currentLayoutScale)
                 - scaled(Metrics.xpFillInsetRight, currentLayoutScale)
         )
-        essenceFill.size = CGSize(
+        essenceFillMask.size = CGSize(
             width: availableWidth * clampedFraction(fraction),
             height: max(0, essenceTrack.size.height - scaled(Metrics.xpFillInsetY * 2, currentLayoutScale))
         )
