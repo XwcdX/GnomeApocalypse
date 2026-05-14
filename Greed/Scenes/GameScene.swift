@@ -591,6 +591,8 @@ final class GameScene: SKScene {
         cameraSystem.cameraNode.addChild(overlay)
         skillCardOverlay = overlay
         wasSkillConfirmPressed = inputSystem.confirmPressed(for: player.controllerIndex ?? 0)
+        lastReportedAimMode = .manual
+        onAimModeChanged?(.manual)
     }
 
     private func presentGameOverOverlay() {
@@ -615,6 +617,7 @@ final class GameScene: SKScene {
         skillSelectionPlayer = nil
         wasSkillConfirmPressed = false
         lastUpdateTime = 0
+        lastReportedAimMode = nil  // force re-evaluate on next frame
     }
 
     private func updateSkillSelectionInput() {

@@ -3,6 +3,36 @@ import SpriteKit
 import AppKit
 #endif
 
+// MARK: - Visual constants (set-and-forget, never balance-tuned)
+private let guideVerticalOffset: CGFloat = 295
+private let guideHorizontalInsetFactor: CGFloat = 0.38
+private let guideIconOffsetY: CGFloat = 112
+private let guideTitleOffsetY: CGFloat = -10
+private let guideSubtitleOffsetY: CGFloat = -70
+private let guideTitleFontSize: CGFloat = 64
+private let guideSubtitleFontSize: CGFloat = 45
+private let guideKeyWidth: CGFloat = 72
+private let guideKeyHeight: CGFloat = 58
+private let guideKeyGap: CGFloat = 10
+private let guideKeyCornerRadius: CGFloat = 4
+private let guideKeyFontSize: CGFloat = 34
+private let guideKeyBorderWidth: CGFloat = 2
+private let guideCursorLineWidth: CGFloat = 5
+private let guideCursorPoints: [CGPoint] = [
+    CGPoint(x: -38, y: 64), CGPoint(x: -38, y: -58),
+    CGPoint(x: 58, y: 6),   CGPoint(x: 12, y: 13),
+    CGPoint(x: 34, y: 58),  CGPoint(x: 13, y: 66),
+    CGPoint(x: -12, y: 25)
+]
+private let guideCursorRays: [(name: String, start: CGPoint, end: CGPoint)] = [
+    ("guideAimRay_0", CGPoint(x: -88, y: 68),  CGPoint(x: -120, y: 100)),
+    ("guideAimRay_1", CGPoint(x: -6,  y: 106), CGPoint(x: -6,   y: 145)),
+    ("guideAimRay_2", CGPoint(x: 80,  y: 67),  CGPoint(x: 113,  y: 99)),
+    ("guideAimRay_3", CGPoint(x: 94,  y: -15), CGPoint(x: 138,  y: -15))
+]
+private let guideCursorRayWidth: CGFloat = 9
+private let healthValueFontSize: CGFloat = 24
+
 final class HUD: SKNode {
     private enum Metrics {
         static let baseWidth: CGFloat = GameConfig.mapSize.width
@@ -26,11 +56,6 @@ final class HUD: SKNode {
         static let itemSlotSize = CGSize(width: 52, height: 52)
         static let itemSlotGapX: CGFloat = 50
         static let itemSlotGapY: CGFloat = 40
-        static let guideVerticalOffset: CGFloat = 295
-        static let guideHorizontalInsetFactor: CGFloat = 0.38
-        static let guideIconOffsetY: CGFloat = 112
-        static let guideTitleOffsetY: CGFloat = -10
-        static let guideSubtitleOffsetY: CGFloat = -70
     }
 
     private weak var player: PlayerEntity?
@@ -342,7 +367,7 @@ final class HUD: SKNode {
             x: healthLeft + scaled(Metrics.healthFillInsetLeft, scale),
             y: healthY
         )
-        healthValueLabel.setFontSize(scaled(24, scale))
+        healthValueLabel.setFontSize(scaled(healthValueFontSize, scale))
         healthValueLabel.root.position = CGPoint(
             x: healthLeft + healthBarWidth + scaled(Metrics.healthValueGap, scale),
             y: healthY
@@ -390,13 +415,13 @@ final class HUD: SKNode {
         let visibleSize = GameConfig.cameraViewportSize
         let scale = layoutScale(for: visibleSize)
         let top = visibleSize.height / 2
-        let guideY = top - scaled(Metrics.guideVerticalOffset, scale)
-        let guideX = visibleSize.width * Metrics.guideHorizontalInsetFactor
-        let iconOffsetY = scaled(Metrics.guideIconOffsetY, scale)
-        let titleOffsetY = scaled(Metrics.guideTitleOffsetY, scale)
-        let subtitleOffsetY = scaled(Metrics.guideSubtitleOffsetY, scale)
-        let titleSize = scaled(64, scale)
-        let subtitleSize = scaled(45, scale)
+        let guideY = top - scaled(guideVerticalOffset, scale)
+        let guideX = visibleSize.width * guideHorizontalInsetFactor
+        let iconOffsetY = scaled(guideIconOffsetY, scale)
+        let titleOffsetY = scaled(guideTitleOffsetY, scale)
+        let subtitleOffsetY = scaled(guideSubtitleOffsetY, scale)
+        let titleSize = scaled(guideTitleFontSize, scale)
+        let subtitleSize = scaled(guideSubtitleFontSize, scale)
 
         moveGuide.root.position = CGPoint(x: -guideX, y: guideY)
         aimGuide.root.position = CGPoint(x: guideX, y: guideY)
@@ -462,8 +487,8 @@ final class HUD: SKNode {
     }
 
     private func layoutKeyCaps(scale: CGFloat) {
-        let keySize = scaled(CGSize(width: 72, height: 58), scale)
-        let gap = scaled(10, scale)
+        let keySize = scaled(CGSize(width: guideKeyWidth, height: guideKeyHeight), scale)
+        let gap = scaled(guideKeyGap, scale)
         let positions: [CGPoint] = [
             CGPoint(x: 0, y: keySize.height + gap),
             CGPoint(x: -(keySize.width + gap), y: 0),
@@ -478,55 +503,38 @@ final class HUD: SKNode {
                   let label = node.childNode(withName: "guideKeyLabel") as? SKLabelNode
             else { continue }
 
+            let corner = scaled(guideKeyCornerRadius, scale)
             background.path = CGPath(
                 roundedRect: CGRect(
-                    x: -keySize.width / 2,
-                    y: -keySize.height / 2,
-                    width: keySize.width,
-                    height: keySize.height
+                    x: -keySize.width / 2, y: -keySize.height / 2,
+                    width: keySize.width,  height: keySize.height
                 ),
-                cornerWidth: scaled(4, scale),
-                cornerHeight: scaled(4, scale),
-                transform: nil
+                cornerWidth: corner, cornerHeight: corner, transform: nil
             )
-            background.lineWidth = scaled(2, scale)
-            label.fontSize = scaled(34, scale)
+            background.lineWidth = scaled(guideKeyBorderWidth, scale)
+            label.fontSize = scaled(guideKeyFontSize, scale)
         }
     }
 
     private func layoutCursorIcon(scale: CGFloat) {
-        guard let cursor = aimGuide.iconRoot.childNode(withName: "guideCursor") as? SKShapeNode else {
-            return
-        }
+        guard let cursor = aimGuide.iconRoot.childNode(withName: "guideCursor") as? SKShapeNode else { return }
 
         let path = CGMutablePath()
-        path.move(to: CGPoint(x: scaled(-38, scale), y: scaled(64, scale)))
-        path.addLine(to: CGPoint(x: scaled(-38, scale), y: scaled(-58, scale)))
-        path.addLine(to: CGPoint(x: scaled(58, scale), y: scaled(6, scale)))
-        path.addLine(to: CGPoint(x: scaled(12, scale), y: scaled(13, scale)))
-        path.addLine(to: CGPoint(x: scaled(34, scale), y: scaled(58, scale)))
-        path.addLine(to: CGPoint(x: scaled(13, scale), y: scaled(66, scale)))
-        path.addLine(to: CGPoint(x: scaled(-12, scale), y: scaled(25, scale)))
+        path.move(to: CGPoint(x: scaled(guideCursorPoints[0].x, scale), y: scaled(guideCursorPoints[0].y, scale)))
+        for point in guideCursorPoints.dropFirst() {
+            path.addLine(to: CGPoint(x: scaled(point.x, scale), y: scaled(point.y, scale)))
+        }
         path.closeSubpath()
         cursor.path = path
-        cursor.lineWidth = scaled(5, scale)
+        cursor.lineWidth = scaled(guideCursorLineWidth, scale)
 
-        let rayPaths = [
-            (name: "guideAimRay_0", start: CGPoint(x: -88, y: 68), end: CGPoint(x: -120, y: 100)),
-            (name: "guideAimRay_1", start: CGPoint(x: -6, y: 106), end: CGPoint(x: -6, y: 145)),
-            (name: "guideAimRay_2", start: CGPoint(x: 80, y: 67), end: CGPoint(x: 113, y: 99)),
-            (name: "guideAimRay_3", start: CGPoint(x: 94, y: -15), end: CGPoint(x: 138, y: -15))
-        ]
-
-        for rayPath in rayPaths {
-            guard let ray = aimGuide.iconRoot.childNode(withName: rayPath.name) as? SKShapeNode else {
-                continue
-            }
-            let path = CGMutablePath()
-            path.move(to: CGPoint(x: scaled(rayPath.start.x, scale), y: scaled(rayPath.start.y, scale)))
-            path.addLine(to: CGPoint(x: scaled(rayPath.end.x, scale), y: scaled(rayPath.end.y, scale)))
-            ray.path = path
-            ray.lineWidth = scaled(9, scale)
+        for ray in guideCursorRays {
+            guard let rayNode = aimGuide.iconRoot.childNode(withName: ray.name) as? SKShapeNode else { continue }
+            let rayPath = CGMutablePath()
+            rayPath.move(to: CGPoint(x: scaled(ray.start.x, scale), y: scaled(ray.start.y, scale)))
+            rayPath.addLine(to: CGPoint(x: scaled(ray.end.x, scale), y: scaled(ray.end.y, scale)))
+            rayNode.path = rayPath
+            rayNode.lineWidth = scaled(guideCursorRayWidth, scale)
         }
     }
 

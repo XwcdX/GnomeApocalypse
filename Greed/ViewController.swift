@@ -2,6 +2,17 @@ import Cocoa
 import MetalKit
 import SpriteKit
 
+private let aimCursorSize: CGFloat = 28
+private let aimCursorRingInset: CGFloat = 5
+private let aimCursorDotInset: CGFloat = 12
+private let aimCursorRingShadowWidth: CGFloat = 4
+private let aimCursorRingWidth: CGFloat = 2
+private let aimCursorCrossStart: CGFloat = 2
+private let aimCursorCrossEnd: CGFloat = 9
+private let aimCursorCrossStart2: CGFloat = 19
+private let aimCursorCrossEnd2: CGFloat = 26
+private let aimCursorCrossWidth: CGFloat = 2
+
 final class ViewController: NSViewController {
     private var metalRenderer: MetalRenderer!
     private var homeScene: HomeScene!
@@ -76,36 +87,36 @@ final class ViewController: NSViewController {
     }
 
     private func makeManualAimCursor() -> NSCursor {
-        let size = NSSize(width: 28, height: 28)
+        let size = NSSize(width: aimCursorSize, height: aimCursorSize)
         let image = NSImage(size: size, flipped: false) { rect in
             NSColor.black.withAlphaComponent(0.82).setStroke()
-            let outerShadow = NSBezierPath(ovalIn: rect.insetBy(dx: 5, dy: 5))
-            outerShadow.lineWidth = 4
+            let outerShadow = NSBezierPath(ovalIn: rect.insetBy(dx: aimCursorRingInset, dy: aimCursorRingInset))
+            outerShadow.lineWidth = aimCursorRingShadowWidth
             outerShadow.stroke()
 
             NSColor(calibratedRed: 0.35, green: 0.9, blue: 1.0, alpha: 1).setStroke()
-            let outer = NSBezierPath(ovalIn: rect.insetBy(dx: 5, dy: 5))
-            outer.lineWidth = 2
+            let outer = NSBezierPath(ovalIn: rect.insetBy(dx: aimCursorRingInset, dy: aimCursorRingInset))
+            outer.lineWidth = aimCursorRingWidth
             outer.stroke()
 
             NSColor.white.setFill()
-            NSBezierPath(ovalIn: rect.insetBy(dx: 12, dy: 12)).fill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: aimCursorDotInset, dy: aimCursorDotInset)).fill()
 
             NSColor(calibratedRed: 0.35, green: 0.9, blue: 1.0, alpha: 1).setStroke()
             let horizontal = NSBezierPath()
-            horizontal.move(to: NSPoint(x: 2, y: rect.midY))
-            horizontal.line(to: NSPoint(x: 9, y: rect.midY))
-            horizontal.move(to: NSPoint(x: 19, y: rect.midY))
-            horizontal.line(to: NSPoint(x: 26, y: rect.midY))
-            horizontal.lineWidth = 2
+            horizontal.move(to: NSPoint(x: aimCursorCrossStart, y: rect.midY))
+            horizontal.line(to: NSPoint(x: aimCursorCrossEnd, y: rect.midY))
+            horizontal.move(to: NSPoint(x: aimCursorCrossStart2, y: rect.midY))
+            horizontal.line(to: NSPoint(x: aimCursorCrossEnd2, y: rect.midY))
+            horizontal.lineWidth = aimCursorCrossWidth
             horizontal.stroke()
 
             let vertical = NSBezierPath()
-            vertical.move(to: NSPoint(x: rect.midX, y: 2))
-            vertical.line(to: NSPoint(x: rect.midX, y: 9))
-            vertical.move(to: NSPoint(x: rect.midX, y: 19))
-            vertical.line(to: NSPoint(x: rect.midX, y: 26))
-            vertical.lineWidth = 2
+            vertical.move(to: NSPoint(x: rect.midX, y: aimCursorCrossStart))
+            vertical.line(to: NSPoint(x: rect.midX, y: aimCursorCrossEnd))
+            vertical.move(to: NSPoint(x: rect.midX, y: aimCursorCrossStart2))
+            vertical.line(to: NSPoint(x: rect.midX, y: aimCursorCrossEnd2))
+            vertical.lineWidth = aimCursorCrossWidth
             vertical.stroke()
             return true
         }
