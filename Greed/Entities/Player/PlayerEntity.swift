@@ -4,15 +4,15 @@ class PlayerEntity: SKSpriteNode {
     var health: HealthComponent
     var level: LevelComponent
     private var ghostRenderer: ToroidalRenderingComponent?
-    
+
     var skillState = PlayerSkillState()
-    
+
     var controllerIndex: Int?
     var aimDirection: CGVector = .zero
     weak var attack: PlayerAttack?
     var isMovementFrozen: Bool = false
     var isTargetingActive: Bool = true
-    
+
     private(set) var attackSpeedMultiplier: CGFloat = 1.0
     private(set) var movementSpeedMultiplier: CGFloat = 1.0
     private(set) var orbitCount: Int = 0
@@ -21,14 +21,14 @@ class PlayerEntity: SKSpriteNode {
     private(set) var mistDuration: TimeInterval = 0
     private(set) var equippedWeapons: [Skill] = []
     private(set) var equippedPowerUps: [Skill] = []
-    
+
     var currentSpeed: CGFloat { GameConfig.basePlayerSpeed * movementSpeedMultiplier }
 
     init(texture: SKTexture, health: Int = GameConfig.basePlayerHealth) {
         self.health = HealthComponent(maximum: health)
         self.level = LevelComponent()
         super.init(texture: texture, color: .clear, size: texture.size())
-        self.zPosition = Layer.player
+        self.zPosition = Layer.world
         setupPhysics()
     }
 
@@ -64,7 +64,7 @@ class PlayerEntity: SKSpriteNode {
         rememberEquipped(skill)
         let currentLevel = skillState.level(of: skill.id, type: skill.type)
         let effect = skill.effect(at: currentLevel)
-        
+
         switch effect {
         case .orbitingSpell(let count):
             orbitCount = count
@@ -99,10 +99,11 @@ class PlayerEntity: SKSpriteNode {
     }
 
     private func setupPhysics() {
-        let body = SKPhysicsBody(circleOfRadius: size.width / 2)
+        let footRadius = size.width * 0.25
+        let body = SKPhysicsBody(circleOfRadius: footRadius, center: CGPoint(x: 0, y: -size.height * 0.3))
         body.categoryBitMask = PhysicsCategory.player
         body.contactTestBitMask = PhysicsCategory.enemyProjectile | PhysicsCategory.forestEssenceOrb
-        body.collisionBitMask = PhysicsCategory.none
+        body.collisionBitMask = PhysicsCategory.decoration
         body.affectedByGravity = false
         body.allowsRotation = false
         physicsBody = body

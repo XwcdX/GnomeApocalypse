@@ -8,7 +8,7 @@ final class ShieldComponent: SKNode {
         self.player = player
         super.init()
         name = "levelUpShield"
-        zPosition = Layer.projectile
+        zPosition = Layer.world
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }

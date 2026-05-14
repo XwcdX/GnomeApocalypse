@@ -15,7 +15,7 @@ class EnemyEntity: SKSpriteNode {
     init(texture: SKTexture, displaySize: CGSize? = nil, health: Int) {
         self.health = HealthComponent(maximum: health)
         super.init(texture: texture, color: .clear, size: displaySize ?? texture.size())
-        self.zPosition = Layer.enemy
+        self.zPosition = Layer.world
         setupPhysics()
     }
 
@@ -70,7 +70,7 @@ class EnemyEntity: SKSpriteNode {
         let body = SKPhysicsBody(circleOfRadius: size.width * 0.35)
         body.categoryBitMask = PhysicsCategory.enemy
         body.contactTestBitMask = PhysicsCategory.playerProjectile | PhysicsCategory.shield
-        body.collisionBitMask = PhysicsCategory.enemy
+        body.collisionBitMask = PhysicsCategory.enemy | PhysicsCategory.decoration
         body.affectedByGravity = false
         body.allowsRotation = false
         body.restitution = 0

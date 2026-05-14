@@ -22,7 +22,7 @@ final class ProjectilePool {
         for _ in 0..<size {
             let projectile = Projectile(texture: frames.first, color: .clear, size: projectileSize)
             projectile.name = "\(atlasName)Projectile"
-            projectile.zPosition = Layer.projectile
+            projectile.zPosition = Layer.world
             projectile.isHidden = true
             projectile.configurePhysics(category: category, contactTestBitMask: contactTestBitMask)
             projectile.configureAnimation(frames: frames, frameTime: frameTime)
@@ -47,7 +47,7 @@ final class ProjectilePool {
         for _ in 0..<size {
             let projectile = Projectile(texture: frames.first, color: .clear, size: projectileSize)
             projectile.name = "EnemyProjectile"
-            projectile.zPosition = Layer.projectile
+            projectile.zPosition = Layer.world
             projectile.isHidden = true
             projectile.configurePhysics(category: category, contactTestBitMask: contactTestBitMask)
             projectile.configureAnimation(frames: frames, frameTime: frameTime)

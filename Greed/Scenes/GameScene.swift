@@ -26,6 +26,7 @@ final class GameScene: SKScene {
     private var skillSystem: SkillSystem!
     private var floorRenderer: FloorTileRenderer!
     private var environmentRenderers: [FloorTileRenderer] = []
+    private var environmentPropSystem: EnvironmentPropSystem!
     private var enemyAI: EnemyAI!
     private var playerProjectilePool: ProjectilePool!
     private var enemyProjectilePool: ProjectilePool!
@@ -46,9 +47,8 @@ final class GameScene: SKScene {
     private var enemies: [EnemyEntity] = []
     private var playerAttacks: [PlayerAttack] = []
     
-    private let groundLayer = SKNode()
-    private let environmentLayer = SKNode()
-    private let entityLayer = SKNode()
+    private let floorLayer = SKNode()
+    private let propsLayer = SKNode()
     
     private var elapsedRunTime: TimeInterval = 0
     private var lastUpdateTime: TimeInterval = 0
@@ -111,16 +111,27 @@ final class GameScene: SKScene {
         for renderer in environmentRenderers {
             renderer.update(cameraPosition: cameraSystem.cameraNode.position)
         }
+        environmentPropSystem.update(cameraPosition: cameraSystem.cameraNode.position)
+        updateYSort()
+    }
+
+    private func updateYSort() {
+        for node in children where node !== floorLayer && node !== propsLayer {
+            guard let camera = self.camera, node !== camera else { continue }
+            guard let sprite = node as? SKSpriteNode else {
+                node.zPosition = Layer.world - node.position.y * 0.001
+                continue
+            }
+            let footY = sprite.position.y - sprite.size.height / 2
+            node.zPosition = Layer.world - footY * 0.001
+        }
     }
 
     private func setupLayers() {
-        groundLayer.zPosition     = Layer.ground
-        environmentLayer.zPosition = Layer.environment
-        entityLayer.zPosition     = Layer.entities
-
-        addChild(groundLayer)
-        addChild(environmentLayer)
-        addChild(entityLayer)
+        floorLayer.zPosition   = Layer.floor
+        propsLayer.zPosition   = Layer.props
+        addChild(floorLayer)
+        addChild(propsLayer)
     }
 
     private func setupCamera(viewSize: CGSize) {
@@ -137,7 +148,7 @@ final class GameScene: SKScene {
         physicsWorld.contactDelegate = collisionSystem
         skillSystem = SkillSystem()
         enemyAI = EnemyAI()
-        spawnSystem = SpawnSystem(entityLayer: entityLayer, cameraSystem: cameraSystem, directorSystem: directorSystem)
+        spawnSystem = SpawnSystem(entityLayer: self, cameraSystem: cameraSystem, directorSystem: directorSystem)
         playerProjectilePool = ProjectilePool(
             size: GameConfig.projectilePoolSize,
             atlasName: "PlayerProjectile",
@@ -159,10 +170,16 @@ final class GameScene: SKScene {
         let tileTexture = SKTexture(imageNamed: "tile_ground")
         tileTexture.filteringMode = .nearest
         floorRenderer = FloorTileRenderer(tileTexture: tileTexture, tileSize: GameConfig.mapSize, viewportSize: viewSize)
-        groundLayer.addChild(floorRenderer.rootNode)
+        floorLayer.addChild(floorRenderer.rootNode)
         if GameConfig.showsEnvironmentDecorations {
             setupEnvironmentRenderers(tileSize: GameConfig.mapSize, viewSize: viewSize)
         }
+        setupEnvironmentProps(viewSize: viewSize)
+    }
+
+    private func setupEnvironmentProps(viewSize: CGSize) {
+        environmentPropSystem = EnvironmentPropSystem()
+        environmentPropSystem.setup(inBackground: propsLayer, inForeground: self)
     }
 
     private func setupEnvironmentRenderers(tileSize: CGSize, viewSize: CGSize) {
@@ -180,7 +197,7 @@ final class GameScene: SKScene {
             let texture = SKTexture(imageNamed: layerName)
             texture.filteringMode = .nearest
             let renderer = FloorTileRenderer(tileTexture: texture, tileSize: tileSize, viewportSize: viewSize)
-            environmentLayer.addChild(renderer.rootNode)
+            propsLayer.addChild(renderer.rootNode)
             return renderer
         }
     }
@@ -210,10 +227,10 @@ final class GameScene: SKScene {
     private func spawnPlayer() {
         let player = LuminousWisp(inputIndex: 0)
         player.position = .zero
-        entityLayer.addChild(player)
+        addChild(player)
         players.append(player)
         cameraSystem.addPlayer(player)
-        let playerAttack = PlayerAttack(owner: player, pool: playerProjectilePool, entityLayer: entityLayer)
+        let playerAttack = PlayerAttack(owner: player, pool: playerProjectilePool, entityLayer: self)
         player.attack = playerAttack
         playerAttacks.append(playerAttack)
         collisionSystem.register(player: player, directorSystem: directorSystem)
@@ -270,7 +287,7 @@ final class GameScene: SKScene {
 
     private func strikeLightning(on enemy: EnemyEntity, damage: Int) {
         let strike = makeLightningStrikeNode(at: enemy.position, radius: referenceSpriteHeight * lightningStrikeRadiusFactor)
-        entityLayer.addChild(strike)
+        addChild(strike)
         enemy.health.takeDamage(damage)
         if enemy.health.isDead { enemy.die() }
     }
@@ -317,8 +334,8 @@ final class GameScene: SKScene {
         let position = randomPointInCameraView()
         let cloudNode = makeMistCloudNode(radius: SkillConfig.mistRadius)
         cloudNode.position = position
-        cloudNode.zPosition = Layer.projectile
-        entityLayer.addChild(cloudNode)
+        cloudNode.zPosition = Layer.world
+        addChild(cloudNode)
 
         activeMistClouds[playerID] = ActiveMistCloud(
             owner: player,
@@ -369,7 +386,7 @@ final class GameScene: SKScene {
     private func makeLightningStrikeNode(at position: CGPoint, radius: CGFloat) -> SKNode {
         let strikeNode = SKNode()
         strikeNode.position = position
-        strikeNode.zPosition = Layer.projectile + 1
+        strikeNode.zPosition = Layer.world
 
         let boltHeight = max(radius * 1.6, referenceSpriteHeight * lightningBoltHeightFactor)
         let bolt = SKSpriteNode(texture: lightningTexture(named: "lightning_002"))
@@ -549,7 +566,7 @@ final class GameScene: SKScene {
         projectile.texture = texture
 
         projectile.activate(at: position, velocity: velocity, damage: damage, lifespan: lifespan)
-        entityLayer.addChild(projectile)
+        addChild(projectile)
     }
 
     private func presentSkillCardOverlay() {

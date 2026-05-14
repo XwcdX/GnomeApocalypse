@@ -19,6 +19,10 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
             handlePlayerProjectileHitsEnemy(contact)
         } else if matches(a, b, PhysicsCategory.enemyProjectile, PhysicsCategory.player) {
             handleEnemyProjectileHitsPlayer(contact)
+        } else if matches(a, b, PhysicsCategory.playerProjectile, PhysicsCategory.decoration) {
+            handleProjectileHitsDecoration(contact)
+        } else if matches(a, b, PhysicsCategory.enemyProjectile, PhysicsCategory.decoration) {
+            handleProjectileHitsDecoration(contact)
         } else if matches(a, b, PhysicsCategory.player, PhysicsCategory.forestEssenceOrb) {
             handlePlayerCollectsOrb(contact)
         } else if matches(a, b, PhysicsCategory.shield, PhysicsCategory.enemy) {
@@ -90,6 +94,11 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
 
         player.addXP(orb.essenceValue)
         scene.removeOrb(orb)
+    }
+
+    private func handleProjectileHitsDecoration(_ contact: SKPhysicsContact) {
+        let projectile = (contact.bodyA.node as? Projectile) ?? (contact.bodyB.node as? Projectile)
+        projectile?.deactivate()
     }
 
     private func handleShieldPushesEnemyIfEnabled(_ contact: SKPhysicsContact) {

@@ -9,4 +9,5 @@ enum PhysicsCategory {
     static let forestEssenceOrb: UInt32 = 0b00010000
     static let shield: UInt32 = 0b00100000
     static let sideQuestButton: UInt32 = 0b01000000
+    static let decoration:       UInt32 = 0b10000000
 }

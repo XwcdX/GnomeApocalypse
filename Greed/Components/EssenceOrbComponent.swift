@@ -37,7 +37,7 @@ final class EssenceOrbComponent: SKSpriteNode {
         let texture = SKTextureAtlas(named: "EssenceOrb").textureNamed("orb_000")
         texture.filteringMode = .nearest
         super.init(texture: texture, color: .clear, size: Self.scaledSize(for: texture, targetHeight: smallOrbTargetHeight))
-        self.zPosition = Layer.orb
+        self.zPosition = Layer.world
         setupPhysics()
         startIdleBob()
     }
