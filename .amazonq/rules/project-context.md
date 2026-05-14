@@ -48,13 +48,23 @@ Enemy AI is aware of the toroidal space. It evaluates **9 possible sectors** (cu
 
 ## Layer System
 
-The game world is composed of **3 rendering layers**:
+The game world uses **2 dedicated layer nodes** plus **direct scene-root placement** for all world entities:
 
-| Layer | Contents | SpriteKit Node |
+| Node | zPosition | Contents |
 |---|---|---|
-| Layer 1 — Ground | Infinite tiled floor | `SKTileMapNode` |
-| Layer 2 — Environment | Side quest buttons, chest spawns | `SKTileMapNode` or `SKSpriteNode` group |
-| Layer 3 — Entities | Player, gnomes, projectiles, Forest Essence orbs, UI effects | `SKNode` scene graph |
+| `floorLayer` (`SKNode`) | 0 | `FloorTileRenderer` root — always behind everything |
+| `propsLayer` (`SKNode`) | 1 | Background environment decorations, `EnvironmentPropSystem` nodes |
+| Scene root (direct children) | y-sorted | Players, enemies, projectiles, Forest Essence orbs, effects, side quest buttons/chests |
+
+**Y-sort rule:** All world entities are added directly to the scene (not to a container node). `GameScene.updateYSort()` runs every frame and assigns:
+
+```
+zPosition = Layer.world - footY * 0.001
+```
+
+Where `footY = sprite.position.y - sprite.size.height / 2`. This means entities higher on screen (larger y) render behind entities lower on screen (smaller y), producing correct top-down depth ordering — a player standing behind a tree appears behind it, a player in front appears in front.
+
+**HUD** is a child of `SKCameraNode` at `Layer.hud = 10` — camera-space, never world-space.
 
 ---
 

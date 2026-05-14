@@ -41,13 +41,11 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
   - Render infinite tiled floor that wraps seamlessly on camera movement
   - Validate 60 FPS on target Mac hardware (not just simulator)
 
-- [~] **`GameScene.swift` — skeleton**
-  - Set up scene with 3 z-layers (ground, environment, entities)
+- [x] **`GameScene.swift` — skeleton**
+  - Set up scene with 2 dedicated layer nodes (`floorLayer` at z=0, `propsLayer` at z=1); all world entities (players, enemies, projectiles, effects, orbs) added directly to scene root and y-sorted every frame via `updateYSort()`: `zPosition = Layer.world - footY * 0.001` — entities higher on screen render behind, entities lower render in front
   - Integrate `SKCameraNode`, wire to `CameraSystem`
   - Implement main `update(deltaTime:)` dispatch loop — order: players → attacks → projectiles → enemies → AI
   - Own and update `DirectorSystem` each frame
-  - ⚠️ `handleLevelUp`, `spawnBossMinions`, `spawnEnemyProjectile` are stubs — not yet implemented
-  - ⚠️ Enemy projectile pool does not exist yet
 
 ---
 
