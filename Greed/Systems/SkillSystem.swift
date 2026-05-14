@@ -34,11 +34,11 @@ struct Skill {
             let duration     = level >= 2 ? baseDuration * 1.5 : baseDuration
             return .poisonousMist(damage: damage, duration: duration)
         case "ancient_tome":
-            return .increaseAttackSpeed(multiplier: 1.0 + Float(level) * 0.1)
+            return .increaseAttackSpeed(multiplier: SkillConfig.ancientTomeAttackSpeedMultipliers[level - 1])
         case "spirit_fruit":
-            return .increaseMovementSpeed(multiplier: 1.0 + Float(level) * 0.1)
+            return .increaseMovementSpeed(multiplier: SkillConfig.spiritFruitMovementSpeedMultipliers[level - 1])
         case "life_bloom":
-            return .increaseMaxHealth(amount: level * SkillConfig.healthBoostPerLevel)
+            return .increaseMaxHealth(amount: SkillConfig.lifeBloomMaxHealthBonuses[level - 1])
         default:
             return .increaseAttackSpeed(multiplier: 1.0)
         }

@@ -77,8 +77,13 @@ class PlayerEntity: SKSpriteNode {
             attackSpeedMultiplier = CGFloat(multiplier)
         case .increaseMovementSpeed(let multiplier):
             movementSpeedMultiplier = CGFloat(multiplier)
-        case .increaseMaxHealth(let amount):
-            health.increaseMaximum(amount)
+        case .increaseMaxHealth(let totalBonus):
+            let previousLevel = currentLevel - 1
+            let previousTotal: Int = previousLevel >= 1
+                ? SkillConfig.lifeBloomMaxHealthBonuses[previousLevel - 1]
+                : 0
+            let delta = totalBonus - previousTotal
+            health.increaseMaximum(delta)
         }
     }
 
