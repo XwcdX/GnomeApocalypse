@@ -60,6 +60,8 @@ class PlayerEntity: SKSpriteNode {
     }
 
     func applySkill(_ skill: Skill) {
+        guard !skillState.isMaxed(skill) else { return }
+
         skillState.upgrade(skill)
         rememberEquipped(skill)
         let currentLevel = skillState.level(of: skill.id, type: skill.type)
@@ -82,6 +84,7 @@ class PlayerEntity: SKSpriteNode {
             let previousTotal: Int = previousLevel >= 1
                 ? SkillConfig.lifeBloomMaxHealthBonuses[previousLevel - 1]
                 : 0
+            assert(totalBonus >= previousTotal, "Life Bloom max-health bonuses must be non-decreasing")
             let delta = totalBonus - previousTotal
             health.increaseMaximum(delta)
         }

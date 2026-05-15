@@ -109,4 +109,19 @@ struct PlayerEntityApplySkillTests {
         #expect(player.health.current == expected)
         #expect(player.skillState.level(of: bloom.id, type: .powerUp) == 3)
     }
+
+    @Test("Life Bloom reapply at max level is ignored")
+    func bloomReapplyAtMaxLevelIgnored() {
+        let base = 100
+        let player = makePlayer(health: base)
+        player.applySkill(bloom)
+        player.applySkill(bloom)
+        player.applySkill(bloom)
+        player.applySkill(bloom)
+
+        let expected = base + SkillConfig.lifeBloomMaxHealthBonuses[2]
+        #expect(player.health.maximum == expected)
+        #expect(player.health.current == expected)
+        #expect(player.skillState.level(of: bloom.id, type: .powerUp) == bloom.maxLevel)
+    }
 }
