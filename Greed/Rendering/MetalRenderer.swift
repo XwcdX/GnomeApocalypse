@@ -6,6 +6,7 @@ final class MetalRenderer: NSObject {
     private let renderer: SKRenderer
     private let commandQueue: MTLCommandQueue
     private var currentScene: SKScene?
+    private var currentLogicalSize: CGSize = .zero
 
     init?(frame: CGRect) {
         guard let device = MTLCreateSystemDefaultDevice(),
@@ -20,6 +21,8 @@ final class MetalRenderer: NSObject {
         mtkView.isPaused = false
         mtkView.enableSetNeedsDisplay = false
         mtkView.framebufferOnly = false
+        mtkView.layerContentsRedrawPolicy = .duringViewResize
+        mtkView.layer?.needsDisplayOnBoundsChange = true
         mtkView.colorPixelFormat = .bgra8Unorm
         mtkView.depthStencilPixelFormat = .depth32Float_stencil8
         mtkView.colorspace = CGColorSpace(name: CGColorSpace.displayP3)
@@ -35,25 +38,34 @@ final class MetalRenderer: NSObject {
 
     func present(scene: SKScene) {
         scene.scaleMode = .resizeFill
-        let renderSize = mtkView.drawableSize == .zero ? mtkView.bounds.size : mtkView.drawableSize
-        scene.size = renderSize
+        let logicalSize = mtkView.bounds.size
+        currentLogicalSize = logicalSize
+        scene.size = logicalSize
         renderer.scene = scene
         currentScene = scene
         if let gameScene = scene as? GameScene {
-            gameScene.updateViewport(renderSize)
+            gameScene.updateViewport(logicalSize)
         }
+    }
+
+    func updateLogicalViewport() {
+        updateLogicalViewportIfNeeded(for: mtkView)
+    }
+
+    func requestRedraw() {
+        mtkView.needsDisplay = true
+        mtkView.layer?.setNeedsDisplay()
     }
 }
 
 extension MetalRenderer: MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-        currentScene?.size = size
-        if let gameScene = currentScene as? GameScene {
-            gameScene.updateViewport(size)
-        }
+        updateLogicalViewportIfNeeded(for: view)
     }
 
     func draw(in view: MTKView) {
+        updateLogicalViewportIfNeeded(for: view)
+
         guard let commandBuffer = commandQueue.makeCommandBuffer(),
               let drawable = view.currentDrawable,
               let descriptor = view.currentRenderPassDescriptor
@@ -68,5 +80,16 @@ extension MetalRenderer: MTKViewDelegate {
         )
         commandBuffer.present(drawable)
         commandBuffer.commit()
+    }
+
+    private func updateLogicalViewportIfNeeded(for view: MTKView) {
+        let logicalSize = view.bounds.size
+        guard logicalSize.width > 0, logicalSize.height > 0 else { return }
+        guard logicalSize != currentLogicalSize else { return }
+        currentLogicalSize = logicalSize
+        currentScene?.size = logicalSize
+        if let gameScene = currentScene as? GameScene {
+            gameScene.updateViewport(logicalSize)
+        }
     }
 }

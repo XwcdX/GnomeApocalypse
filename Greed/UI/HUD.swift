@@ -4,8 +4,9 @@ import AppKit
 #endif
 
 // MARK: - Visual constants (set-and-forget, never balance-tuned)
-private let guideVerticalOffset: CGFloat = 295
-private let guideHorizontalInsetFactor: CGFloat = 0.38
+private let guideVerticalOffsetFactor: CGFloat = -0.02
+private let guideHorizontalInsetFactor: CGFloat = 0.22
+private let guideMaxScale: CGFloat = 0.58
 private let guideIconOffsetY: CGFloat = 112
 private let guideTitleOffsetY: CGFloat = -10
 private let guideSubtitleOffsetY: CGFloat = -70
@@ -35,8 +36,8 @@ private let healthValueFontSize: CGFloat = 24
 
 final class HUD: SKNode {
     private enum Metrics {
-        static let baseWidth: CGFloat = GameConfig.mapSize.width
-        static let baseHeight: CGFloat = GameConfig.mapSize.height
+        static let baseWidth: CGFloat = GameConfig.uiReferenceSize.width
+        static let baseHeight: CGFloat = GameConfig.uiReferenceSize.height
         static let avatarSize = CGSize(width: 104, height: 82)
         static let essenceBarHeight: CGFloat = 52
         static let healthBarHeight: CGFloat = 48
@@ -412,10 +413,9 @@ final class HUD: SKNode {
     }
 
     private func layoutGuide() {
-        let visibleSize = GameConfig.cameraViewportSize
-        let scale = layoutScale(for: visibleSize)
-        let top = visibleSize.height / 2
-        let guideY = top - scaled(guideVerticalOffset, scale)
+        let visibleSize = screenSize
+        let scale = guideScale(for: visibleSize)
+        let guideY = visibleSize.height * guideVerticalOffsetFactor
         let guideX = visibleSize.width * guideHorizontalInsetFactor
         let iconOffsetY = scaled(guideIconOffsetY, scale)
         let titleOffsetY = scaled(guideTitleOffsetY, scale)
@@ -731,6 +731,10 @@ final class HUD: SKNode {
         let widthScale = visibleSize.width / Metrics.baseWidth
         let heightScale = visibleSize.height / Metrics.baseHeight
         return min(max(min(widthScale, heightScale), 0.55), 1.45)
+    }
+
+    private func guideScale(for visibleSize: CGSize) -> CGFloat {
+        min(layoutScale(for: visibleSize), guideMaxScale)
     }
 
     private func scaled(_ size: CGSize) -> CGSize {

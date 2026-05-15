@@ -2,8 +2,8 @@ import SpriteKit
 
 final class GameOverOverlay: SKNode {
     private enum Metrics {
-        static let baseWidth: CGFloat = GameConfig.mapSize.width
-        static let baseHeight: CGFloat = GameConfig.mapSize.height
+        static let baseWidth: CGFloat = GameConfig.uiReferenceSize.width
+        static let baseHeight: CGFloat = GameConfig.uiReferenceSize.height
     }
 
     private let survivedTime: TimeInterval

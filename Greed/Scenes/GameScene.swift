@@ -57,11 +57,11 @@ final class GameScene: SKScene {
     var onGameOverPresented: (() -> Void)?
 
     func setup(view: MTKView) {
-        let renderSize = view.drawableSize == .zero ? view.bounds.size : view.drawableSize
-        size = renderSize
+        let viewSize = view.bounds.size
+        size = viewSize
         setupLayers()
-        setupCamera(viewSize: renderSize)
-        setupSystems(viewSize: renderSize)
+        setupCamera(viewSize: viewSize)
+        setupSystems(viewSize: viewSize)
         setupPhysics()
         preloadAssets()
         spawnPlayer()
@@ -112,11 +112,7 @@ final class GameScene: SKScene {
         updateAimCursorMode()
         hud.update(elapsedTime: elapsedRunTime)
         cameraSystem.update(deltaTime: deltaTime)
-        floorRenderer.update(cameraPosition: cameraSystem.cameraNode.position)
-        for renderer in environmentRenderers {
-            renderer.update(cameraPosition: cameraSystem.cameraNode.position)
-        }
-        environmentPropSystem.update(cameraPosition: cameraSystem.cameraNode.position)
+        refreshWorldRenderers()
         updateYSort()
     }
 
@@ -225,9 +221,19 @@ final class GameScene: SKScene {
         for renderer in environmentRenderers {
             renderer.updateViewport(size)
         }
+        refreshWorldRenderers()
         hud?.updateViewport(size)
         skillCardOverlay?.updateViewport(size)
         gameOverOverlay?.updateViewport(size)
+    }
+
+    private func refreshWorldRenderers() {
+        let cameraPosition = cameraSystem.cameraNode.position
+        floorRenderer.update(cameraPosition: cameraPosition)
+        for renderer in environmentRenderers {
+            renderer.update(cameraPosition: cameraPosition)
+        }
+        environmentPropSystem.update(cameraPosition: cameraPosition)
     }
 
     private func spawnPlayer() {

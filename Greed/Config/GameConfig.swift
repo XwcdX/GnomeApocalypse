@@ -64,6 +64,12 @@ enum GameConfig {
     static let cameraLeashFactor: CGFloat = 0.95
 
 
+    // MARK: - UI
+    /// Fixed reference canvas for HUD and overlay scaling. Keep this independent
+    /// from mapSize so changing the world dimensions does not resize UI.
+    static let uiReferenceSize: CGSize = CGSize(width: 1440, height: 810)
+
+
     // MARK: - Input
     static let autoAimIdleThreshold: TimeInterval = 0.2
     static let stickDeadzone: CGFloat = 0.15

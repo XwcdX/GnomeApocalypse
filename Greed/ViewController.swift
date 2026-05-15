@@ -12,6 +12,7 @@ private let aimCursorCrossEnd: CGFloat = 9
 private let aimCursorCrossStart2: CGFloat = 19
 private let aimCursorCrossEnd2: CGFloat = 26
 private let aimCursorCrossWidth: CGFloat = 2
+private let minimumContentSize = NSSize(width: 1024, height: 640)
 
 final class ViewController: NSViewController {
     private var metalRenderer: MetalRenderer!
@@ -25,11 +26,18 @@ final class ViewController: NSViewController {
 
     override func viewDidAppear() {
         super.viewDidAppear()
+        view.window?.contentMinSize = minimumContentSize
         view.window?.makeFirstResponder(self)
         guard homeScene == nil, gameScene == nil else { return }
         setupRenderer()
         setupScene()
         setupInput()
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        metalRenderer?.updateLogicalViewport()
+        metalRenderer?.requestRedraw()
     }
 
     private func setupRenderer() {
@@ -143,11 +151,12 @@ final class ViewController: NSViewController {
         }
         NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             guard let self, event.window === view.window else { return event }
+            let viewPosition = metalRenderer.mtkView.convert(event.locationInWindow, from: nil)
+            guard metalRenderer.mtkView.bounds.contains(viewPosition) else { return event }
             if gameScene == nil {
                 homeScene.handleStartInput()
                 return event
             }
-            let viewPosition = metalRenderer.mtkView.convert(event.locationInWindow, from: nil)
             if gameScene?.handleMouseDown(atViewPosition: viewPosition, viewSize: metalRenderer.mtkView.bounds.size) == true {
                 return nil
             }
@@ -159,6 +168,9 @@ final class ViewController: NSViewController {
             guard let self, let gameScene, event.window === view.window else { return event }
             let viewPos = metalRenderer.mtkView.convert(event.locationInWindow, from: nil)
             let viewSize = metalRenderer.mtkView.bounds.size
+            guard viewSize.width > 0, viewSize.height > 0, metalRenderer.mtkView.bounds.contains(viewPos) else {
+                return event
+            }
             let nx = (viewPos.x / viewSize.width) - 0.5
             let ny = (viewPos.y / viewSize.height) - 0.5
             let cam = gameScene.camera?.position ?? .zero

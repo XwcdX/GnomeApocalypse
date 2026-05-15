@@ -5,8 +5,11 @@ import AppKit
 
 final class SkillCardOverlay: SKNode {
     private enum Metrics {
-        static let baseWidth: CGFloat = GameConfig.mapSize.width
-        static let baseHeight: CGFloat = GameConfig.mapSize.height
+        static let cardSize = CGSize(width: 250, height: 395)
+        static let maxCardHeight: CGFloat = 520
+        static let minCardHeight: CGFloat = 150
+        static let horizontalSafeAreaFactor: CGFloat = 0.84
+        static let verticalSafeAreaFactor: CGFloat = 0.58
     }
 
     private let skills: [Skill]
@@ -17,7 +20,7 @@ final class SkillCardOverlay: SKNode {
     private var selectedIndex = 0
     private var hasSelected = false
 
-    private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.62), size: .zero)
+    private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.44), size: .zero)
     private let titleLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
 
     init(skills: [Skill], screenSize: CGSize, onSelect: @escaping (Skill) -> Void) {
@@ -106,59 +109,68 @@ final class SkillCardOverlay: SKNode {
     }
 
     private func layout() {
-        let scale = layoutScale(for: screenSize)
+        let layout = modalLayout(for: screenSize)
+        let scale = layout.scale
         let halfHeight = screenSize.height / 2
 
         dimmer.position = .zero
         dimmer.size = screenSize
 
-        titleLabel.fontSize = scaled(34, scale)
-        titleLabel.position = CGPoint(x: 0, y: halfHeight - scaled(120, scale))
-
-        let cardSize = CGSize(width: scaled(250, scale), height: scaled(395, scale))
-        let gap = scaled(64, scale)
-        let totalWidth = CGFloat(cardNodes.count) * cardSize.width + CGFloat(max(cardNodes.count - 1, 0)) * gap
-        let startX = -totalWidth / 2 + cardSize.width / 2
-        let cardY = -scaled(45, scale)
+        titleLabel.isHidden = screenSize.height < 540
+        titleLabel.fontSize = min(34, max(20, screenSize.height * 0.032))
+        titleLabel.position = CGPoint(x: 0, y: halfHeight - max(48, screenSize.height * 0.10))
 
         cardRects.removeAll(keepingCapacity: true)
 
         for (index, card) in cardNodes.enumerated() {
-            let x = startX + CGFloat(index) * (cardSize.width + gap)
-            card.position = CGPoint(x: x, y: cardY)
+            let x = layout.startX + CGFloat(index) * (layout.cardSize.width + layout.gap)
+            card.position = CGPoint(x: x, y: layout.cardY)
             card.path = CGPath(
-                rect: CGRect(x: -cardSize.width / 2, y: -cardSize.height / 2, width: cardSize.width, height: cardSize.height),
+                rect: CGRect(
+                    x: -layout.cardSize.width / 2,
+                    y: -layout.cardSize.height / 2,
+                    width: layout.cardSize.width,
+                    height: layout.cardSize.height
+                ),
                 transform: nil
             )
             card.strokeColor = index == selectedIndex ? SKColor.white : .clear
-            card.lineWidth = scaled(4, scale)
+            card.lineWidth = max(2, scaled(4, scale))
 
             if let art = card.childNode(withName: "skillCardArt") as? SKSpriteNode {
-                let artSize = CGSize(width: scaled(168, scale), height: scaled(168, scale))
-                art.size = artSize
-                art.position = CGPoint(x: 0, y: scaled(70, scale))
+                art.size = fittedArtSize(
+                    for: art.texture,
+                    maxSize: CGSize(
+                        width: layout.cardSize.width * 0.68,
+                        height: layout.cardSize.height * 0.38
+                    )
+                )
+                art.position = CGPoint(x: 0, y: layout.cardSize.height * 0.20)
             }
 
             if let icon = card.childNode(withName: "skillCardIcon") as? SKShapeNode {
-                let iconSize = CGSize(width: scaled(170, scale), height: scaled(170, scale))
+                let iconSize = CGSize(
+                    width: layout.cardSize.width * 0.64,
+                    height: layout.cardSize.height * 0.34
+                )
                 icon.path = CGPath(
                     rect: CGRect(x: -iconSize.width / 2, y: -iconSize.height / 2, width: iconSize.width, height: iconSize.height),
                     transform: nil
                 )
-                icon.position = CGPoint(x: 0, y: scaled(70, scale))
+                icon.position = CGPoint(x: 0, y: layout.cardSize.height * 0.20)
             }
 
             if let nameLabel = card.childNode(withName: "skillCardName") as? SKLabelNode {
-                nameLabel.fontSize = scaled(20, scale)
-                nameLabel.position = CGPoint(x: 0, y: -scaled(90, scale))
+                nameLabel.fontSize = min(layout.cardSize.height * 0.052, layout.cardSize.width * 0.105)
+                nameLabel.position = CGPoint(x: 0, y: -layout.cardSize.height * 0.27)
             }
 
             cardRects.append(
                 CGRect(
-                    x: x - cardSize.width / 2,
-                    y: cardY - cardSize.height / 2,
-                    width: cardSize.width,
-                    height: cardSize.height
+                    x: x - layout.cardSize.width / 2,
+                    y: layout.cardY - layout.cardSize.height / 2,
+                    width: layout.cardSize.width,
+                    height: layout.cardSize.height
                 )
             )
         }
@@ -172,10 +184,37 @@ final class SkillCardOverlay: SKNode {
         onSelect(skills[index])
     }
 
-    private func layoutScale(for size: CGSize) -> CGFloat {
-        let widthScale = size.width / Metrics.baseWidth
-        let heightScale = size.height / Metrics.baseHeight
-        return min(max(min(widthScale, heightScale), 0.65), 1.25)
+    private struct ModalLayout {
+        let scale: CGFloat
+        let cardSize: CGSize
+        let gap: CGFloat
+        let startX: CGFloat
+        let cardY: CGFloat
+    }
+
+    private func modalLayout(for size: CGSize) -> ModalLayout {
+        let count = max(cardNodes.count, 1)
+        let aspect = Metrics.cardSize.width / Metrics.cardSize.height
+        let horizontalSpace = max(0, size.width * Metrics.horizontalSafeAreaFactor)
+        let baseGap = min(max(size.width * 0.035, 18), 64)
+        let widthPerCard = max(1, (horizontalSpace - CGFloat(count - 1) * baseGap) / CGFloat(count))
+        let heightFromWidth = widthPerCard / aspect
+        let heightFromViewport = max(1, size.height * Metrics.verticalSafeAreaFactor)
+        let cardHeight = min(max(Metrics.minCardHeight, min(heightFromWidth, heightFromViewport)), Metrics.maxCardHeight)
+        let cardSize = CGSize(width: cardHeight * aspect, height: cardHeight)
+        let totalWidth = CGFloat(count) * cardSize.width + CGFloat(count - 1) * baseGap
+        let startX = -totalWidth / 2 + cardSize.width / 2
+        let topLimit = size.height / 2 - max(90, size.height * 0.13)
+        let bottomLimit = -size.height / 2 + max(44, size.height * 0.06)
+        let cardY = (topLimit + bottomLimit) / 2
+
+        return ModalLayout(
+            scale: cardHeight / Metrics.cardSize.height,
+            cardSize: cardSize,
+            gap: baseGap,
+            startX: startX,
+            cardY: cardY
+        )
     }
 
     private func scaled(_ value: CGFloat, _ scale: CGFloat) -> CGFloat {
@@ -196,9 +235,21 @@ final class SkillCardOverlay: SKNode {
     private func iconTexture(named name: String) -> SKTexture? {
         guard let baseTexture = texture(named: name) else { return nil }
 
+        guard !name.hasSuffix("_icon") else {
+            return baseTexture
+        }
+
         let rect = CGRect(x: 0.14, y: 0.34, width: 0.72, height: 0.50)
         let texture = SKTexture(rect: rect, in: baseTexture)
         texture.filteringMode = .nearest
         return texture
+    }
+
+    private func fittedArtSize(for texture: SKTexture?, maxSize: CGSize) -> CGSize {
+        guard let texture else { return maxSize }
+        let textureSize = texture.size()
+        guard textureSize.width > 0, textureSize.height > 0 else { return maxSize }
+        let scale = min(maxSize.width / textureSize.width, maxSize.height / textureSize.height)
+        return CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
     }
 }
