@@ -12,10 +12,14 @@ final class GameScene: SKScene {
         weak var owner: PlayerEntity?
         let node: SKNode
         var position: CGPoint
-        var damage: Int
         var radius: CGFloat
         var remainingDuration: TimeInterval
         var tickAccumulator: TimeInterval
+    }
+
+    private struct ActiveOrb {
+        let sprite: SKSpriteNode
+        var angle: CGFloat
     }
 
     private(set) var cameraSystem: CameraSystem!
@@ -37,9 +41,13 @@ final class GameScene: SKScene {
     private weak var skillSelectionPlayer: PlayerEntity?
     private var wasSkillConfirmPressed = false
     private var lightningCooldowns: [ObjectIdentifier: TimeInterval] = [:]
-    private var activeMistClouds: [ObjectIdentifier: ActiveMistCloud] = [:]
+    private var activeMistClouds: [ObjectIdentifier: [ActiveMistCloud]] = [:]
+    private var mistSpawnCooldowns: [ObjectIdentifier: TimeInterval] = [:]
+    private var orbitOrbs: [ObjectIdentifier: [ActiveOrb]] = [:]
+    private var orbitHitCooldowns: [ObjectIdentifier: [Int: [ObjectIdentifier: TimeInterval]]] = [:]
     private let lightningAtlas = SKTextureAtlas(named: "LightningEffect")
     private let mistAtlas = SKTextureAtlas(named: "MistEffect")
+    private let orbitAtlas = SKTextureAtlas(named: "OrbitingSpell")
     var onReplayRequested: (() -> Void)?
     
     private var players: [PlayerEntity] = []
@@ -91,6 +99,7 @@ final class GameScene: SKScene {
 
         updateLightningSkills(deltaTime: deltaTime)
         updateMistSkills(deltaTime: deltaTime)
+        updateOrbitingSpells(deltaTime: deltaTime)
 
         for attack in playerAttacks { attack.update(deltaTime: deltaTime) }
         playerProjectilePool.updateAll(deltaTime: deltaTime)
@@ -229,7 +238,7 @@ final class GameScene: SKScene {
     private func updateLightningSkills(deltaTime: TimeInterval) {
         for player in players {
             let playerID = ObjectIdentifier(player)
-            guard player.lightningChainCount > 0 else {
+            guard player.lightningCooldown > 0, player.lightningStrikeCount > 0 else {
                 lightningCooldowns.removeValue(forKey: playerID)
                 continue
             }
@@ -239,38 +248,40 @@ final class GameScene: SKScene {
 
             guard updatedCooldown == 0 else { continue }
             guard castLightning(for: player) else { continue }
-            lightningCooldowns[playerID] = SkillConfig.lightningCooldown
+            lightningCooldowns[playerID] = player.lightningCooldown
         }
     }
 
     private func castLightning(for player: PlayerEntity) -> Bool {
-        guard !enemies.isEmpty else { return false }
+        let inset = referenceSpriteHeight * lightningBoltHeightFactor + 8
+        let aliveEnemies = enemies.filter { $0.parent != nil && isInsideCamera($0.position, inset: inset) }
+        guard !aliveEnemies.isEmpty else { return false }
 
-        var availableTargets = enemies.filter { $0.parent != nil }
-        guard let initialTarget = availableTargets.randomElement() else { return false }
-
-        let strikeCount = max(1, player.lightningChainCount)
-        let damage = SkillConfig.lightningBaseDamage
-        var currentTarget = initialTarget
+        let strikeCount = max(1, player.lightningStrikeCount)
+        var pool = aliveEnemies
 
         for _ in 0..<strikeCount {
-            strikeLightning(on: currentTarget, damage: damage)
-            availableTargets.removeAll { $0 === currentTarget }
-
-            guard !availableTargets.isEmpty else { break }
-            guard let nextTarget = availableTargets.min(by: {
-                toroidalDistance(from: currentTarget.position, to: $0.position, mapSize: GameConfig.mapSize) <
-                toroidalDistance(from: currentTarget.position, to: $1.position, mapSize: GameConfig.mapSize)
-            }) else { break }
-            currentTarget = nextTarget
+            let target: EnemyEntity
+            if !pool.isEmpty {
+                guard let picked = pool.randomElement() else { break }
+                pool.removeAll { $0 === picked }
+                target = picked
+            } else {
+                guard let picked = aliveEnemies.randomElement() else { break }
+                target = picked
+            }
+            strikeLightning(on: target, damage: SkillConfig.lightningBaseDamage)
         }
 
+        audioManager.play(.lightningStrike)
         return true
     }
 
     private func strikeLightning(on enemy: EnemyEntity, damage: Int) {
-        let strike = makeLightningStrikeNode(at: enemy.position, radius: referenceSpriteHeight * lightningStrikeRadiusFactor)
+        let position = enemy.position
+        let strike = makeLightningStrikeNode(at: position, radius: referenceSpriteHeight * lightningStrikeRadiusFactor)
         entityLayer.addChild(strike)
+        particleAssets.emit(.lightningImpact, at: position, in: entityLayer)
         enemy.health.takeDamage(damage)
         if enemy.health.isDead { enemy.die() }
     }
@@ -278,71 +289,213 @@ final class GameScene: SKScene {
     private func updateMistSkills(deltaTime: TimeInterval) {
         for player in players {
             let playerID = ObjectIdentifier(player)
-            guard player.mistDamage > 0, player.mistDuration > 0 else {
-                removeMistCloud(for: playerID)
+            guard player.mistCloudCount > 0, player.mistCooldown > 0 else {
+                removeAllMistClouds(for: playerID)
+                mistSpawnCooldowns.removeValue(forKey: playerID)
                 continue
             }
 
-            if activeMistClouds[playerID] == nil {
+            tickMistClouds(for: playerID, deltaTime: deltaTime)
+
+            let cooldown = max(0, (mistSpawnCooldowns[playerID] ?? 0) - deltaTime)
+            mistSpawnCooldowns[playerID] = cooldown
+
+            let activeCount = activeMistClouds[playerID]?.count ?? 0
+            if activeCount < player.mistCloudCount, cooldown == 0 {
                 spawnMistCloud(for: player)
+                mistSpawnCooldowns[playerID] = player.mistCooldown
             }
+        }
+    }
 
-            guard var cloud = activeMistClouds[playerID], cloud.node.parent != nil else {
-                spawnMistCloud(for: player)
-                continue
+    private func tickMistClouds(for playerID: ObjectIdentifier, deltaTime: TimeInterval) {
+        guard var clouds = activeMistClouds[playerID] else { return }
+
+        for index in clouds.indices {
+            clouds[index].remainingDuration -= deltaTime
+            clouds[index].tickAccumulator += deltaTime
+            while clouds[index].tickAccumulator >= SkillConfig.mistTickInterval {
+                clouds[index].tickAccumulator -= SkillConfig.mistTickInterval
+                applyMistDamage(from: clouds[index])
             }
+        }
 
-            cloud.damage = player.mistDamage
-            cloud.remainingDuration -= deltaTime
-            cloud.tickAccumulator += deltaTime
+        let expired = clouds.filter { $0.remainingDuration <= 0 }
+        expired.forEach { $0.node.removeFromParent() }
+        clouds.removeAll { $0.remainingDuration <= 0 }
 
-            while cloud.tickAccumulator >= SkillConfig.mistTickInterval {
-                cloud.tickAccumulator -= SkillConfig.mistTickInterval
-                applyMistDamage(from: cloud)
-            }
-
-            if cloud.remainingDuration <= 0 {
-                removeMistCloud(for: playerID)
-                spawnMistCloud(for: player)
-            } else {
-                activeMistClouds[playerID] = cloud
-            }
+        if clouds.isEmpty {
+            activeMistClouds.removeValue(forKey: playerID)
+        } else {
+            activeMistClouds[playerID] = clouds
         }
     }
 
     private func spawnMistCloud(for player: PlayerEntity) {
         let playerID = ObjectIdentifier(player)
-        removeMistCloud(for: playerID)
-
         let position = randomPointInCameraView()
         let cloudNode = makeMistCloudNode(radius: SkillConfig.mistRadius)
         cloudNode.position = position
         cloudNode.zPosition = Layer.projectile
         entityLayer.addChild(cloudNode)
 
-        activeMistClouds[playerID] = ActiveMistCloud(
+        let cloud = ActiveMistCloud(
             owner: player,
             node: cloudNode,
             position: position,
-            damage: player.mistDamage,
             radius: SkillConfig.mistRadius,
-            remainingDuration: player.mistDuration,
+            remainingDuration: SkillConfig.mistBaseDuration,
             tickAccumulator: 0
         )
+
+        activeMistClouds[playerID, default: []].append(cloud)
+        audioManager.play(.mistExplosion)
+        particleAssets.emit(.mistExplosion, at: position, in: entityLayer)
     }
 
     private func applyMistDamage(from cloud: ActiveMistCloud) {
+        let damage = SkillConfig.mistBaseDamage
         for enemy in enemies where enemy.parent != nil {
             let distance = toroidalDistance(from: cloud.position, to: enemy.position, mapSize: GameConfig.mapSize)
             guard distance <= cloud.radius else { continue }
-            enemy.health.takeDamage(cloud.damage)
+            enemy.health.takeDamage(damage)
             if enemy.health.isDead { enemy.die() }
         }
     }
 
-    private func removeMistCloud(for playerID: ObjectIdentifier) {
-        guard let cloud = activeMistClouds.removeValue(forKey: playerID) else { return }
-        cloud.node.removeFromParent()
+    private func removeAllMistClouds(for playerID: ObjectIdentifier) {
+        guard let clouds = activeMistClouds.removeValue(forKey: playerID) else { return }
+        clouds.forEach { $0.node.removeFromParent() }
+    }
+
+    private func updateOrbitingSpells(deltaTime: TimeInterval) {
+        for player in players {
+            let playerID = ObjectIdentifier(player)
+            let desired = player.orbitCount
+
+            guard desired > 0 else {
+                removeAllOrbs(for: playerID)
+                orbitHitCooldowns.removeValue(forKey: playerID)
+                continue
+            }
+
+            reconcileOrbCount(for: playerID, desired: desired)
+            advanceOrbAngles(for: playerID, deltaTime: deltaTime)
+            updateOrbPositions(for: player)
+            decayOrbitCooldowns(for: playerID, deltaTime: deltaTime)
+            applyOrbCollisions(for: player)
+        }
+    }
+
+    private func reconcileOrbCount(for playerID: ObjectIdentifier, desired: Int) {
+        var orbs = orbitOrbs[playerID] ?? []
+        if orbs.count == desired {
+            orbitOrbs[playerID] = orbs
+            return
+        }
+
+        if orbs.count > desired {
+            for orb in orbs.suffix(orbs.count - desired) {
+                orb.sprite.removeFromParent()
+            }
+            orbs.removeLast(orbs.count - desired)
+            orbitOrbs[playerID] = orbs
+            return
+        }
+
+        let texture = orbitAtlas.textureNamed("orbiting_orb_000")
+        texture.filteringMode = .nearest
+        let step = (CGFloat.pi * 2) / CGFloat(desired)
+        for i in orbs.count..<desired {
+            let sprite = SKSpriteNode(texture: texture, size: CGSize(width: SkillConfig.orbitSpriteSize, height: SkillConfig.orbitSpriteSize))
+            sprite.zPosition = Layer.projectile
+            entityLayer.addChild(sprite)
+            orbs.append(ActiveOrb(sprite: sprite, angle: CGFloat(i) * step))
+        }
+        orbitOrbs[playerID] = orbs
+    }
+
+    private func advanceOrbAngles(for playerID: ObjectIdentifier, deltaTime: TimeInterval) {
+        guard var orbs = orbitOrbs[playerID] else { return }
+        let delta = SkillConfig.orbitRotationSpeed * CGFloat(deltaTime)
+        for index in orbs.indices {
+            orbs[index].angle += delta
+        }
+        orbitOrbs[playerID] = orbs
+    }
+
+    private func updateOrbPositions(for player: PlayerEntity) {
+        let playerID = ObjectIdentifier(player)
+        guard let orbs = orbitOrbs[playerID] else { return }
+        for orb in orbs {
+            orb.sprite.position = CGPoint(
+                x: player.position.x + cos(orb.angle) * SkillConfig.orbitRadius,
+                y: player.position.y + sin(orb.angle) * SkillConfig.orbitRadius
+            )
+        }
+    }
+
+    private func decayOrbitCooldowns(for playerID: ObjectIdentifier, deltaTime: TimeInterval) {
+        guard var perOrb = orbitHitCooldowns[playerID] else { return }
+        let aliveEnemyIDs = Set(enemies.compactMap { $0.parent != nil ? ObjectIdentifier($0) : nil })
+
+        for (orbIndex, enemyMap) in perOrb {
+            var updated = enemyMap
+            for (enemyID, remaining) in updated {
+                if !aliveEnemyIDs.contains(enemyID) {
+                    updated.removeValue(forKey: enemyID)
+                    continue
+                }
+                let next = remaining - deltaTime
+                if next <= 0 {
+                    updated.removeValue(forKey: enemyID)
+                } else {
+                    updated[enemyID] = next
+                }
+            }
+            if updated.isEmpty {
+                perOrb.removeValue(forKey: orbIndex)
+            } else {
+                perOrb[orbIndex] = updated
+            }
+        }
+        orbitHitCooldowns[playerID] = perOrb.isEmpty ? nil : perOrb
+    }
+
+    private func applyOrbCollisions(for player: PlayerEntity) {
+        let playerID = ObjectIdentifier(player)
+        guard let orbs = orbitOrbs[playerID] else { return }
+
+        let orbVisualRadius = SkillConfig.orbitSpriteSize / 2
+
+        for (orbIndex, orb) in orbs.enumerated() {
+            let orbPos = orb.sprite.position
+            for enemy in enemies where enemy.parent != nil {
+                let enemyID = ObjectIdentifier(enemy)
+                let cooldown = orbitHitCooldowns[playerID]?[orbIndex]?[enemyID]
+                guard cooldown == nil else { continue }
+
+                let enemyRadius = enemy.size.width * 0.5
+                let distance = toroidalDistance(from: orbPos, to: enemy.position, mapSize: GameConfig.mapSize)
+                guard distance <= enemyRadius + orbVisualRadius else { continue }
+
+                enemy.health.takeDamage(SkillConfig.orbitDamage)
+                audioManager.play(.orbitingSpellHit)
+                particleAssets.emit(.orbitingSpellHit, at: enemy.position, in: entityLayer)
+                if enemy.health.isDead { enemy.die() }
+
+                var perOrb = orbitHitCooldowns[playerID] ?? [:]
+                var perEnemy = perOrb[orbIndex] ?? [:]
+                perEnemy[enemyID] = SkillConfig.orbitCooldownPerEnemy
+                perOrb[orbIndex] = perEnemy
+                orbitHitCooldowns[playerID] = perOrb
+            }
+        }
+    }
+
+    private func removeAllOrbs(for playerID: ObjectIdentifier) {
+        guard let orbs = orbitOrbs.removeValue(forKey: playerID) else { return }
+        orbs.forEach { $0.sprite.removeFromParent() }
     }
 
     private func makeMistCloudNode(radius: CGFloat) -> SKNode {
@@ -436,6 +589,23 @@ final class GameScene: SKScene {
         lastUpdateTime = currentTime
         return min(dt, 1.0 / 20.0)
     }
+    private func isInsideCamera(_ position: CGPoint, inset: CGFloat) -> Bool {
+        let cameraPos = cameraSystem.cameraNode.position
+        let viewport = GameConfig.cameraViewportSize
+        let rect = CGRect(
+            x: cameraPos.x - viewport.width / 2 + inset,
+            y: cameraPos.y - viewport.height / 2 + inset,
+            width: max(0, viewport.width - inset * 2),
+            height: max(0, viewport.height - inset * 2)
+        )
+        for dx: CGFloat in [-GameConfig.mapSize.width, 0, GameConfig.mapSize.width] {
+            for dy: CGFloat in [-GameConfig.mapSize.height, 0, GameConfig.mapSize.height] {
+                if rect.contains(CGPoint(x: position.x + dx, y: position.y + dy)) { return true }
+            }
+        }
+        return false
+    }
+
     private func isVisible(_ position: CGPoint) -> Bool {
         let cameraPos = cameraSystem.cameraNode.position
         let viewport = GameConfig.cameraViewportSize

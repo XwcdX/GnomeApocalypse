@@ -1,5 +1,10 @@
 import AVFoundation
 import Foundation
+#if canImport(AppKit)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 final class AudioManager {
     static let shared = AudioManager()
@@ -15,9 +20,10 @@ final class AudioManager {
         case orbCollect = "sfx_orb_collect"
         case mistExplosion = "sfx_mist_explosion"
         case bossAppear = "sfx_boss_appear"
+        case lightningStrike = "sfx_lightning_strike"
+        case orbitingSpellHit = "sfx_orbiting_spell_hit"
     }
 
-    private let supportedExtensions = ["wav", "mp3", "m4a", "caf", "aiff"]
     private var musicPlayers: [Music: AVAudioPlayer] = [:]
     private var sfxPlayers: [SFX: AVAudioPlayer] = [:]
 
@@ -65,19 +71,15 @@ final class AudioManager {
     }
 
     private func makePlayer(assetName: String, bundle: Bundle) -> AVAudioPlayer? {
-        guard let url = audioURL(named: assetName, bundle: bundle) else { return nil }
+        guard let asset = NSDataAsset(name: assetName, bundle: bundle) else { return nil }
 
         do {
-            let player = try AVAudioPlayer(contentsOf: url)
+            let player = try AVAudioPlayer(data: asset.data)
             player.prepareToPlay()
             return player
         } catch {
-            Log.error("AudioManager: failed to preload \(assetName): \(error.localizedDescription)")
+            Log.error("AudioManager: failed to load \(assetName): \(error.localizedDescription)")
             return nil
         }
-    }
-
-    private func audioURL(named assetName: String, bundle: Bundle) -> URL? {
-        supportedExtensions.compactMap { bundle.url(forResource: assetName, withExtension: $0) }.first
     }
 }

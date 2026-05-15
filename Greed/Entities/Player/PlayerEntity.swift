@@ -16,9 +16,10 @@ class PlayerEntity: SKSpriteNode {
     private(set) var attackSpeedMultiplier: CGFloat = 1.0
     private(set) var movementSpeedMultiplier: CGFloat = 1.0
     private(set) var orbitCount: Int = 0
-    private(set) var lightningChainCount: Int = 0
-    private(set) var mistDamage: Int = 0
-    private(set) var mistDuration: TimeInterval = 0
+    private(set) var lightningCooldown: TimeInterval = 0
+    private(set) var lightningStrikeCount: Int = 0
+    private(set) var mistCooldown: TimeInterval = 0
+    private(set) var mistCloudCount: Int = 0
     private(set) var equippedWeapons: [Skill] = []
     private(set) var equippedPowerUps: [Skill] = []
     
@@ -68,11 +69,12 @@ class PlayerEntity: SKSpriteNode {
         switch effect {
         case .orbitingSpell(let count):
             orbitCount = count
-        case .lightningStrike(let chainCount):
-            lightningChainCount = chainCount
-        case .poisonousMist(let damage, let duration):
-            mistDamage = damage
-            mistDuration = duration
+        case .lightningStrike(let cooldown, let strikeCount):
+            lightningCooldown = cooldown
+            lightningStrikeCount = strikeCount
+        case .poisonousMist(let cooldown, let cloudCount):
+            mistCooldown = cooldown
+            mistCloudCount = cloudCount
         case .increaseAttackSpeed(let multiplier):
             attackSpeedMultiplier = CGFloat(multiplier)
         case .increaseMovementSpeed(let multiplier):

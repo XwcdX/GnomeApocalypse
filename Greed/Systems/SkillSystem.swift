@@ -7,8 +7,8 @@ enum SkillType {
 
 enum SkillEffect {
     case orbitingSpell(orbitCount: Int)
-    case lightningStrike(chainCount: Int)
-    case poisonousMist(damage: Int, duration: TimeInterval)
+    case lightningStrike(cooldown: TimeInterval, strikeCount: Int)
+    case poisonousMist(cooldown: TimeInterval, cloudCount: Int)
     case increaseAttackSpeed(multiplier: Float)
     case increaseMovementSpeed(multiplier: Float)
     case increaseMaxHealth(amount: Int)
@@ -22,17 +22,20 @@ struct Skill {
     let maxLevel: Int
 
     func effect(at level: Int) -> SkillEffect {
+        let index = max(0, min(level - 1, 2))
         switch id {
         case "orbiting_spell":
-            return .orbitingSpell(orbitCount: level)
+            return .orbitingSpell(orbitCount: SkillConfig.orbitCountByLevel[index])
         case "lightning_strike":
-            return .lightningStrike(chainCount: level)
+            return .lightningStrike(
+                cooldown: SkillConfig.lightningCooldownByLevel[index],
+                strikeCount: SkillConfig.lightningStrikeCountByLevel[index]
+            )
         case "poisonous_mist":
-            let baseDamage   = SkillConfig.mistBaseDamage
-            let baseDuration = SkillConfig.mistBaseDuration
-            let damage       = level == 3 ? baseDamage * 2 : baseDamage
-            let duration     = level >= 2 ? baseDuration * 1.5 : baseDuration
-            return .poisonousMist(damage: damage, duration: duration)
+            return .poisonousMist(
+                cooldown: SkillConfig.mistCooldownByLevel[index],
+                cloudCount: SkillConfig.mistCountByLevel[index]
+            )
         case "ancient_tome":
             return .increaseAttackSpeed(multiplier: 1.0 + Float(level) * 0.1)
         case "spirit_fruit":
@@ -90,7 +93,7 @@ struct PlayerSkillState {
 
 final class SkillSystem {
     private let pool: [Skill] = [
-        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "orbiting_placeholder",  maxLevel: 3),
+        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "OrbitingSpellCard",  maxLevel: 3),
         Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon,  iconName: "LightningCard",  maxLevel: 3),
         Skill(id: "poisonous_mist",   name: "Poisonous Mist",   type: .weapon,  iconName: "MistCard",       maxLevel: 3),
         Skill(id: "ancient_tome",     name: "Ancient Tome",     type: .powerUp, iconName: "tome_icon",      maxLevel: 3),
