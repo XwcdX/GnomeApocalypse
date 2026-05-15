@@ -40,38 +40,41 @@ Skills and Power-ups are **two separate pools** with independent caps, but drawn
 ---
 
 ### 2. Lightning Strike
-**Behavior:** Auto-cast on a random enemy at set intervals.
+**Behavior:** Auto-cast on random enemies at intervals. Each strike is an independent AoE on a random target — no chaining.
 
-| Level | Behavior |
-|-------|----------|
-| 1 | Single target, base AoE (100px) |
-| 2 | Chains to 2 enemies, larger AoE (200px) |
-| 3 | Chains to 3 enemies, largest AoE (300px) |
+| Level | Cooldown | Strikes per cast |
+|-------|----------|------------------|
+| 1 | base | 1 |
+| 2 | reduced | 1 |
+| 3 | reduced | multi-strike (2) |
 
 **Config:**
-- Cooldown: `GameConfig.lightningCooldown` (3.0s)
-- Base damage: `GameConfig.lightningBaseDamage` (50)
-- AoE radius: `GameConfig.lightningAoERadius` × level (100 / 200 / 300)
-- Targets random enemy using toroidal distance
+- Per-level cooldown: `SkillConfig.lightningCooldownByLevel` (`[3.0, 2.0, 1.5]`)
+- Per-level strike count: `SkillConfig.lightningStrikeCountByLevel` (`[1, 1, 2]`)
+- Base damage: `SkillConfig.lightningBaseDamage` (50)
+- AoE radius: `SkillConfig.lightningAoERadius` (100, flat — does not scale with level)
+- Each strike picks an independent random enemy (no replacement; falls back to repeats if pool too small)
+- Targets enemies using toroidal distance
 
 ---
 
 ### 3. Poisonous Mist
-**Behavior:** Spawns at a random position in camera view, applying DoT to enemies inside.
+**Behavior:** Clouds spawn at random positions in camera view, applying DoT to enemies inside. Each cloud lasts a fixed duration; new clouds respawn after a per-player cooldown.
 
-| Level | Damage | Duration |
-|-------|--------|----------|
-| 1 | Base (5/tick) | Base (5.0s) |
-| 2 | Base (5/tick) | +50% (7.5s) |
-| 3 | 2× (10/tick) | +50% (7.5s) |
+| Level | Cooldown | Concurrent clouds |
+|-------|----------|-------------------|
+| 1 | base | 1 |
+| 2 | reduced | 1 |
+| 3 | reduced | multi-cloud (2) |
 
 **Config:**
-- Base damage: `GameConfig.mistBaseDamage` (5 per tick)
-- Base duration: `GameConfig.mistBaseDuration` (5.0s)
-- Tick interval: `GameConfig.mistTickInterval` (0.5s)
-- Radius: `GameConfig.mistRadius` (120px)
-- Spawns randomly within camera viewport
-- After duration expires, a new mist spawns at a different location
+- Per-level cooldown: `SkillConfig.mistCooldownByLevel` (`[5.0, 3.5, 2.5]`)
+- Per-level cloud count: `SkillConfig.mistCountByLevel` (`[1, 1, 2]`)
+- Base damage: `SkillConfig.mistBaseDamage` (5 per tick, flat)
+- Base duration: `SkillConfig.mistBaseDuration` (5.0s, flat)
+- Tick interval: `SkillConfig.mistTickInterval` (0.5s)
+- Radius: `SkillConfig.mistRadius` (120px)
+- Each spawn picks a fresh random viewport position; per-player cooldown gates the next spawn while concurrent count < cap
 
 ---
 
@@ -159,9 +162,10 @@ No artificial balancing needed — the math handles it.
 ```swift
 // Skills — set once on pick, read by GameScene
 var orbitCount: Int = 0
-var lightningChainCount: Int = 0
-var mistDamage: Int = 0
-var mistDuration: TimeInterval = 0
+var lightningCooldown: TimeInterval = 0   // 0 = inactive
+var lightningStrikeCount: Int = 0
+var mistCooldown: TimeInterval = 0        // 0 = inactive
+var mistCloudCount: Int = 0
 
 // Power-ups — set once on pick, read by movement/attack systems
 var attackSpeedMultiplier: Float = 1.0
@@ -176,11 +180,12 @@ func applySkill(_ skill: Skill, at level: Int) {
     switch skill.effect(at: level) {
     case .orbitingSpell(let count):
         orbitCount = count
-    case .lightningStrike(let chain):
-        lightningChainCount = chain
-    case .poisonousMist(let dmg, let dur):
-        mistDamage = dmg
-        mistDuration = dur
+    case .lightningStrike(let cooldown, let strikeCount):
+        lightningCooldown = cooldown
+        lightningStrikeCount = strikeCount
+    case .poisonousMist(let cooldown, let cloudCount):
+        mistCooldown = cooldown
+        mistCloudCount = cloudCount
     case .increaseAttackSpeed(let m):
         attackSpeedMultiplier = m
     case .increaseMovementSpeed(let m):
@@ -208,9 +213,9 @@ let effect = player.activeSkills["orbiting_spell"] // no dictionaries
 ## GameScene Responsibilities
 
 - Spawn and update orbiting spell positions each frame using `player.orbitCount`
-- Auto-fire lightning at intervals using `player.lightningChainCount`
-- Spawn/respawn mist clouds using `player.mistDamage` and `player.mistDuration`
-- Track per-enemy orbit cooldowns
+- Auto-fire lightning at `player.lightningCooldown`, firing `player.lightningStrikeCount` independent strikes per cast
+- Spawn mist clouds up to `player.mistCloudCount` concurrently, gated by `player.mistCooldown` (per-player); each cloud uses `SkillConfig.mistBaseDamage` + `SkillConfig.mistBaseDuration`
+- Track per-(orb, enemy) orbit cooldowns
 - Apply `player.attackSpeedMultiplier` to all relevant attack timers
 
 ---
@@ -239,8 +244,10 @@ let effect = player.activeSkills["orbiting_spell"] // no dictionaries
 - [ ] Skill properties on `PlayerEntity` update correctly on pick
 - [ ] Power-up properties on `PlayerEntity` update correctly on pick
 - [ ] No per-frame recalculation — properties mutated once on pick
-- [ ] Mist level 2: base damage, 1.5× duration ✓
-- [ ] Mist level 3: 2× damage AND 1.5× duration ✓
+- [ ] Lightning level 2: cooldown shorter than level 1 (single strike still)
+- [ ] Lightning level 3: multiple strikes per cast against independent random enemies
+- [ ] Mist level 2: cooldown shorter than level 1 (single concurrent cloud still)
+- [ ] Mist level 3: two concurrent clouds in view at once
 - [ ] Life Bloom stacks health correctly across levels
 - [ ] `attackSpeedMultiplier` applied to all attack timers in GameScene
 - [ ] `movementSpeedMultiplier` applied to player movement in GameScene
