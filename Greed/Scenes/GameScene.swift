@@ -76,7 +76,10 @@ final class GameScene: SKScene {
             return
         }
 
-        if gameOverOverlay != nil { return }
+        if gameOverOverlay != nil {
+            updateGameOverInput()
+            return
+        }
 
         cameraSystem.isLocked = directorSystem.isBossStageActive
         elapsedRunTime += deltaTime
@@ -533,9 +536,7 @@ final class GameScene: SKScene {
     @discardableResult
     func handleKeyDown(_ event: NSEvent) -> Bool {
         if gameOverOverlay != nil {
-            if event.keyCode == 36 || event.keyCode == 49 {
-                gameOverOverlay?.replay()
-            }
+            gameOverOverlay?.replay()
             return true
         }
         return skillCardOverlay != nil
@@ -543,7 +544,7 @@ final class GameScene: SKScene {
 
     func handlePlayerDeath(_ player: PlayerEntity) {
         Log.debug("GameScene: player died")
-        presentGameOverOverlay()
+        presentGameOverOverlay(for: player)
     }
     
     func handleBossDeath() {
@@ -583,6 +584,7 @@ final class GameScene: SKScene {
 
     private func presentSkillCardOverlay() {
         guard let player = skillSelectionPlayer else { return }
+        player.hideAimGuide()
 
         let skills = skillSystem.draw(for: player.skillState)
         guard !skills.isEmpty else {
@@ -601,19 +603,42 @@ final class GameScene: SKScene {
         onAimModeChanged?(.manual)
     }
 
-    private func presentGameOverOverlay() {
+    private func presentGameOverOverlay(for player: PlayerEntity) {
         guard gameOverOverlay == nil else { return }
         skillCardOverlay?.removeFromParent()
         skillCardOverlay = nil
         skillSelectionPlayer = nil
+        players.forEach { $0.hideAimGuide() }
         physicsWorld.speed = 0
         onGameOverPresented?()
 
-        let overlay = GameOverOverlay(survivedTime: elapsedRunTime, screenSize: size) { [weak self] in
+        let overlay = GameOverOverlay(
+            survivedTime: elapsedRunTime,
+            screenSize: size,
+            stats: makeGameOverStats(for: player)
+        ) { [weak self] in
             self?.onReplayRequested?()
         }
         cameraSystem.cameraNode.addChild(overlay)
         gameOverOverlay = overlay
+    }
+
+    private func makeGameOverStats(for player: PlayerEntity) -> GameOverStats {
+        let items = (player.equippedWeapons + player.equippedPowerUps).map { skill in
+            GameOverStats.Item(
+                name: skill.name,
+                level: player.skillState.level(of: skill.id, type: skill.type),
+                iconName: skill.iconName
+            )
+        }
+
+        return GameOverStats(
+            playerLevel: player.level.currentLevel,
+            maxHealth: player.health.maximum,
+            attackSpeedMultiplier: player.attackSpeedMultiplier,
+            movementSpeed: player.currentSpeed,
+            items: items
+        )
     }
 
     private func completeSkillSelection(_ skill: Skill, for player: PlayerEntity) {
@@ -628,11 +653,26 @@ final class GameScene: SKScene {
 
     private func updateSkillSelectionInput() {
         guard let player = skillSelectionPlayer else { return }
+        if let direction = inputSystem.consumeMenuDirection(for: player.controllerIndex ?? 0) {
+            skillCardOverlay?.moveSelection(direction)
+        }
+        if inputSystem.consumeMenuConfirm(for: player.controllerIndex ?? 0) {
+            skillCardOverlay?.selectHighlightedCard()
+            return
+        }
+
         let isConfirmPressed = inputSystem.confirmPressed(for: player.controllerIndex ?? 0)
         if isConfirmPressed && !wasSkillConfirmPressed {
             skillCardOverlay?.selectHighlightedCard()
         }
         wasSkillConfirmPressed = isConfirmPressed
+    }
+
+    private func updateGameOverInput() {
+        let playerIndex = players.first?.controllerIndex ?? 0
+        if inputSystem.consumeAnyMenuButton(for: playerIndex) {
+            gameOverOverlay?.replay()
+        }
     }
 
     private func updateControlGuideDismissal() {

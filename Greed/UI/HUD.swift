@@ -18,6 +18,10 @@ private let guideKeyGap: CGFloat = 10
 private let guideKeyCornerRadius: CGFloat = 4
 private let guideKeyFontSize: CGFloat = 34
 private let guideKeyBorderWidth: CGFloat = 2
+private let guideStickBaseRadius: CGFloat = 66
+private let guideStickKnobRadius: CGFloat = 22
+private let guideStickOffset: CGFloat = 20
+private let guideStickLabelFontSize: CGFloat = 28
 private let guideCursorLineWidth: CGFloat = 5
 private let guideCursorPoints: [CGPoint] = [
     CGPoint(x: -38, y: 64), CGPoint(x: -38, y: -58),
@@ -35,6 +39,11 @@ private let guideCursorRayWidth: CGFloat = 9
 private let healthValueFontSize: CGFloat = 24
 
 final class HUD: SKNode {
+    private enum ControlGuideInputMode {
+        case keyboardMouse
+        case controller
+    }
+
     private enum Metrics {
         static let baseWidth: CGFloat = GameConfig.uiReferenceSize.width
         static let baseHeight: CGFloat = GameConfig.uiReferenceSize.height
@@ -65,6 +74,7 @@ final class HUD: SKNode {
     private var weaponSlots: [ItemSlotVisual] = []
     private var powerUpSlots: [ItemSlotVisual] = []
     private var isControlGuideDismissed = false
+    private var controlGuideInputMode: ControlGuideInputMode = InputSystem.shared.hasConnectedController ? .controller : .keyboardMouse
 
     private let avatarNode = SKShapeNode()
     private let essenceTrack = SKSpriteNode(color: .white, size: .zero)
@@ -189,6 +199,7 @@ final class HUD: SKNode {
 
     func update(elapsedTime: TimeInterval) {
         guard let player else { return }
+        setControlGuideUsesController(InputSystem.shared.hasConnectedController)
         setHealthFraction(player.health.fraction)
         setEssenceFraction(player.level.xpFraction)
         healthValueLabel.setText("\(player.health.current)/\(player.health.maximum)")
@@ -202,6 +213,14 @@ final class HUD: SKNode {
         guard !isControlGuideDismissed else { return }
         isControlGuideDismissed = true
         updateGuideVisibility()
+    }
+
+    func setControlGuideUsesController(_ usesController: Bool) {
+        let mode: ControlGuideInputMode = usesController ? .controller : .keyboardMouse
+        guard mode != controlGuideInputMode else { return }
+        controlGuideInputMode = mode
+        configureGuideForCurrentInputMode()
+        layoutGuide()
     }
 
     private func setupNodes() {
@@ -294,8 +313,7 @@ final class HUD: SKNode {
         guideRoot.addChild(moveGuide.root)
         guideRoot.addChild(aimGuide.root)
         addChild(guideRoot)
-        setupMoveGuideIcon()
-        setupAimGuideIcon()
+        configureGuideForCurrentInputMode()
 
         weaponSlots = makeItemSlots(count: GameConfig.maxWeaponSlots)
         powerUpSlots = makeItemSlots(count: GameConfig.maxPowerUpSlots)
@@ -434,8 +452,32 @@ final class HUD: SKNode {
             guide.subtitle.setFontSize(subtitleSize)
         }
 
-        layoutKeyCaps(scale: scale)
-        layoutCursorIcon(scale: scale)
+        switch controlGuideInputMode {
+        case .keyboardMouse:
+            layoutKeyCaps(scale: scale)
+            layoutCursorIcon(scale: scale)
+        case .controller:
+            layoutControllerStickIcon(in: moveGuide.iconRoot, scale: scale, label: "L", isAimStick: false)
+            layoutControllerStickIcon(in: aimGuide.iconRoot, scale: scale, label: "R", isAimStick: true)
+        }
+    }
+
+    private func configureGuideForCurrentInputMode() {
+        moveGuide.iconRoot.removeAllChildren()
+        aimGuide.iconRoot.removeAllChildren()
+
+        switch controlGuideInputMode {
+        case .keyboardMouse:
+            moveGuide.title.setText("W, A, S, D")
+            aimGuide.title.setText("Move Mouse")
+            setupMoveGuideIcon()
+            setupAimGuideIcon()
+        case .controller:
+            moveGuide.title.setText("Left Stick")
+            aimGuide.title.setText("Right Stick")
+            setupControllerStickIcon(in: moveGuide.iconRoot, isAimStick: false)
+            setupControllerStickIcon(in: aimGuide.iconRoot, isAimStick: true)
+        }
     }
 
     private func setupMoveGuideIcon() {
@@ -483,6 +525,51 @@ final class HUD: SKNode {
             ray.lineWidth = 4
             ray.zPosition = 1
             aimGuide.iconRoot.addChild(ray)
+        }
+    }
+
+    private func setupControllerStickIcon(in root: SKNode, isAimStick: Bool) {
+        let base = SKShapeNode()
+        base.name = "guideStickBase"
+        base.fillColor = SKColor.white.withAlphaComponent(0.16)
+        base.strokeColor = .white
+        base.lineCap = .round
+        base.zPosition = 0
+        root.addChild(base)
+
+        let knob = SKShapeNode()
+        knob.name = "guideStickKnob"
+        knob.fillColor = SKColor.white.withAlphaComponent(0.92)
+        knob.strokeColor = SKColor.black.withAlphaComponent(0.74)
+        knob.lineCap = .round
+        knob.zPosition = 2
+        root.addChild(knob)
+
+        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        label.name = "guideStickLabel"
+        label.fontColor = SKColor.black.withAlphaComponent(0.84)
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.zPosition = 3
+        root.addChild(label)
+
+        for index in 0..<4 {
+            let tick = SKShapeNode()
+            tick.name = "guideStickTick_\(index)"
+            tick.strokeColor = .white
+            tick.lineCap = .round
+            tick.zPosition = 1
+            root.addChild(tick)
+        }
+
+        guard isAimStick else { return }
+        for index in 0..<4 {
+            let ray = SKShapeNode()
+            ray.name = "guideStickAimRay_\(index)"
+            ray.strokeColor = .white
+            ray.lineCap = .round
+            ray.zPosition = 1
+            root.addChild(ray)
         }
     }
 
@@ -534,6 +621,74 @@ final class HUD: SKNode {
             rayPath.move(to: CGPoint(x: scaled(ray.start.x, scale), y: scaled(ray.start.y, scale)))
             rayPath.addLine(to: CGPoint(x: scaled(ray.end.x, scale), y: scaled(ray.end.y, scale)))
             rayNode.path = rayPath
+            rayNode.lineWidth = scaled(guideCursorRayWidth, scale)
+        }
+    }
+
+    private func layoutControllerStickIcon(in root: SKNode, scale: CGFloat, label: String, isAimStick: Bool) {
+        let baseRadius = scaled(guideStickBaseRadius, scale)
+        let knobRadius = scaled(guideStickKnobRadius, scale)
+        let knobOffset = scaled(guideStickOffset, scale)
+
+        if let base = root.childNode(withName: "guideStickBase") as? SKShapeNode {
+            base.path = CGPath(
+                ellipseIn: CGRect(
+                    x: -baseRadius, y: -baseRadius,
+                    width: baseRadius * 2, height: baseRadius * 2
+                ),
+                transform: nil
+            )
+            base.lineWidth = scaled(guideKeyBorderWidth, scale)
+        }
+
+        if let knob = root.childNode(withName: "guideStickKnob") as? SKShapeNode {
+            knob.position = CGPoint(x: isAimStick ? knobOffset : -knobOffset, y: knobOffset)
+            knob.path = CGPath(
+                ellipseIn: CGRect(
+                    x: -knobRadius, y: -knobRadius,
+                    width: knobRadius * 2, height: knobRadius * 2
+                ),
+                transform: nil
+            )
+            knob.lineWidth = scaled(guideKeyBorderWidth, scale)
+        }
+
+        if let stickLabel = root.childNode(withName: "guideStickLabel") as? SKLabelNode {
+            stickLabel.text = label
+            stickLabel.fontSize = scaled(guideStickLabelFontSize, scale)
+            stickLabel.position = CGPoint(x: isAimStick ? knobOffset : -knobOffset, y: knobOffset)
+        }
+
+        let tickRadius = baseRadius + scaled(14, scale)
+        let tickLength = scaled(20, scale)
+        let tickPoints: [(CGPoint, CGPoint)] = [
+            (CGPoint(x: -tickLength / 2, y: tickRadius), CGPoint(x: tickLength / 2, y: tickRadius)),
+            (CGPoint(x: -tickLength / 2, y: -tickRadius), CGPoint(x: tickLength / 2, y: -tickRadius)),
+            (CGPoint(x: -tickRadius, y: -tickLength / 2), CGPoint(x: -tickRadius, y: tickLength / 2)),
+            (CGPoint(x: tickRadius, y: -tickLength / 2), CGPoint(x: tickRadius, y: tickLength / 2))
+        ]
+        for (index, points) in tickPoints.enumerated() {
+            guard let tick = root.childNode(withName: "guideStickTick_\(index)") as? SKShapeNode else { continue }
+            let path = CGMutablePath()
+            path.move(to: points.0)
+            path.addLine(to: points.1)
+            tick.path = path
+            tick.lineWidth = scaled(guideCursorRayWidth * 0.65, scale)
+        }
+
+        guard isAimStick else { return }
+        let rays: [(CGPoint, CGPoint)] = [
+            (CGPoint(x: -baseRadius * 0.9, y: baseRadius * 0.9), CGPoint(x: -baseRadius * 1.28, y: baseRadius * 1.28)),
+            (CGPoint(x: 0, y: baseRadius * 1.05), CGPoint(x: 0, y: baseRadius * 1.55)),
+            (CGPoint(x: baseRadius * 0.9, y: baseRadius * 0.9), CGPoint(x: baseRadius * 1.28, y: baseRadius * 1.28)),
+            (CGPoint(x: baseRadius * 1.08, y: 0), CGPoint(x: baseRadius * 1.58, y: 0))
+        ]
+        for (index, ray) in rays.enumerated() {
+            guard let rayNode = root.childNode(withName: "guideStickAimRay_\(index)") as? SKShapeNode else { continue }
+            let path = CGMutablePath()
+            path.move(to: ray.0)
+            path.addLine(to: ray.1)
+            rayNode.path = path
             rayNode.lineWidth = scaled(guideCursorRayWidth, scale)
         }
     }

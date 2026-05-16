@@ -75,7 +75,7 @@ final class ViewController: NSViewController {
     }
 
     private func applyAimCursorMode(_ mode: InputSystem.AimMode) {
-        let cursor: NSCursor = mode == .manual ? manualAimCursor : hiddenAimCursor
+        let cursor: NSCursor = mode == .manual && !InputSystem.shared.hasConnectedController ? manualAimCursor : hiddenAimCursor
         guard currentAimCursor !== cursor else { return }
         currentAimCursor = cursor
         metalRenderer.mtkView.discardCursorRects()
@@ -132,6 +132,8 @@ final class ViewController: NSViewController {
     }
 
     private func setupInput() {
+        InputSystem.shared.setup()
+
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
             guard gameScene != nil else {

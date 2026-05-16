@@ -1,5 +1,13 @@
 import SpriteKit
 
+private let aimGuideLength: CGFloat = 170
+private let aimGuideStartOffset: CGFloat = 20
+private let aimGuideHeadLength: CGFloat = 24
+private let aimGuideTailWidth: CGFloat = 3.5
+private let aimGuideHeadWidth: CGFloat = 7
+private let aimGuideLineWidth: CGFloat = 2.2
+private let aimGuideSideLineWidth: CGFloat = 0.9
+
 class PlayerEntity: SKSpriteNode {
     var health: HealthComponent
     var level: LevelComponent
@@ -12,6 +20,13 @@ class PlayerEntity: SKSpriteNode {
     weak var attack: PlayerAttack?
     var isMovementFrozen: Bool = false
     var isTargetingActive: Bool = true
+
+    private let aimGuideRoot = SKNode()
+    private let aimGuideBody = SKShapeNode()
+    private let aimGuideCenterLine = SKShapeNode()
+    private let aimGuideLeftEdge = SKShapeNode()
+    private let aimGuideRightEdge = SKShapeNode()
+    private var hasSetupAimGuide = false
 
     private(set) var attackSpeedMultiplier: CGFloat = 1.0
     private(set) var movementSpeedMultiplier: CGFloat = 1.0
@@ -46,6 +61,7 @@ class PlayerEntity: SKSpriteNode {
         physicsBody?.velocity = .zero
         physicsBody?.angularVelocity = 0
         ghostRenderer?.update(cameraPosition: scene.cameraSystem.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
+        updateAimGuide(using: scene.inputSystem)
     }
 
     func takeDamage(_ amount: Int) {
@@ -106,6 +122,10 @@ class PlayerEntity: SKSpriteNode {
         scene.handlePlayerDeath(self)
     }
 
+    func hideAimGuide() {
+        aimGuideRoot.isHidden = true
+    }
+
     private func setupPhysics() {
         let footRadius = size.width * 0.25
         let body = SKPhysicsBody(circleOfRadius: footRadius, center: CGPoint(x: 0, y: -size.height * 0.3))
@@ -115,5 +135,86 @@ class PlayerEntity: SKSpriteNode {
         body.affectedByGravity = false
         body.allowsRotation = false
         physicsBody = body
+    }
+
+    private func setupAimGuideIfNeeded() {
+        guard !hasSetupAimGuide else { return }
+        hasSetupAimGuide = true
+
+        aimGuideRoot.name = "controllerAimGuide"
+        aimGuideRoot.zPosition = 8
+        aimGuideRoot.isHidden = true
+        addChild(aimGuideRoot)
+
+        aimGuideBody.name = "controllerAimGuideBody"
+        aimGuideBody.fillColor = SKColor(red: 0.18, green: 1.0, blue: 0.92, alpha: 0.22)
+        aimGuideBody.strokeColor = SKColor(red: 0.26, green: 1.0, blue: 0.95, alpha: 0.95)
+        aimGuideBody.lineWidth = aimGuideSideLineWidth
+        aimGuideBody.lineJoin = .round
+        aimGuideBody.lineCap = .round
+        aimGuideRoot.addChild(aimGuideBody)
+
+        aimGuideCenterLine.name = "controllerAimGuideCenter"
+        aimGuideCenterLine.strokeColor = SKColor(red: 0.30, green: 1.0, blue: 0.95, alpha: 0.92)
+        aimGuideCenterLine.lineWidth = aimGuideLineWidth
+        aimGuideCenterLine.lineCap = .round
+        aimGuideCenterLine.zPosition = 2
+        aimGuideRoot.addChild(aimGuideCenterLine)
+
+        for edge in [aimGuideLeftEdge, aimGuideRightEdge] {
+            edge.strokeColor = SKColor(red: 0.30, green: 1.0, blue: 0.95, alpha: 0.42)
+            edge.lineWidth = aimGuideSideLineWidth
+            edge.lineCap = .round
+            edge.zPosition = 1
+            aimGuideRoot.addChild(edge)
+        }
+
+        rebuildAimGuidePath()
+    }
+
+    private func updateAimGuide(using inputSystem: InputSystem) {
+        setupAimGuideIfNeeded()
+        let playerIndex = controllerIndex ?? 0
+        let isControllerManualAim = inputSystem.hasConnectedController
+            && inputSystem.aimMode(for: playerIndex) == .manual
+            && aimDirection != .zero
+
+        aimGuideRoot.isHidden = !isControllerManualAim
+        guard isControllerManualAim else { return }
+
+        aimGuideRoot.zRotation = atan2(aimDirection.dy, aimDirection.dx)
+    }
+
+    private func rebuildAimGuidePath() {
+        let tailX = aimGuideStartOffset
+        let tipX = aimGuideLength
+        let headBaseX = tipX - aimGuideHeadLength
+
+        let bodyPath = CGMutablePath()
+        bodyPath.move(to: CGPoint(x: tailX, y: 0))
+        bodyPath.addLine(to: CGPoint(x: tailX + aimGuideHeadLength * 0.45, y: aimGuideTailWidth))
+        bodyPath.addLine(to: CGPoint(x: headBaseX, y: aimGuideTailWidth))
+        bodyPath.addLine(to: CGPoint(x: headBaseX, y: aimGuideHeadWidth))
+        bodyPath.addLine(to: CGPoint(x: tipX, y: 0))
+        bodyPath.addLine(to: CGPoint(x: headBaseX, y: -aimGuideHeadWidth))
+        bodyPath.addLine(to: CGPoint(x: headBaseX, y: -aimGuideTailWidth))
+        bodyPath.addLine(to: CGPoint(x: tailX + aimGuideHeadLength * 0.45, y: -aimGuideTailWidth))
+        bodyPath.closeSubpath()
+        aimGuideBody.path = bodyPath
+
+        let centerPath = CGMutablePath()
+        centerPath.move(to: CGPoint(x: tailX + aimGuideHeadLength * 0.25, y: 0))
+        centerPath.addLine(to: CGPoint(x: tipX - aimGuideHeadLength * 0.18, y: 0))
+        aimGuideCenterLine.path = centerPath
+
+        let leftPath = CGMutablePath()
+        leftPath.move(to: CGPoint(x: tailX + aimGuideHeadLength * 0.15, y: aimGuideTailWidth * 1.65))
+        leftPath.addLine(to: CGPoint(x: headBaseX - aimGuideHeadLength * 0.15, y: aimGuideTailWidth * 2.4))
+        aimGuideLeftEdge.path = leftPath
+
+        let rightPath = CGMutablePath()
+        rightPath.move(to: CGPoint(x: tailX + aimGuideHeadLength * 0.15, y: -aimGuideTailWidth * 1.65))
+        rightPath.addLine(to: CGPoint(x: headBaseX - aimGuideHeadLength * 0.15, y: -aimGuideTailWidth * 2.4))
+        aimGuideRightEdge.path = rightPath
     }
 }

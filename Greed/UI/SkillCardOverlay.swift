@@ -22,6 +22,10 @@ final class SkillCardOverlay: SKNode {
 
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.44), size: .zero)
     private let titleLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let confirmPromptRoot = SKNode()
+    private let confirmButtonCircle = SKShapeNode()
+    private let confirmButtonLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let confirmTextLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
 
     init(skills: [Skill], screenSize: CGSize, onSelect: @escaping (Skill) -> Void) {
         self.skills = skills
@@ -55,6 +59,17 @@ final class SkillCardOverlay: SKNode {
         select(index: selectedIndex)
     }
 
+    func moveSelection(_ direction: InputSystem.MenuDirection) {
+        guard !hasSelected, !skills.isEmpty else { return }
+        switch direction {
+        case .left, .up:
+            selectedIndex = (selectedIndex - 1 + skills.count) % skills.count
+        case .right, .down:
+            selectedIndex = (selectedIndex + 1) % skills.count
+        }
+        updateCardSelection()
+    }
+
     private func setupNodes() {
         dimmer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         dimmer.zPosition = 0
@@ -66,6 +81,28 @@ final class SkillCardOverlay: SKNode {
         titleLabel.verticalAlignmentMode = .center
         titleLabel.zPosition = 1
         addChild(titleLabel)
+
+        confirmPromptRoot.zPosition = 1
+        addChild(confirmPromptRoot)
+
+        confirmButtonCircle.fillColor = .black
+        confirmButtonCircle.strokeColor = .white
+        confirmButtonCircle.zPosition = 0
+        confirmPromptRoot.addChild(confirmButtonCircle)
+
+        confirmButtonLabel.text = "A"
+        confirmButtonLabel.fontColor = .white
+        confirmButtonLabel.horizontalAlignmentMode = .center
+        confirmButtonLabel.verticalAlignmentMode = .center
+        confirmButtonLabel.zPosition = 1
+        confirmPromptRoot.addChild(confirmButtonLabel)
+
+        confirmTextLabel.text = "to confirm"
+        confirmTextLabel.fontColor = SKColor.white.withAlphaComponent(0.92)
+        confirmTextLabel.horizontalAlignmentMode = .left
+        confirmTextLabel.verticalAlignmentMode = .center
+        confirmTextLabel.zPosition = 1
+        confirmPromptRoot.addChild(confirmTextLabel)
 
         for (index, skill) in skills.enumerated() {
             let card = makeCard(for: skill, index: index)
@@ -120,6 +157,8 @@ final class SkillCardOverlay: SKNode {
         titleLabel.fontSize = min(34, max(20, screenSize.height * 0.032))
         titleLabel.position = CGPoint(x: 0, y: halfHeight - max(48, screenSize.height * 0.10))
 
+        layoutConfirmPrompt()
+
         cardRects.removeAll(keepingCapacity: true)
 
         for (index, card) in cardNodes.enumerated() {
@@ -134,7 +173,6 @@ final class SkillCardOverlay: SKNode {
                 ),
                 transform: nil
             )
-            card.strokeColor = index == selectedIndex ? SKColor.white : .clear
             card.lineWidth = max(2, scaled(4, scale))
 
             if let art = card.childNode(withName: "skillCardArt") as? SKSpriteNode {
@@ -176,12 +214,51 @@ final class SkillCardOverlay: SKNode {
         }
 
         position = .zero
+        updateCardSelection()
+    }
+
+    private func layoutConfirmPrompt() {
+        let hasController = InputSystem.shared.hasConnectedController
+        confirmPromptRoot.isHidden = !hasController || screenSize.height < 390
+        guard !confirmPromptRoot.isHidden else { return }
+
+        let buttonDiameter = min(34, max(24, screenSize.height * 0.033))
+        let fontSize = min(24, max(16, screenSize.height * 0.022))
+        let gap = buttonDiameter * 0.38
+
+        confirmPromptRoot.position = CGPoint(
+            x: -buttonDiameter * 1.8,
+            y: -screenSize.height / 2 + max(34, screenSize.height * 0.065)
+        )
+
+        confirmButtonCircle.path = CGPath(
+            ellipseIn: CGRect(
+                x: -buttonDiameter / 2,
+                y: -buttonDiameter / 2,
+                width: buttonDiameter,
+                height: buttonDiameter
+            ),
+            transform: nil
+        )
+        confirmButtonCircle.lineWidth = max(1.5, buttonDiameter * 0.07)
+
+        confirmButtonLabel.fontSize = buttonDiameter * 0.58
+        confirmButtonLabel.position = .zero
+
+        confirmTextLabel.fontSize = fontSize
+        confirmTextLabel.position = CGPoint(x: buttonDiameter / 2 + gap, y: 0)
     }
 
     private func select(index: Int) {
         guard !hasSelected, skills.indices.contains(index) else { return }
         hasSelected = true
         onSelect(skills[index])
+    }
+
+    private func updateCardSelection() {
+        for (index, card) in cardNodes.enumerated() {
+            card.strokeColor = index == selectedIndex ? SKColor.white : .clear
+        }
     }
 
     private struct ModalLayout {
