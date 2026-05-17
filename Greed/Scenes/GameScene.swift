@@ -394,23 +394,28 @@ final class GameScene: SKScene {
             return
         }
 
+        let existingAngles = orbs.map(\.angle)
+        let phase = existingAngles.first ?? 0
+
         if orbs.count > desired {
             for orb in orbs.suffix(orbs.count - desired) {
                 orb.sprite.removeFromParent()
             }
             orbs.removeLast(orbs.count - desired)
-            orbitOrbs[playerID] = orbs
-            return
         }
 
-        let texture = orbitAtlas.textureNamed("orbiting_orb_000")
+        let texture = orbitAtlas.textureNamed("orbiting_knife_000")
         texture.filteringMode = .nearest
-        let step = (CGFloat.pi * 2) / CGFloat(desired)
-        for i in orbs.count..<desired {
-            let sprite = SKSpriteNode(texture: texture, size: CGSize(width: SkillConfig.orbitSpriteSize, height: SkillConfig.orbitSpriteSize))
+        while orbs.count < desired {
+            let sprite = SKSpriteNode(texture: texture, size: SkillConfig.orbitKnifeSize)
             sprite.zPosition = Layer.projectile
             entityLayer.addChild(sprite)
-            orbs.append(ActiveOrb(sprite: sprite, angle: CGFloat(i) * step))
+            orbs.append(ActiveOrb(sprite: sprite, angle: phase))
+        }
+
+        let angles = OrbitingSpellLayout.reconciledAngles(existing: existingAngles, desiredCount: desired)
+        for index in orbs.indices {
+            orbs[index].angle = angles[index]
         }
         orbitOrbs[playerID] = orbs
     }
@@ -432,6 +437,7 @@ final class GameScene: SKScene {
                 x: player.position.x + cos(orb.angle) * SkillConfig.orbitRadius,
                 y: player.position.y + sin(orb.angle) * SkillConfig.orbitRadius
             )
+            orb.sprite.zRotation = OrbitingSpellLayout.spriteRotation(forOrbitAngle: orb.angle)
         }
     }
 
@@ -466,7 +472,7 @@ final class GameScene: SKScene {
         let playerID = ObjectIdentifier(player)
         guard let orbs = orbitOrbs[playerID] else { return }
 
-        let orbVisualRadius = SkillConfig.orbitSpriteSize / 2
+        let orbHitRadius = SkillConfig.orbitHitRadius
 
         for (orbIndex, orb) in orbs.enumerated() {
             let orbPos = orb.sprite.position
@@ -477,7 +483,7 @@ final class GameScene: SKScene {
 
                 let enemyRadius = enemy.size.width * 0.5
                 let distance = toroidalDistance(from: orbPos, to: enemy.position, mapSize: GameConfig.mapSize)
-                guard distance <= enemyRadius + orbVisualRadius else { continue }
+                guard distance <= enemyRadius + orbHitRadius else { continue }
 
                 enemy.health.takeDamage(SkillConfig.orbitDamage)
                 audioManager.play(.orbitingSpellHit)

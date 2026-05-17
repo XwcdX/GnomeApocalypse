@@ -8,7 +8,8 @@ enum SkillConfig {
     static let orbitRadius: CGFloat = 90
     static let orbitDamage: Int = 30
     static let orbitCooldownPerEnemy: TimeInterval = 0.5
-    static let orbitSpriteSize: CGFloat = 20
+    static let orbitKnifeSize = CGSize(width: 38, height: 14)
+    static let orbitHitRadius: CGFloat = 10
 
     // MARK: - Lightning Strike
     static let lightningCooldownByLevel: [TimeInterval] = [1.5, 1.0, 0.6]
