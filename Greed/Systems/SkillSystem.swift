@@ -11,7 +11,7 @@ enum SkillEffect {
     case poisonousMist(damage: Int, duration: TimeInterval)
     case increaseAttackSpeed(multiplier: Float)
     case increaseMovementSpeed(multiplier: Float)
-    case increaseMaxHealth(amount: Int)
+    case increaseMaxHealth(totalBonus: Int)
 }
 
 struct Skill {
@@ -34,14 +34,30 @@ struct Skill {
             let duration     = level >= 2 ? baseDuration * 1.5 : baseDuration
             return .poisonousMist(damage: damage, duration: duration)
         case "ancient_tome":
-            return .increaseAttackSpeed(multiplier: SkillConfig.ancientTomeAttackSpeedMultipliers[level - 1])
+            return .increaseAttackSpeed(
+                multiplier: configuredValue(SkillConfig.ancientTomeAttackSpeedMultipliers, at: level) ?? 1.0
+            )
         case "spirit_fruit":
-            return .increaseMovementSpeed(multiplier: SkillConfig.spiritFruitMovementSpeedMultipliers[level - 1])
+            return .increaseMovementSpeed(
+                multiplier: configuredValue(SkillConfig.spiritFruitMovementSpeedMultipliers, at: level) ?? 1.0
+            )
         case "life_bloom":
-            return .increaseMaxHealth(amount: SkillConfig.lifeBloomMaxHealthBonuses[level - 1])
+            return .increaseMaxHealth(
+                totalBonus: configuredValue(SkillConfig.lifeBloomMaxHealthBonuses, at: level) ?? 0
+            )
         default:
             return .increaseAttackSpeed(multiplier: 1.0)
         }
+    }
+
+    private func configuredValue<T>(_ values: [T], at level: Int) -> T? {
+        assert(!values.isEmpty, "\(id) has no configured values")
+        assert(values.count == maxLevel, "\(id) config count must match maxLevel")
+        guard !values.isEmpty, maxLevel > 0 else { return nil }
+
+        let configuredMaxLevel = min(maxLevel, values.count)
+        let clampedLevel = min(max(level, 1), configuredMaxLevel)
+        return values[clampedLevel - 1]
     }
 }
 
@@ -71,7 +87,7 @@ struct PlayerSkillState {
 
     func isMaxed(_ skill: Skill) -> Bool {
         let currentLevel = level(of: skill.id, type: skill.type)
-        if currentLevel >= 3 { return true }
+        if currentLevel >= skill.maxLevel { return true }
         if currentLevel >= 2 && maxLevelCapReached { return true }
         return false
     }
@@ -81,9 +97,12 @@ struct PlayerSkillState {
     }
 
     mutating func upgrade(_ skill: Skill) {
+        let currentLevel = level(of: skill.id, type: skill.type)
+        guard currentLevel < skill.maxLevel else { return }
+
         switch skill.type {
-        case .weapon:  ownedWeapons[skill.id,  default: 0] += 1
-        case .powerUp: ownedPowerUps[skill.id, default: 0] += 1
+        case .weapon:  ownedWeapons[skill.id]  = currentLevel + 1
+        case .powerUp: ownedPowerUps[skill.id] = currentLevel + 1
         }
     }
 }
