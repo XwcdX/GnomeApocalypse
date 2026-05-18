@@ -5,7 +5,6 @@ enum GameConfig {
     // MARK: - Map
     /// The logical size of the toroidal world. Positions outside this range are wrapped.
     static let mapSize: CGSize = CGSize(width: 2160, height: 1215)
-    static let showsEnvironmentDecorations: Bool = false
 
 
     // MARK: - Player
@@ -62,6 +61,12 @@ enum GameConfig {
         CGSize(width: mapSize.width / cameraZoom, height: mapSize.height / cameraZoom)
     }
     static let cameraLeashFactor: CGFloat = 0.95
+
+
+    // MARK: - UI
+    /// Fixed reference canvas for HUD and overlay scaling. Keep this independent
+    /// from mapSize so changing the world dimensions does not resize UI.
+    static let uiReferenceSize: CGSize = CGSize(width: 1440, height: 810)
 
 
     // MARK: - Input

@@ -25,7 +25,6 @@ final class GameScene: SKScene {
     private var collisionSystem: CollisionSystem!
     private var skillSystem: SkillSystem!
     private var floorRenderer: FloorTileRenderer!
-    private var environmentRenderers: [FloorTileRenderer] = []
     private var environmentPropSystem: EnvironmentPropSystem!
     private var enemyAI: EnemyAI!
     private var playerProjectilePool: ProjectilePool!
@@ -57,11 +56,11 @@ final class GameScene: SKScene {
     var onGameOverPresented: (() -> Void)?
 
     func setup(view: MTKView) {
-        let renderSize = view.drawableSize == .zero ? view.bounds.size : view.drawableSize
-        size = renderSize
+        let viewSize = view.bounds.size
+        size = viewSize
         setupLayers()
-        setupCamera(viewSize: renderSize)
-        setupSystems(viewSize: renderSize)
+        setupCamera(viewSize: viewSize)
+        setupSystems(viewSize: viewSize)
         setupPhysics()
         preloadAssets()
         spawnPlayer()
@@ -76,7 +75,10 @@ final class GameScene: SKScene {
             return
         }
 
-        if gameOverOverlay != nil { return }
+        if gameOverOverlay != nil {
+            updateGameOverInput()
+            return
+        }
 
         cameraSystem.isLocked = directorSystem.isBossStageActive
         elapsedRunTime += deltaTime
@@ -112,11 +114,7 @@ final class GameScene: SKScene {
         updateAimCursorMode()
         hud.update(elapsedTime: elapsedRunTime)
         cameraSystem.update(deltaTime: deltaTime)
-        floorRenderer.update(cameraPosition: cameraSystem.cameraNode.position)
-        for renderer in environmentRenderers {
-            renderer.update(cameraPosition: cameraSystem.cameraNode.position)
-        }
-        environmentPropSystem.update(cameraPosition: cameraSystem.cameraNode.position)
+        refreshWorldRenderers()
         updateYSort()
     }
 
@@ -177,35 +175,12 @@ final class GameScene: SKScene {
         tileTexture.filteringMode = .nearest
         floorRenderer = FloorTileRenderer(tileTexture: tileTexture, tileSize: GameConfig.mapSize, viewportSize: viewSize)
         floorLayer.addChild(floorRenderer.rootNode)
-        if GameConfig.showsEnvironmentDecorations {
-            setupEnvironmentRenderers(tileSize: GameConfig.mapSize, viewSize: viewSize)
-        }
         setupEnvironmentProps(viewSize: viewSize)
     }
 
     private func setupEnvironmentProps(viewSize: CGSize) {
         environmentPropSystem = EnvironmentPropSystem()
         environmentPropSystem.setup(inBackground: propsLayer, inForeground: self)
-    }
-
-    private func setupEnvironmentRenderers(tileSize: CGSize, viewSize: CGSize) {
-        let layerNames = [
-            "map_layer_rock_small",
-            "map_layer_rock_arch_large",
-            "map_layer_flower_white",
-            "map_layer_flower_red",
-            "map_layer_mushroom",
-            "map_layer_tree_round",
-            "map_layer_tree_pine"
-        ]
-
-        environmentRenderers = layerNames.map { layerName in
-            let texture = SKTexture(imageNamed: layerName)
-            texture.filteringMode = .nearest
-            let renderer = FloorTileRenderer(tileTexture: texture, tileSize: tileSize, viewportSize: viewSize)
-            propsLayer.addChild(renderer.rootNode)
-            return renderer
-        }
     }
 
     private func setupPhysics() {
@@ -222,12 +197,16 @@ final class GameScene: SKScene {
     func updateViewport(_ size: CGSize) {
         cameraSystem.updateViewport(size)
         floorRenderer.updateViewport(size)
-        for renderer in environmentRenderers {
-            renderer.updateViewport(size)
-        }
+        refreshWorldRenderers()
         hud?.updateViewport(size)
         skillCardOverlay?.updateViewport(size)
         gameOverOverlay?.updateViewport(size)
+    }
+
+    private func refreshWorldRenderers() {
+        let cameraPosition = cameraSystem.cameraNode.position
+        floorRenderer.update(cameraPosition: cameraPosition)
+        environmentPropSystem.update(cameraPosition: cameraPosition)
     }
 
     private func spawnPlayer() {
@@ -527,9 +506,7 @@ final class GameScene: SKScene {
     @discardableResult
     func handleKeyDown(_ event: NSEvent) -> Bool {
         if gameOverOverlay != nil {
-            if event.keyCode == 36 || event.keyCode == 49 {
-                gameOverOverlay?.replay()
-            }
+            gameOverOverlay?.replay()
             return true
         }
         return skillCardOverlay != nil
@@ -537,7 +514,7 @@ final class GameScene: SKScene {
 
     func handlePlayerDeath(_ player: PlayerEntity) {
         Log.debug("GameScene: player died")
-        presentGameOverOverlay()
+        presentGameOverOverlay(for: player)
     }
     
     func handleBossDeath() {
@@ -577,6 +554,7 @@ final class GameScene: SKScene {
 
     private func presentSkillCardOverlay() {
         guard let player = skillSelectionPlayer else { return }
+        player.hideAimGuide()
 
         let skills = skillSystem.draw(for: player.skillState)
         guard !skills.isEmpty else {
@@ -595,19 +573,42 @@ final class GameScene: SKScene {
         onAimModeChanged?(.manual)
     }
 
-    private func presentGameOverOverlay() {
+    private func presentGameOverOverlay(for player: PlayerEntity) {
         guard gameOverOverlay == nil else { return }
         skillCardOverlay?.removeFromParent()
         skillCardOverlay = nil
         skillSelectionPlayer = nil
+        players.forEach { $0.hideAimGuide() }
         physicsWorld.speed = 0
         onGameOverPresented?()
 
-        let overlay = GameOverOverlay(survivedTime: elapsedRunTime, screenSize: size) { [weak self] in
+        let overlay = GameOverOverlay(
+            survivedTime: elapsedRunTime,
+            screenSize: size,
+            stats: makeGameOverStats(for: player)
+        ) { [weak self] in
             self?.onReplayRequested?()
         }
         cameraSystem.cameraNode.addChild(overlay)
         gameOverOverlay = overlay
+    }
+
+    private func makeGameOverStats(for player: PlayerEntity) -> GameOverStats {
+        let items = (player.equippedWeapons + player.equippedPowerUps).map { skill in
+            GameOverStats.Item(
+                name: skill.name,
+                level: player.skillState.level(of: skill.id, type: skill.type),
+                iconName: skill.iconName
+            )
+        }
+
+        return GameOverStats(
+            playerLevel: player.level.currentLevel,
+            maxHealth: player.health.maximum,
+            attackSpeedMultiplier: player.attackSpeedMultiplier,
+            movementSpeed: player.currentSpeed,
+            items: items
+        )
     }
 
     private func completeSkillSelection(_ skill: Skill, for player: PlayerEntity) {
@@ -622,11 +623,26 @@ final class GameScene: SKScene {
 
     private func updateSkillSelectionInput() {
         guard let player = skillSelectionPlayer else { return }
+        if let direction = inputSystem.consumeMenuDirection(for: player.controllerIndex ?? 0) {
+            skillCardOverlay?.moveSelection(direction)
+        }
+        if inputSystem.consumeMenuConfirm(for: player.controllerIndex ?? 0) {
+            skillCardOverlay?.selectHighlightedCard()
+            return
+        }
+
         let isConfirmPressed = inputSystem.confirmPressed(for: player.controllerIndex ?? 0)
         if isConfirmPressed && !wasSkillConfirmPressed {
             skillCardOverlay?.selectHighlightedCard()
         }
         wasSkillConfirmPressed = isConfirmPressed
+    }
+
+    private func updateGameOverInput() {
+        let playerIndex = players.first?.controllerIndex ?? 0
+        if inputSystem.consumeAnyMenuButton(for: playerIndex) {
+            gameOverOverlay?.replay()
+        }
     }
 
     private func updateControlGuideDismissal() {

@@ -2,6 +2,7 @@ import SpriteKit
 
 final class HomeScene: SKScene {
     private let onStart: () -> Void
+    private var hasStarted = false
 
     private let background = SKSpriteNode(texture: SKTexture(imageNamed: "tile_ground"))
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.58), size: .zero)
@@ -22,7 +23,16 @@ final class HomeScene: SKScene {
         layout()
     }
 
+    override func update(_ currentTime: TimeInterval) {
+        guard !hasStarted else { return }
+        if InputSystem.shared.consumeAnyMenuButton(for: 0) {
+            handleStartInput()
+        }
+    }
+
     func handleStartInput() {
+        guard !hasStarted else { return }
+        hasStarted = true
         onStart()
     }
 
@@ -44,7 +54,7 @@ final class HomeScene: SKScene {
         titleLabel.zPosition = 2
         addChild(titleLabel)
 
-        startLabel.text = "Press Anywhere to Start"
+        startLabel.text = "Press Any Button to Start"
         startLabel.fontColor = .white
         startLabel.horizontalAlignmentMode = .center
         startLabel.verticalAlignmentMode = .center
