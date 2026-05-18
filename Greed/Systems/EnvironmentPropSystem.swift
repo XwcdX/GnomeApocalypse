@@ -74,7 +74,7 @@ final class EnvironmentPropSystem {
             let sprite = SKSpriteNode(texture: texture, size: scaledSize)
             sprite.position = CGPoint(x: x, y: y)
 
-            let def = propDefinitions.first { $0.name == propName }!
+            guard let def = propDefinitions.first(where: { $0.name == propName }) else { continue }
             let targetLayer = def.solid ? foregroundLayer : backgroundLayer
             sprite.zPosition = def.solid ? Layer.world : 0
             if def.solid {
