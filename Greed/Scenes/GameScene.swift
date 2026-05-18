@@ -60,6 +60,7 @@ final class GameScene: SKScene {
     private var elapsedRunTime: TimeInterval = 0
     private var lastUpdateTime: TimeInterval = 0
     private var lastReportedAimMode: InputSystem.AimMode?
+    private var wasBossStageActive = false
     var onAimModeChanged: ((InputSystem.AimMode) -> Void)?
     var onGameOverPresented: (() -> Void)?
 
@@ -116,6 +117,7 @@ final class GameScene: SKScene {
 
         let activeBudget = enemies.reduce(0) { $0 + $1.budgetWeight }
         directorSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
+        updateBossStageAudio()
 
         spawnSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
         hud.updateViewport(size)
@@ -198,6 +200,7 @@ final class GameScene: SKScene {
     }
 
     private func preloadAssets() {
+        audioManager.setSFXEnabled(true)
         audioManager.preloadAll()
         audioManager.playBackgroundMusic()
         particleAssets.preloadAll()
@@ -262,6 +265,8 @@ final class GameScene: SKScene {
         let strikeCount = max(1, player.lightningStrikeCount)
         var pool = aliveEnemies
 
+        audioManager.play(.lightning)
+
         for _ in 0..<strikeCount {
             let target: EnemyEntity
             if !pool.isEmpty {
@@ -275,7 +280,6 @@ final class GameScene: SKScene {
             strikeLightning(on: target, damage: SkillConfig.lightningBaseDamage)
         }
 
-        audioManager.play(.lightningStrike)
         return true
     }
 
@@ -337,6 +341,7 @@ final class GameScene: SKScene {
         let playerID = ObjectIdentifier(player)
         let position = randomPointInCameraView()
         let cloudNode = makeMistCloudNode(radius: SkillConfig.mistRadius)
+        audioManager.play(.mistExplosion)
         cloudNode.position = position
         cloudNode.zPosition = Layer.world
         addChild(cloudNode)
@@ -488,7 +493,6 @@ final class GameScene: SKScene {
                 guard distance <= enemyRadius + orbHitRadius else { continue }
 
                 enemy.health.takeDamage(SkillConfig.orbitDamage)
-                audioManager.play(.orbitingSpellHit)
                 particleAssets.emit(.orbitingSpellHit, at: enemy.position, in: self)
                 if enemy.health.isDead { enemy.die() }
 
@@ -690,6 +694,8 @@ final class GameScene: SKScene {
 
     func handlePlayerDeath(_ player: PlayerEntity) {
         Log.debug("GameScene: player died")
+        audioManager.stopBackgroundMusic()
+        audioManager.playDeathExclusively()
         presentGameOverOverlay(for: player)
     }
     
@@ -789,6 +795,7 @@ final class GameScene: SKScene {
 
     private func completeSkillSelection(_ skill: Skill, for player: PlayerEntity) {
         player.applySkill(skill)
+        audioManager.play(.pickPower)
         skillCardOverlay?.removeFromParent()
         skillCardOverlay = nil
         skillSelectionPlayer = nil
@@ -826,6 +833,19 @@ final class GameScene: SKScene {
             inputSystem.hasControlGuideDismissInput(for: $0.controllerIndex ?? 0)
         }) else { return }
         hud.dismissControlGuide()
+    }
+
+    private func updateBossStageAudio() {
+        let isBossStageActive = directorSystem.isBossStageActive
+        guard isBossStageActive != wasBossStageActive else { return }
+
+        if isBossStageActive {
+            audioManager.playMusic(.boss)
+        } else {
+            audioManager.playBackgroundMusic()
+        }
+
+        wasBossStageActive = isBossStageActive
     }
 
     private func updateAimCursorMode() {
