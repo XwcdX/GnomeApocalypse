@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 enum SkillType {
     case weapon
@@ -9,9 +10,9 @@ enum SkillEffect {
     case orbitingSpell(orbitCount: Int)
     case lightningStrike(cooldown: TimeInterval, strikeCount: Int)
     case poisonousMist(cooldown: TimeInterval, cloudCount: Int)
-    case increaseAttackSpeed(multiplier: Float)
-    case increaseMovementSpeed(multiplier: Float)
-    case increaseMaxHealth(totalBonus: Int)
+    case increaseAttackSpeed(bonusRate: CGFloat)
+    case increaseMovementSpeed(bonusRate: CGFloat)
+    case increaseMaxHealth(bonusRate: CGFloat)
 }
 
 struct Skill {
@@ -38,18 +39,18 @@ struct Skill {
             )
         case "ancient_tome":
             return .increaseAttackSpeed(
-                multiplier: configuredValue(SkillConfig.ancientTomeAttackSpeedMultipliers, at: level) ?? 1.0
+                bonusRate: configuredValue(SkillConfig.ancientTomeAttackSpeedBonusRates, at: level) ?? 0.0
             )
         case "spirit_fruit":
             return .increaseMovementSpeed(
-                multiplier: configuredValue(SkillConfig.spiritFruitMovementSpeedMultipliers, at: level) ?? 1.0
+                bonusRate: configuredValue(SkillConfig.spiritFruitMovementSpeedBonusRates, at: level) ?? 0.0
             )
         case "life_bloom":
             return .increaseMaxHealth(
-                totalBonus: configuredValue(SkillConfig.lifeBloomMaxHealthBonuses, at: level) ?? 0
+                bonusRate: configuredValue(SkillConfig.lifeBloomMaxHealthBonusRates, at: level) ?? 0.0
             )
         default:
-            return .increaseAttackSpeed(multiplier: 1.0)
+            return .increaseAttackSpeed(bonusRate: 0.0)
         }
     }
 

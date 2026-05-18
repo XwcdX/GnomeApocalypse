@@ -93,17 +93,12 @@ class PlayerEntity: SKSpriteNode {
         case .poisonousMist(let cooldown, let cloudCount):
             mistCooldown = cooldown
             mistCloudCount = cloudCount
-        case .increaseAttackSpeed(let multiplier):
-            attackSpeedMultiplier = CGFloat(multiplier)
-        case .increaseMovementSpeed(let multiplier):
-            movementSpeedMultiplier = CGFloat(multiplier)
-        case .increaseMaxHealth(let totalBonus):
-            let previousLevel = currentLevel - 1
-            let previousTotal: Int = previousLevel >= 1
-                ? SkillConfig.lifeBloomMaxHealthBonuses[previousLevel - 1]
-                : 0
-            assert(totalBonus >= previousTotal, "Life Bloom max-health bonuses must be non-decreasing")
-            let delta = totalBonus - previousTotal
+        case .increaseAttackSpeed(let bonusRate):
+            attackSpeedMultiplier *= 1.0 + bonusRate
+        case .increaseMovementSpeed(let bonusRate):
+            movementSpeedMultiplier *= 1.0 + bonusRate
+        case .increaseMaxHealth(let bonusRate):
+            let delta = Int((CGFloat(health.maximum) * bonusRate).rounded())
             health.increaseMaximum(delta)
         }
     }
