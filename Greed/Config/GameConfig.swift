@@ -4,7 +4,7 @@ import CoreGraphics
 enum GameConfig {
     // MARK: - Map
     /// The logical size of the toroidal world. Positions outside this range are wrapped.
-    static let mapSize: CGSize = CGSize(width: 1440, height: 810)
+    static let mapSize: CGSize = CGSize(width: 2160, height: 1215)
     static let showsEnvironmentDecorations: Bool = false
 
 
