@@ -1,4 +1,5 @@
 import Testing
+import CoreGraphics
 @testable import Greed
 
 @Suite("SkillSystem")
@@ -196,38 +197,38 @@ struct PlayerSkillStateTests {
 
 @Suite("Skill effects")
 struct SkillEffectTests {
-    private static let tomeLevels = Array(1...SkillConfig.ancientTomeAttackSpeedMultipliers.count)
-    private static let fruitLevels = Array(1...SkillConfig.spiritFruitMovementSpeedMultipliers.count)
-    private static let bloomLevels = Array(1...SkillConfig.lifeBloomMaxHealthBonuses.count)
+    private static let tomeLevels = Array(1...SkillConfig.ancientTomeAttackSpeedBonusRates.count)
+    private static let fruitLevels = Array(1...SkillConfig.spiritFruitMovementSpeedBonusRates.count)
+    private static let bloomLevels = Array(1...SkillConfig.lifeBloomMaxHealthBonusRates.count)
 
-    @Test("Ancient Tome effect at level N matches config", arguments: tomeLevels)
+    @Test("Ancient Tome effect at level N matches configured rate", arguments: tomeLevels)
     func tomeMatchesConfig(level: Int) {
         let skill = Skill(id: "ancient_tome", name: "Ancient Tome", type: .powerUp, iconName: "", maxLevel: 3)
-        guard case let .increaseAttackSpeed(multiplier) = skill.effect(at: level) else {
+        guard case let .increaseAttackSpeed(bonusRate) = skill.effect(at: level) else {
             Issue.record("expected increaseAttackSpeed")
             return
         }
-        #expect(multiplier == SkillConfig.ancientTomeAttackSpeedMultipliers[level - 1])
+        #expect(bonusRate == SkillConfig.ancientTomeAttackSpeedBonusRates[level - 1])
     }
 
-    @Test("Spirit Fruit effect at level N matches config", arguments: fruitLevels)
+    @Test("Spirit Fruit effect at level N matches configured rate", arguments: fruitLevels)
     func fruitMatchesConfig(level: Int) {
         let skill = Skill(id: "spirit_fruit", name: "Spirit Fruit", type: .powerUp, iconName: "", maxLevel: 3)
-        guard case let .increaseMovementSpeed(multiplier) = skill.effect(at: level) else {
+        guard case let .increaseMovementSpeed(bonusRate) = skill.effect(at: level) else {
             Issue.record("expected increaseMovementSpeed")
             return
         }
-        #expect(multiplier == SkillConfig.spiritFruitMovementSpeedMultipliers[level - 1])
+        #expect(bonusRate == SkillConfig.spiritFruitMovementSpeedBonusRates[level - 1])
     }
 
-    @Test("Life Bloom effect at level N matches config", arguments: bloomLevels)
+    @Test("Life Bloom effect at level N matches configured rate", arguments: bloomLevels)
     func bloomMatchesConfig(level: Int) {
         let skill = Skill(id: "life_bloom", name: "Life Bloom", type: .powerUp, iconName: "", maxLevel: 3)
-        guard case let .increaseMaxHealth(amount) = skill.effect(at: level) else {
+        guard case let .increaseMaxHealth(bonusRate) = skill.effect(at: level) else {
             Issue.record("expected increaseMaxHealth")
             return
         }
-        #expect(amount == SkillConfig.lifeBloomMaxHealthBonuses[level - 1])
+        #expect(bonusRate == SkillConfig.lifeBloomMaxHealthBonusRates[level - 1])
     }
 
     @Test("Power-up effects clamp levels below 1")
@@ -236,16 +237,16 @@ struct SkillEffectTests {
         let fruit = Skill(id: "spirit_fruit", name: "Spirit Fruit", type: .powerUp, iconName: "", maxLevel: 3)
         let bloom = Skill(id: "life_bloom", name: "Life Bloom", type: .powerUp, iconName: "", maxLevel: 3)
 
-        guard case let .increaseAttackSpeed(tomeMultiplier) = tome.effect(at: 0),
-              case let .increaseMovementSpeed(fruitMultiplier) = fruit.effect(at: 0),
-              case let .increaseMaxHealth(bloomBonus) = bloom.effect(at: 0) else {
+        guard case let .increaseAttackSpeed(tomeRate) = tome.effect(at: 0),
+              case let .increaseMovementSpeed(fruitRate) = fruit.effect(at: 0),
+              case let .increaseMaxHealth(bloomRate) = bloom.effect(at: 0) else {
             Issue.record("expected power-up effects")
             return
         }
 
-        #expect(tomeMultiplier == SkillConfig.ancientTomeAttackSpeedMultipliers[0])
-        #expect(fruitMultiplier == SkillConfig.spiritFruitMovementSpeedMultipliers[0])
-        #expect(bloomBonus == SkillConfig.lifeBloomMaxHealthBonuses[0])
+        #expect(tomeRate == SkillConfig.ancientTomeAttackSpeedBonusRates[0])
+        #expect(fruitRate == SkillConfig.spiritFruitMovementSpeedBonusRates[0])
+        #expect(bloomRate == SkillConfig.lifeBloomMaxHealthBonusRates[0])
     }
 
     @Test("Power-up effects clamp levels above configured values")
@@ -254,22 +255,31 @@ struct SkillEffectTests {
         let fruit = Skill(id: "spirit_fruit", name: "Spirit Fruit", type: .powerUp, iconName: "", maxLevel: 3)
         let bloom = Skill(id: "life_bloom", name: "Life Bloom", type: .powerUp, iconName: "", maxLevel: 3)
 
-        guard case let .increaseAttackSpeed(tomeMultiplier) = tome.effect(at: SkillConfig.ancientTomeAttackSpeedMultipliers.count + 1),
-              case let .increaseMovementSpeed(fruitMultiplier) = fruit.effect(at: SkillConfig.spiritFruitMovementSpeedMultipliers.count + 1),
-              case let .increaseMaxHealth(bloomBonus) = bloom.effect(at: SkillConfig.lifeBloomMaxHealthBonuses.count + 1) else {
+        guard case let .increaseAttackSpeed(tomeRate) = tome.effect(at: SkillConfig.ancientTomeAttackSpeedBonusRates.count + 1),
+              case let .increaseMovementSpeed(fruitRate) = fruit.effect(at: SkillConfig.spiritFruitMovementSpeedBonusRates.count + 1),
+              case let .increaseMaxHealth(bloomRate) = bloom.effect(at: SkillConfig.lifeBloomMaxHealthBonusRates.count + 1) else {
             Issue.record("expected power-up effects")
             return
         }
 
-        #expect(tomeMultiplier == SkillConfig.ancientTomeAttackSpeedMultipliers.last)
-        #expect(fruitMultiplier == SkillConfig.spiritFruitMovementSpeedMultipliers.last)
-        #expect(bloomBonus == SkillConfig.lifeBloomMaxHealthBonuses.last)
+        #expect(tomeRate == SkillConfig.ancientTomeAttackSpeedBonusRates.last)
+        #expect(fruitRate == SkillConfig.spiritFruitMovementSpeedBonusRates.last)
+        #expect(bloomRate == SkillConfig.lifeBloomMaxHealthBonusRates.last)
     }
 
-    @Test("Life Bloom max-health bonuses are non-decreasing")
-    func bloomBonusesAreNonDecreasing() {
-        let bonuses = SkillConfig.lifeBloomMaxHealthBonuses
-        #expect(!bonuses.isEmpty)
-        #expect(zip(bonuses, bonuses.dropFirst()).allSatisfy { previous, next in previous <= next })
+    @Test("Power-up rate configs are complete and non-negative")
+    func powerUpRateConfigsAreCompleteAndNonNegative() {
+        let maxLevel = 3
+        let rateConfigs = [
+            SkillConfig.ancientTomeAttackSpeedBonusRates,
+            SkillConfig.spiritFruitMovementSpeedBonusRates,
+            SkillConfig.lifeBloomMaxHealthBonusRates,
+        ]
+
+        for rates in rateConfigs {
+            #expect(!rates.isEmpty)
+            #expect(rates.count == maxLevel)
+            #expect(rates.allSatisfy { $0 >= .zero })
+        }
     }
 }

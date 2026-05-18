@@ -32,10 +32,10 @@ enum SkillConfig {
     static let mistCloudAnimFrameTime: TimeInterval = 0.14
 
     // MARK: - Power-ups
-    /// Final attack-speed multiplier at L1, L2, L3 (absolute, not cumulative).
-    static let ancientTomeAttackSpeedMultipliers: [Float] = [1.1, 1.2, 1.3]
-    /// Final movement-speed multiplier at L1, L2, L3 (absolute, not cumulative).
-    static let spiritFruitMovementSpeedMultipliers: [Float] = [1.1, 1.2, 1.3]
-    /// Total max-health bonus at L1, L2, L3 (absolute, not cumulative).
-    static let lifeBloomMaxHealthBonuses: [Int] = [20, 40, 60]
+    /// Per-level attack-speed bonus rates at L1, L2, L3. A value of 0.10 means +10%.
+    static let ancientTomeAttackSpeedBonusRates: [CGFloat] = [0.10, 0.20, 0.30]
+    /// Per-level movement-speed bonus rates at L1, L2, L3. A value of 0.10 means +10%.
+    static let spiritFruitMovementSpeedBonusRates: [CGFloat] = [0.10, 0.20, 0.30]
+    /// Per-level max-health bonus rates at L1, L2, L3. A value of 0.10 means +10%.
+    static let lifeBloomMaxHealthBonusRates: [CGFloat] = [0.10, 0.20, 0.30]
 }
