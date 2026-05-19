@@ -13,7 +13,7 @@ final class Grumble: EnemyEntity {
     private var lastDirection: String = "right"
 
     init() {
-        let atlas = SKTextureAtlas(named: "Grumble")
+        let atlas = SKTextureAtlas(named: "grumble")
         let firstFrame = atlas.textureNamed("grumble_walk_000")
         super.init(
             texture: firstFrame,
@@ -33,7 +33,7 @@ final class Grumble: EnemyEntity {
     }
 
     private func setupAnimations() {
-        animator = AnimationComponent(atlasName: "Grumble", owner: self, canMirror: true)
+        animator = AnimationComponent(atlasName: "grumble", owner: self, canMirror: true)
         animator.loadAnimation(name: "grumble_walk", frameCount: 4)
         animator.loadAnimation(name: "grumble_attack", frameCount: 3)
     }
@@ -68,7 +68,7 @@ final class Grumble: EnemyEntity {
             at: position,
             direction: direction,
             damage: GameConfig.miniBossProjectileDamage,
-            textureName: "GrumbleBullet"
+            textureName: "projectile_enemy_grumble"
         )
     }
 }

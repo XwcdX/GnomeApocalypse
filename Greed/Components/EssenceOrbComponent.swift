@@ -26,15 +26,15 @@ final class EssenceOrbComponent: SKSpriteNode {
     }
 
     private var ghostRenderer: ToroidalRenderingComponent?
-    private let orbAtlas = SKTextureAtlas(named: "EssenceOrb")
-    private let mistAtlas = SKTextureAtlas(named: "MistEffect")
+    private let orbAtlas = SKTextureAtlas(named: "forest_essence")
+    private let mistAtlas = SKTextureAtlas(named: "poisonous_mist")
     private(set) var state: OrbState = .small
     private(set) var essenceValue: Int
     private var stateElapsedTime: TimeInterval = 0
     
     init(essenceValue: Int = GameConfig.smallOrbEssenceValue) {
         self.essenceValue = essenceValue
-        let texture = SKTextureAtlas(named: "EssenceOrb").textureNamed("orb_000")
+        let texture = SKTextureAtlas(named: "forest_essence").textureNamed("pickup_forest_essence_000")
         texture.filteringMode = .nearest
         super.init(texture: texture, color: .clear, size: Self.scaledSize(for: texture, targetHeight: smallOrbTargetHeight))
         self.zPosition = Layer.world
@@ -77,7 +77,7 @@ final class EssenceOrbComponent: SKSpriteNode {
         state = .grown
         stateElapsedTime = 0
         essenceValue = GameConfig.grownOrbEssenceValue
-        let nextTexture = orbTexture("orb_001")
+        let nextTexture = orbTexture("pickup_forest_essence_001")
         texture = nextTexture
         size = Self.scaledSize(for: nextTexture, targetHeight: grownOrbTargetHeight)
         setupPhysics(radius: grownOrbPhysicsRadius)
@@ -87,7 +87,7 @@ final class EssenceOrbComponent: SKSpriteNode {
         state = .red
         stateElapsedTime = 0
         essenceValue = GameConfig.redOrbEssenceValue
-        let nextTexture = orbTexture("orb_002")
+        let nextTexture = orbTexture("pickup_forest_essence_002")
         texture = nextTexture
         size = Self.scaledSize(for: nextTexture, targetHeight: redOrbTargetHeight)
         setupPhysics(radius: redOrbPhysicsRadius)
@@ -106,13 +106,13 @@ final class EssenceOrbComponent: SKSpriteNode {
     private func playMistExplosionPlaceholder() {
         guard let parent else { return }
 
-        let mistBurst = SKSpriteNode(texture: mistTexture("mist_000"))
+        let mistBurst = SKSpriteNode(texture: mistTexture("vfx_poisonous_mist_000"))
         mistBurst.position = position
         mistBurst.size = CGSize(width: orbMistBurstSize, height: orbMistBurstSize)
         mistBurst.zPosition = zPosition + 1
         parent.addChild(mistBurst)
 
-        let frames = (0..<3).map { mistTexture("mist_\(String(format: "%03d", $0))") }
+        let frames = (0..<3).map { mistTexture("vfx_poisonous_mist_\(String(format: "%03d", $0))") }
         let animate = SKAction.animate(with: frames, timePerFrame: orbMistBurstAnimFrameTime)
         let expand = SKAction.scale(to: orbMistBurstScale, duration: orbMistBurstDuration)
         let fade = SKAction.fadeOut(withDuration: orbMistBurstDuration)

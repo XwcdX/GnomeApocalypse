@@ -113,12 +113,12 @@ struct PlayerSkillState {
 
 final class SkillSystem {
     private let pool: [Skill] = [
-        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "OrbitingSpellCard",  maxLevel: 3),
-        Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon,  iconName: "LightningCard",  maxLevel: 3),
-        Skill(id: "poisonous_mist",   name: "Poisonous Mist",   type: .weapon,  iconName: "MistCard",       maxLevel: 3),
-        Skill(id: "ancient_tome",     name: "Ancient Tome",     type: .powerUp, iconName: "tome_icon",      maxLevel: 3),
-        Skill(id: "spirit_fruit",     name: "Spirit Fruit",     type: .powerUp, iconName: "fruit_icon",     maxLevel: 3),
-        Skill(id: "life_bloom",       name: "Life Bloom",       type: .powerUp, iconName: "bloom_icon",     maxLevel: 3),
+        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "icon_orbiting_weapon",  maxLevel: 3),
+        Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon,  iconName: "icon_lightning_strike", maxLevel: 3),
+        Skill(id: "poisonous_mist",   name: "Poisonous Mist",   type: .weapon,  iconName: "icon_poisonous_mist",   maxLevel: 3),
+        Skill(id: "ancient_tome",     name: "Ancient Tome",     type: .powerUp, iconName: "icon_ancient_tome",     maxLevel: 3),
+        Skill(id: "spirit_fruit",     name: "Spirit Fruit",     type: .powerUp, iconName: "icon_spirit_fruit",     maxLevel: 3),
+        Skill(id: "life_bloom",       name: "Life Bloom",       type: .powerUp, iconName: "icon_life_bloom",       maxLevel: 3),
     ]
 
     func draw(for state: PlayerSkillState, count: Int = GameConfig.skillDrawCount) -> [Skill] {

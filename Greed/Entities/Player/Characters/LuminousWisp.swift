@@ -5,8 +5,8 @@ final class LuminousWisp: PlayerEntity {
     private var lastDirection: String = "down"
     
     init(inputIndex: Int) {
-        let atlas = SKTextureAtlas(named: "LuminousWisp")
-        let firstFrame = atlas.textureNamed("down_idle_000")
+        let atlas = SKTextureAtlas(named: "luminous_wisp")
+        let firstFrame = atlas.textureNamed("luminous_wisp_down_idle_000")
         
         super.init(texture: firstFrame, health: GameConfig.basePlayerHealth)
         self.controllerIndex = inputIndex == 0 ? nil : inputIndex
@@ -18,14 +18,14 @@ final class LuminousWisp: PlayerEntity {
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
     
     private func setupAnimations() {
-        animator = AnimationComponent(atlasName: "LuminousWisp", owner: self, canMirror: false)
+        animator = AnimationComponent(atlasName: "luminous_wisp", owner: self, canMirror: false)
         
         let directions = ["up", "down", "left", "right", "up_left", "up_right", "down_left", "down_right"]
         let actions = ["idle", "walk", "shoot"]
         
         for direction in directions {
             for action in actions {
-                animator.loadAnimation(name: "\(direction)_\(action)", frameCount: 6)
+                animator.loadAnimation(name: "luminous_wisp_\(direction)_\(action)", frameCount: 6)
             }
         }
     }
@@ -58,6 +58,6 @@ final class LuminousWisp: PlayerEntity {
             action = "idle"
         }
 
-        animator.play(animation: "\(lastDirection)_\(action)", timePerFrame: 0.1, repeat: true)
+        animator.play(animation: "luminous_wisp_\(lastDirection)_\(action)", timePerFrame: 0.1, repeat: true)
     }
 }

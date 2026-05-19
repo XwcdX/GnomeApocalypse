@@ -13,7 +13,7 @@ final class Grand: EnemyEntity {
     private enum Phase { case one, two }
 
     init() {
-        let atlas = SKTextureAtlas(named: "Grand")
+        let atlas = SKTextureAtlas(named: "grand")
         let firstFrame = atlas.textureNamed("grand_walk_000")
         super.init(
             texture: firstFrame,
@@ -34,7 +34,7 @@ final class Grand: EnemyEntity {
     }
 
     private func setupAnimations() {
-        animator = AnimationComponent(atlasName: "Grand", owner: self, canMirror: true)
+        animator = AnimationComponent(atlasName: "grand", owner: self, canMirror: true)
         animator.loadAnimation(name: "grand_walk", frameCount: 7)
         animator.loadAnimation(name: "grand_attack", frameCount: 5)
     }

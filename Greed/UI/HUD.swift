@@ -230,7 +230,7 @@ final class HUD: SKNode {
         addChild(avatarNode)
 
         essenceTrack.anchorPoint = CGPoint(x: 0, y: 0.5)
-        essenceTrack.texture = hudTexture("XPBarFrame")
+        essenceTrack.texture = hudTexture("xp_bar_frame")
         essenceTrack.colorBlendFactor = 0
         essenceTrack.centerRect = CGRect(x: 0.045, y: 0, width: 0.91, height: 1)
         essenceTrack.name = "essenceBarTrack"
@@ -238,7 +238,7 @@ final class HUD: SKNode {
         addChild(essenceTrack)
 
         essenceFill.anchorPoint = CGPoint(x: 0, y: 0.5)
-        essenceFill.texture = hudTexture("XPBarFill")
+        essenceFill.texture = hudTexture("xp_bar_fill")
         essenceFill.colorBlendFactor = 0
         essenceFill.centerRect = CGRect(x: 0.045, y: 0, width: 0.91, height: 1)
         essenceFill.name = "essenceBarFill"
@@ -260,7 +260,7 @@ final class HUD: SKNode {
         addChild(healthFrame)
 
         healthTrack.anchorPoint = CGPoint(x: 0, y: 0.5)
-        healthTrack.texture = hudTexture("HealthBarFrame")
+        healthTrack.texture = hudTexture("health_bar_frame")
         healthTrack.colorBlendFactor = 0
         healthTrack.centerRect = CGRect(x: 0.16, y: 0, width: 0.72, height: 1)
         healthTrack.name = "healthBarTrack"
@@ -268,7 +268,7 @@ final class HUD: SKNode {
         addChild(healthTrack)
 
         healthFill.anchorPoint = CGPoint(x: 0, y: 0.5)
-        healthFill.texture = hudTexture("HealthBarFill")
+        healthFill.texture = hudTexture("health_bar_fill")
         healthFill.colorBlendFactor = 0
         healthFill.centerRect = CGRect(x: 0.16, y: 0, width: 0.72, height: 1)
         healthFill.name = "healthBarFill"

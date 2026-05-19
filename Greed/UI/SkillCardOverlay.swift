@@ -118,6 +118,14 @@ final class SkillCardOverlay: SKNode {
         card.strokeColor = .clear
         card.zPosition = 1
 
+        if let frameTexture = texture(named: cardFrameTextureName(for: skill.type)) {
+            let frame = SKSpriteNode(texture: frameTexture)
+            frame.name = "skillCardFrame"
+            frame.zPosition = 0
+            card.fillColor = .clear
+            card.addChild(frame)
+        }
+
         if let texture = iconTexture(named: skill.iconName) {
             let art = SKSpriteNode(texture: texture)
             art.name = "skillCardArt"
@@ -174,6 +182,11 @@ final class SkillCardOverlay: SKNode {
                 transform: nil
             )
             card.lineWidth = max(2, scaled(4, scale))
+
+            if let frame = card.childNode(withName: "skillCardFrame") as? SKSpriteNode {
+                frame.size = layout.cardSize
+                frame.position = .zero
+            }
 
             if let art = card.childNode(withName: "skillCardArt") as? SKSpriteNode {
                 art.size = fittedArtSize(
@@ -312,7 +325,7 @@ final class SkillCardOverlay: SKNode {
     private func iconTexture(named name: String) -> SKTexture? {
         guard let baseTexture = texture(named: name) else { return nil }
 
-        guard !name.hasSuffix("_icon") else {
+        guard !name.hasPrefix("icon_") else {
             return baseTexture
         }
 
@@ -320,6 +333,15 @@ final class SkillCardOverlay: SKNode {
         let texture = SKTexture(rect: rect, in: baseTexture)
         texture.filteringMode = .nearest
         return texture
+    }
+
+    private func cardFrameTextureName(for type: SkillType) -> String {
+        switch type {
+        case .weapon:
+            return "card_frame_weapon"
+        case .powerUp:
+            return "card_frame_power_up"
+        }
     }
 
     private func fittedArtSize(for texture: SKTexture?, maxSize: CGSize) -> CGSize {

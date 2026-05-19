@@ -17,7 +17,7 @@ private let propDefinitions: [(name: String, solid: Bool, count: Int)] = [
 
 final class EnvironmentPropSystem {
     private var props: [SKSpriteNode] = []
-    private let atlas = SKTextureAtlas(named: "EnvironmentProps")
+    private let atlas = SKTextureAtlas(named: "environment_props")
     private let seed: UInt64
 
     init(seed: UInt64 = 42) {

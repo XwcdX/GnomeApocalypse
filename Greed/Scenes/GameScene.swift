@@ -45,9 +45,9 @@ final class GameScene: SKScene {
     private var mistSpawnCooldowns: [ObjectIdentifier: TimeInterval] = [:]
     private var orbitOrbs: [ObjectIdentifier: [ActiveOrb]] = [:]
     private var orbitHitCooldowns: [ObjectIdentifier: [Int: [ObjectIdentifier: TimeInterval]]] = [:]
-    private let lightningAtlas = SKTextureAtlas(named: "LightningEffect")
-    private let mistAtlas = SKTextureAtlas(named: "MistEffect")
-    private let orbitAtlas = SKTextureAtlas(named: "OrbitingSpell")
+    private let lightningAtlas = SKTextureAtlas(named: "lightning_strike")
+    private let mistAtlas = SKTextureAtlas(named: "poisonous_mist")
+    private let orbitAtlas = SKTextureAtlas(named: "orbiting_knife")
     var onReplayRequested: (() -> Void)?
     
     private var players: [PlayerEntity] = []
@@ -166,8 +166,8 @@ final class GameScene: SKScene {
         spawnSystem = SpawnSystem(entityLayer: self, cameraSystem: cameraSystem, directorSystem: directorSystem)
         playerProjectilePool = ProjectilePool(
             size: GameConfig.projectilePoolSize,
-            atlasName: "PlayerProjectile",
-            frameNames: ["tile000", "tile001", "tile002", "tile003"],
+            atlasName: "player_projectile",
+            frameNames: ["projectile_player_000", "projectile_player_001", "projectile_player_002", "projectile_player_003"],
             projectileSize: GameConfig.playerProjectileSize,
             category: PhysicsCategory.playerProjectile,
             contactTestBitMask: PhysicsCategory.enemy,
@@ -175,7 +175,7 @@ final class GameScene: SKScene {
         )
         enemyProjectilePool = ProjectilePool(
             size: GameConfig.projectilePoolSize,
-            textureNames: ["GrumbleBullet"],
+            textureNames: ["projectile_enemy_grumble"],
             projectileSize: GameConfig.playerProjectileSize,
             category: PhysicsCategory.enemyProjectile,
             contactTestBitMask: PhysicsCategory.player,
@@ -411,7 +411,7 @@ final class GameScene: SKScene {
             orbs.removeLast(orbs.count - desired)
         }
 
-        let texture = orbitAtlas.textureNamed("orbiting_knife_000")
+        let texture = orbitAtlas.textureNamed("weapon_orbiting_knife_000")
         texture.filteringMode = .nearest
         while orbs.count < desired {
             let sprite = SKSpriteNode(texture: texture, size: SkillConfig.orbitKnifeSize)
@@ -512,13 +512,13 @@ final class GameScene: SKScene {
 
     private func makeMistCloudNode(radius: CGFloat) -> SKNode {
         let node = SKNode()
-        let sprite = SKSpriteNode(texture: mistTexture(named: "mist_000"))
+        let sprite = SKSpriteNode(texture: mistTexture(named: "vfx_poisonous_mist_000"))
         sprite.zPosition = 0
         sprite.alpha = SkillConfig.mistCloudAlpha
         sprite.size = CGSize(width: radius * 2, height: radius * 2)
         node.addChild(sprite)
 
-        let frames = (0..<3).map { mistTexture(named: "mist_\(String(format: "%03d", $0))") }
+        let frames = (0..<3).map { mistTexture(named: "vfx_poisonous_mist_\(String(format: "%03d", $0))") }
         let animate = SKAction.repeatForever(.animate(with: frames, timePerFrame: SkillConfig.mistCloudAnimFrameTime))
         sprite.run(animate)
 
@@ -537,7 +537,7 @@ final class GameScene: SKScene {
         strikeNode.zPosition = Layer.world
 
         let boltHeight = max(radius * 1.6, referenceSpriteHeight * lightningBoltHeightFactor)
-        let bolt = SKSpriteNode(texture: lightningTexture(named: "lightning_002"))
+        let bolt = SKSpriteNode(texture: lightningTexture(named: "vfx_lightning_strike_002"))
         bolt.anchorPoint = CGPoint(x: 0.5, y: 0.0)
         bolt.position = CGPoint(x: 0, y: -referenceSpriteHeight * lightningBoltOffsetFactor)
         bolt.size = CGSize(width: max(SkillConfig.lightningBoltMinWidth, radius * SkillConfig.lightningBoltWidthFactor), height: boltHeight)
@@ -545,10 +545,10 @@ final class GameScene: SKScene {
         strikeNode.addChild(bolt)
 
         let frames = [
-            lightningTexture(named: "lightning_001"),
-            lightningTexture(named: "lightning_002"),
-            lightningTexture(named: "lightning_003"),
-            lightningTexture(named: "lightning_002")
+            lightningTexture(named: "vfx_lightning_strike_001"),
+            lightningTexture(named: "vfx_lightning_strike_002"),
+            lightningTexture(named: "vfx_lightning_strike_003"),
+            lightningTexture(named: "vfx_lightning_strike_002")
         ]
         bolt.run(.animate(with: frames, timePerFrame: SkillConfig.lightningBoltAnimFrameTime))
 
@@ -712,7 +712,7 @@ final class GameScene: SKScene {
         at position: CGPoint,
         direction: CGVector,
         damage: Int,
-        textureName: String = "GrumbleBullet",
+        textureName: String = "projectile_enemy_grumble",
         lifespan: TimeInterval = GameConfig.projectileLifeSpan
     ) {
         guard let projectile = enemyProjectilePool.dequeue() else { return }
