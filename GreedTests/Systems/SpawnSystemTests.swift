@@ -6,11 +6,12 @@ import Testing
 @MainActor
 @Suite("SpawnSystem")
 struct SpawnSystemTests {
-    @Test("orb mist explosion spawns budgeted MiniBoss outside camera")
-    func orbMistExplosionSpawnsBudgetedMiniBossOutsideCamera() throws {
+    @Test("orb mist explosion spawns budgeted MiniBoss at red essence")
+    func orbMistExplosionSpawnsBudgetedMiniBossAtRedEssence() throws {
         let harness = makeHarness()
+        let orbPosition = CGPoint(x: 120, y: -80)
 
-        harness.spawnSystem.spawnEssenceOrb(at: .zero)
+        harness.spawnSystem.spawnEssenceOrb(at: orbPosition)
         harness.spawnSystem.update(
             deltaTime: GameConfig.smallOrbEvolveTime,
             activeBudgetUsed: harness.director.currentBudget
@@ -26,7 +27,7 @@ struct SpawnSystemTests {
         )
 
         let miniBoss = try #require(children(of: Grumble.self, in: harness.layer).first)
-        #expect(!harness.camera.visibleRect.contains(miniBoss.position))
+        #expect(miniBoss.position == orbPosition)
         #expect(children(of: EssenceOrbComponent.self, in: harness.layer).isEmpty)
     }
 
