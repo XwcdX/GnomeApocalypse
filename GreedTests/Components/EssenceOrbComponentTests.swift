@@ -17,8 +17,10 @@ struct EssenceOrbComponentTests {
         )
 
         #expect(didExplode == false)
-        #expect(orb.state == .small)
+        #expect(orb.essenceTier == .green)
+        #expect(orb.visualPhase == .collectible)
         #expect(orb.essenceValue == GameConfig.smallOrbEssenceValue)
+        #expect(orb.currentTextureName == "forest_essence_green")
         #expect(orb.size.height > 0)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
     }
@@ -35,8 +37,10 @@ struct EssenceOrbComponentTests {
         )
 
         #expect(didExplode == false)
-        #expect(orb.state == .grown)
+        #expect(orb.essenceTier == .blue)
+        #expect(orb.visualPhase == .collectible)
         #expect(orb.essenceValue == GameConfig.grownOrbEssenceValue)
+        #expect(orb.currentTextureName == "forest_essence_blue")
         #expect(orb.size.height > smallSize.height)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
         #expect(orb.physicsBody?.contactTestBitMask == PhysicsCategory.player)
@@ -56,14 +60,16 @@ struct EssenceOrbComponentTests {
         )
 
         #expect(didExplode == false)
-        #expect(orb.state == .red)
+        #expect(orb.essenceTier == .red)
+        #expect(orb.visualPhase == .collectible)
         #expect(orb.essenceValue == GameConfig.redOrbEssenceValue)
+        #expect(orb.currentTextureName == "forest_essence_red")
         #expect(orb.size.height > grownSize.height)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
     }
 
-    @Test("red orb becomes mist explosion and emits VFX node")
-    func redOrbBecomesMistExplosion() throws {
+    @Test("red expiry starts mutation without completing collection")
+    func redExpiryStartsMutationWithoutCompletingCollection() {
         let parent = SKNode()
         let orb = EssenceOrbComponent()
         let cameraSystem = makeCameraSystem()
@@ -76,28 +82,53 @@ struct EssenceOrbComponentTests {
         )
 
         #expect(didExplodeEarly == false)
-        #expect(orb.state == .grown)
+        #expect(orb.essenceTier == .blue)
+        #expect(orb.visualPhase == .collectible)
 
         let didExplodeAtRedTier = orb.update(deltaTime: 0.1, cameraSystem: cameraSystem)
         #expect(didExplodeAtRedTier == false)
-        #expect(orb.state == .red)
+        #expect(orb.essenceTier == .red)
+        #expect(orb.visualPhase == .collectible)
 
         let didExplodeFromRedEarly = orb.update(
             deltaTime: GameConfig.redOrbEvolveTime - 0.1,
             cameraSystem: cameraSystem
         )
         #expect(didExplodeFromRedEarly == false)
-        #expect(orb.state == .red)
+        #expect(orb.essenceTier == .red)
+        #expect(orb.visualPhase == .collectible)
 
-        let didExplode = orb.update(deltaTime: 0.1, cameraSystem: cameraSystem)
-        let mistBurst = try #require(parent.children.compactMap { $0 as? SKSpriteNode }.filter { $0 !== orb }.first)
+        let didCompleteMutation = orb.update(deltaTime: 0.1, cameraSystem: cameraSystem)
 
-        #expect(didExplode == true)
-        #expect(orb.state == .mistExplosion)
-        #expect(orb.isHidden)
+        #expect(didCompleteMutation == false)
+        #expect(orb.essenceTier == .red)
+        #expect(orb.visualPhase == .mutating)
+        #expect(orb.currentTextureName == "vfx_forest_essence_mutation_000")
+        #expect(orb.parent === parent)
+        #expect(orb.isHidden == false)
         #expect(orb.physicsBody == nil)
-        #expect(mistBurst.position == orb.position)
-        #expect(mistBurst.parent === parent)
+        #expect(orb.action(forKey: "idleBob") == nil)
+    }
+
+    @Test("mutation completes after final VFX frame")
+    func mutationCompletesAfterFinalVFXFrame() {
+        let orb = EssenceOrbComponent()
+        let cameraSystem = makeCameraSystem()
+
+        _ = orb.update(deltaTime: GameConfig.smallOrbEvolveTime, cameraSystem: cameraSystem)
+        _ = orb.update(deltaTime: GameConfig.grownOrbEvolveTime, cameraSystem: cameraSystem)
+        let didCompleteAtStart = orb.update(deltaTime: GameConfig.redOrbEvolveTime, cameraSystem: cameraSystem)
+        let didCompleteEarly = orb.update(
+            deltaTime: EssenceOrbComponent.mutationDuration - 0.01,
+            cameraSystem: cameraSystem
+        )
+        let didCompleteAfterFinalFrame = orb.update(deltaTime: 0.01, cameraSystem: cameraSystem)
+
+        #expect(didCompleteAtStart == false)
+        #expect(didCompleteEarly == false)
+        #expect(didCompleteAfterFinalFrame == true)
+        #expect(orb.essenceTier == .red)
+        #expect(orb.visualPhase == .mutating)
     }
 
     private func makeCameraSystem() -> CameraSystem {

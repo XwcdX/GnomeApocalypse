@@ -6,8 +6,8 @@ import Testing
 @MainActor
 @Suite("SpawnSystem")
 struct SpawnSystemTests {
-    @Test("orb mist explosion spawns budgeted MiniBoss at red essence")
-    func orbMistExplosionSpawnsBudgetedMiniBossAtRedEssence() throws {
+    @Test("orb mutation completion spawns budgeted MiniBoss after red essence expiry")
+    func orbMutationCompletionSpawnsBudgetedMiniBossAfterRedEssenceExpiry() throws {
         let harness = makeHarness()
         let orbPosition = CGPoint(x: 120, y: -80)
 
@@ -25,14 +25,21 @@ struct SpawnSystemTests {
             deltaTime: GameConfig.redOrbEvolveTime,
             activeBudgetUsed: 0
         )
+        #expect(children(of: Grumble.self, in: harness.layer).isEmpty)
+        #expect(children(of: EssenceOrbComponent.self, in: harness.layer).count == 1)
+
+        harness.spawnSystem.update(
+            deltaTime: EssenceOrbComponent.mutationDuration,
+            activeBudgetUsed: 0
+        )
 
         let miniBoss = try #require(children(of: Grumble.self, in: harness.layer).first)
         #expect(miniBoss.position == orbPosition)
         #expect(children(of: EssenceOrbComponent.self, in: harness.layer).isEmpty)
     }
 
-    @Test("orb mist explosion consumes orb without MiniBoss when budget is full")
-    func orbMistExplosionDoesNotSpawnMiniBossWhenBudgetIsFull() {
+    @Test("orb mutation completion consumes orb without MiniBoss when budget is full")
+    func orbMutationCompletionDoesNotSpawnMiniBossWhenBudgetIsFull() {
         let harness = makeHarness()
 
         harness.spawnSystem.spawnEssenceOrb(at: .zero)
@@ -46,6 +53,13 @@ struct SpawnSystemTests {
         )
         harness.spawnSystem.update(
             deltaTime: GameConfig.redOrbEvolveTime,
+            activeBudgetUsed: harness.director.currentBudget
+        )
+        #expect(children(of: Grumble.self, in: harness.layer).isEmpty)
+        #expect(children(of: EssenceOrbComponent.self, in: harness.layer).count == 1)
+
+        harness.spawnSystem.update(
+            deltaTime: EssenceOrbComponent.mutationDuration,
             activeBudgetUsed: harness.director.currentBudget
         )
 
