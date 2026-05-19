@@ -143,13 +143,11 @@ final class ViewController: NSViewController {
             if gameScene?.handleKeyDown(event) == true {
                 return nil
             }
-            InputSystem.shared.keyDown(with: event)
-            return event
+            return InputSystem.shared.keyDown(with: event) ? nil : event
         }
         NSEvent.addLocalMonitorForEvents(matching: .keyUp) { [weak self] event in
             guard self?.gameScene != nil else { return event }
-            InputSystem.shared.keyUp(with: event)
-            return event
+            return InputSystem.shared.keyUp(with: event) ? nil : event
         }
         NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             guard let self, event.window === view.window else { return event }

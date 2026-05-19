@@ -225,14 +225,20 @@ final class InputSystem {
             || magnitude(rightStick) >= GameConfig.stickDeadzone
     }
 
-    func keyDown(with event: NSEvent) {
-        guard let key = KeyCode(rawValue: event.keyCode) else { return }
+    // Supaya tidak muncul mac tink sound
+    @discardableResult
+    func keyDown(with event: NSEvent) -> Bool {
+        guard let key = KeyCode(rawValue: event.keyCode) else { return false }
+        guard shouldConsumeMovementKeyDown(event) else { return false }
         keysDown.insert(key)
+        return true
     }
 
-    func keyUp(with event: NSEvent) {
-        guard let key = KeyCode(rawValue: event.keyCode) else { return }
+    @discardableResult
+    func keyUp(with event: NSEvent) -> Bool {
+        guard let key = KeyCode(rawValue: event.keyCode) else { return false }
         keysDown.remove(key)
+        return true
     }
 
     func mouseMoved(to worldPosition: CGPoint) {
@@ -259,6 +265,11 @@ final class InputSystem {
         if keysDown.contains(.w) { dy += 1 }
         let v = CGVector(dx: dx, dy: dy)
         return magnitude(v) > 0 ? normalised(v) : .zero
+    }
+
+    private func shouldConsumeMovementKeyDown(_ event: NSEvent) -> Bool {
+        let shortcutModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
+        return event.modifierFlags.intersection(shortcutModifiers).isEmpty
     }
 
     private func mouseAimVector(playerWorldPos: CGPoint, gnomes: [EnemyEntity]) -> CGVector {
