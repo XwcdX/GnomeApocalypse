@@ -51,6 +51,7 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
         
         guard let enemy = enemyNode else { return }
         enemy.health.takeDamage(projectile.damage)
+        AudioManager.shared.play(.hit)
         if enemy.health.isDead { enemy.die() }
         projectile.deactivate()
     }
@@ -68,8 +69,9 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
         }
         
         guard let player = playerNode else { return }
-        
+
         playerHealthCallbacks[player]?(projectile.damage)
+        AudioManager.shared.play(.hit)
         projectile.deactivate()
     }
     
@@ -93,6 +95,7 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
               let scene = player.scene as? GameScene else { return }
 
         player.addXP(orb.essenceValue)
+        AudioManager.shared.play(.orbCollect)
         scene.removeOrb(orb)
     }
 
