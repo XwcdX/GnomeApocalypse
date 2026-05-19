@@ -107,84 +107,6 @@ struct SkillSystemTests {
     }
 }
 
-@Suite("Skill.effect(at:)")
-struct SkillEffectTests {
-
-    @Test("orbiting_spell returns SkillConfig.orbitCountByLevel value")
-    func orbitingSpellLevels() {
-        let skill = Skill(id: "orbiting_spell", name: "Orbiting Spell", type: .weapon, iconName: "", maxLevel: 3)
-        for level in 1...3 {
-            let effect = skill.effect(at: level)
-            guard case .orbitingSpell(let count) = effect else {
-                Issue.record("expected .orbitingSpell at level \(level)")
-                return
-            }
-            #expect(count == SkillConfig.orbitCountByLevel[level - 1])
-        }
-    }
-
-    @Test("lightning_strike returns SkillConfig per-level cooldown + strike count")
-    func lightningStrikeLevels() {
-        let skill = Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon, iconName: "", maxLevel: 3)
-        for level in 1...3 {
-            let effect = skill.effect(at: level)
-            guard case .lightningStrike(let cooldown, let strikes) = effect else {
-                Issue.record("expected .lightningStrike at level \(level)")
-                return
-            }
-            #expect(cooldown == SkillConfig.lightningCooldownByLevel[level - 1])
-            #expect(strikes == SkillConfig.lightningStrikeCountByLevel[level - 1])
-        }
-    }
-
-    @Test("lightning_strike L2 cooldown shorter than L1")
-    func lightningCooldownDecreases() {
-        let skill = Skill(id: "lightning_strike", name: "L", type: .weapon, iconName: "", maxLevel: 3)
-        guard case .lightningStrike(let l1Cd, _) = skill.effect(at: 1),
-              case .lightningStrike(let l2Cd, _) = skill.effect(at: 2) else {
-            Issue.record("expected .lightningStrike")
-            return
-        }
-        #expect(l2Cd < l1Cd)
-    }
-
-    @Test("lightning_strike L3 strike count greater than L1")
-    func lightningStrikeCountIncreases() {
-        let skill = Skill(id: "lightning_strike", name: "L", type: .weapon, iconName: "", maxLevel: 3)
-        guard case .lightningStrike(_, let l1) = skill.effect(at: 1),
-              case .lightningStrike(_, let l3) = skill.effect(at: 3) else {
-            Issue.record("expected .lightningStrike")
-            return
-        }
-        #expect(l3 > l1)
-    }
-
-    @Test("poisonous_mist returns SkillConfig per-level cooldown + cloud count")
-    func mistLevels() {
-        let skill = Skill(id: "poisonous_mist", name: "Mist", type: .weapon, iconName: "", maxLevel: 3)
-        for level in 1...3 {
-            let effect = skill.effect(at: level)
-            guard case .poisonousMist(let cooldown, let clouds) = effect else {
-                Issue.record("expected .poisonousMist at level \(level)")
-                return
-            }
-            #expect(cooldown == SkillConfig.mistCooldownByLevel[level - 1])
-            #expect(clouds == SkillConfig.mistCountByLevel[level - 1])
-        }
-    }
-
-    @Test("poisonous_mist L3 cloud count greater than L1")
-    func mistCloudCountIncreases() {
-        let skill = Skill(id: "poisonous_mist", name: "M", type: .weapon, iconName: "", maxLevel: 3)
-        guard case .poisonousMist(_, let l1) = skill.effect(at: 1),
-              case .poisonousMist(_, let l3) = skill.effect(at: 3) else {
-            Issue.record("expected .poisonousMist")
-            return
-        }
-        #expect(l3 > l1)
-    }
-}
-
 @Suite("PlayerSkillState")
 struct PlayerSkillStateTests {
 
@@ -359,5 +281,79 @@ struct SkillEffectTests {
             #expect(rates.count == maxLevel)
             #expect(rates.allSatisfy { $0 >= .zero })
         }
+    }
+
+        @Test("orbiting_spell returns SkillConfig.orbitCountByLevel value")
+    func orbitingSpellLevels() {
+        let skill = Skill(id: "orbiting_spell", name: "Orbiting Spell", type: .weapon, iconName: "", maxLevel: 3)
+        for level in 1...3 {
+            let effect = skill.effect(at: level)
+            guard case .orbitingSpell(let count) = effect else {
+                Issue.record("expected .orbitingSpell at level \(level)")
+                return
+            }
+            #expect(count == SkillConfig.orbitCountByLevel[level - 1])
+        }
+    }
+
+    @Test("lightning_strike returns SkillConfig per-level cooldown + strike count")
+    func lightningStrikeLevels() {
+        let skill = Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon, iconName: "", maxLevel: 3)
+        for level in 1...3 {
+            let effect = skill.effect(at: level)
+            guard case .lightningStrike(let cooldown, let strikes) = effect else {
+                Issue.record("expected .lightningStrike at level \(level)")
+                return
+            }
+            #expect(cooldown == SkillConfig.lightningCooldownByLevel[level - 1])
+            #expect(strikes == SkillConfig.lightningStrikeCountByLevel[level - 1])
+        }
+    }
+
+    @Test("lightning_strike L2 cooldown shorter than L1")
+    func lightningCooldownDecreases() {
+        let skill = Skill(id: "lightning_strike", name: "L", type: .weapon, iconName: "", maxLevel: 3)
+        guard case .lightningStrike(let l1Cd, _) = skill.effect(at: 1),
+              case .lightningStrike(let l2Cd, _) = skill.effect(at: 2) else {
+            Issue.record("expected .lightningStrike")
+            return
+        }
+        #expect(l2Cd < l1Cd)
+    }
+
+    @Test("lightning_strike L3 strike count greater than L1")
+    func lightningStrikeCountIncreases() {
+        let skill = Skill(id: "lightning_strike", name: "L", type: .weapon, iconName: "", maxLevel: 3)
+        guard case .lightningStrike(_, let l1) = skill.effect(at: 1),
+              case .lightningStrike(_, let l3) = skill.effect(at: 3) else {
+            Issue.record("expected .lightningStrike")
+            return
+        }
+        #expect(l3 > l1)
+    }
+
+    @Test("poisonous_mist returns SkillConfig per-level cooldown + cloud count")
+    func mistLevels() {
+        let skill = Skill(id: "poisonous_mist", name: "Mist", type: .weapon, iconName: "", maxLevel: 3)
+        for level in 1...3 {
+            let effect = skill.effect(at: level)
+            guard case .poisonousMist(let cooldown, let clouds) = effect else {
+                Issue.record("expected .poisonousMist at level \(level)")
+                return
+            }
+            #expect(cooldown == SkillConfig.mistCooldownByLevel[level - 1])
+            #expect(clouds == SkillConfig.mistCountByLevel[level - 1])
+        }
+    }
+
+    @Test("poisonous_mist L3 cloud count greater than L1")
+    func mistCloudCountIncreases() {
+        let skill = Skill(id: "poisonous_mist", name: "M", type: .weapon, iconName: "", maxLevel: 3)
+        guard case .poisonousMist(_, let l1) = skill.effect(at: 1),
+              case .poisonousMist(_, let l3) = skill.effect(at: 3) else {
+            Issue.record("expected .poisonousMist")
+            return
+        }
+        #expect(l3 > l1)
     }
 }
