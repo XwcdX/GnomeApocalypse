@@ -92,7 +92,8 @@ final class SpawnSystem {
         }
 
         for orb in explodedOrbs {
-            if spawnGrumble(camera: camera, director: director, activeBudgetUsed: activeBudgetUsed + spawnedBudget) {
+            let spawnPosition = orb.position
+            if spawnGrumble(at: spawnPosition, director: director, activeBudgetUsed: activeBudgetUsed + spawnedBudget) {
                 spawnedBudget += GameConfig.grumbleBudgetWeight
             }
             removeOrb(orb)
@@ -139,13 +140,12 @@ final class SpawnSystem {
         return true
     }
 
-    private func spawnGrumble(camera: CameraSystem, director: DirectorSystem, activeBudgetUsed: Int) -> Bool {
+    private func spawnGrumble(at spawnPos: CGPoint, director: DirectorSystem, activeBudgetUsed: Int) -> Bool {
         let weight = GameConfig.grumbleBudgetWeight
         guard activeBudgetUsed + weight <= director.currentBudget,
               let layer = entityLayer,
               let scene = layer.scene as? GameScene else { return false }
 
-        let spawnPos = randomPositionOutsideCamera(camera: camera)
         let miniBoss = Grumble()
         miniBoss.position = spawnPos
         miniBoss.gameScene = scene
