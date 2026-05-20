@@ -19,23 +19,23 @@ Skills and Power-ups are **two separate pools** with independent caps, but drawn
 
 ## Skills (Active Weapons)
 
-### 1. Orbiting Spell
-**Behavior:** Orbs rotate clockwise around the player, dealing damage on collision.
+### 1. Warden Thorns
+**Behavior:** Thorns rotate clockwise around the player, dealing damage on collision.
 
-| Level | Orbs |
+| Level | Thorns |
 |-------|------|
-| 1 | 1 orb |
-| 2 | 2 orbs |
-| 3 | 3 orbs |
+| 1 | 1 thorn |
+| 2 | 2 thorns |
+| 3 | 3 thorns |
 
 **Config:**
-- Rotation speed: `GameConfig.orbitRotationSpeed` (2.0 rad/s)
-- Orbit radius: `GameConfig.orbitRadius` (80px)
-- Damage: `GameConfig.orbitDamage` (15)
-- Per-enemy cooldown: `GameConfig.orbitCooldownPerEnemy` (1.0s)
-  - After an orb hits an enemy, that enemy is immune to **that specific orb** for 1s
-  - Other orbs can still hit the same enemy immediately
-  - Same orb can hit other enemies immediately
+- Rotation speed: `GameConfig.wardenThornRotationSpeed` (2.0 rad/s)
+- Thorn radius: `GameConfig.wardenThornRadius` (80px)
+- Damage: `GameConfig.wardenThornDamage` (15)
+- Per-enemy cooldown: `GameConfig.wardenThornCooldownPerEnemy` (1.0s)
+  - After a thorn hits an enemy, that enemy is immune to **that specific thorn** for 1s
+  - Other thorns can still hit the same enemy immediately
+  - Same thorn can hit other enemies immediately
 
 ---
 
@@ -154,14 +154,14 @@ No artificial balancing needed — the math handles it.
 
 > ✅ Apply the effect **once** when the player picks a skill or power-up.  
 > ✅ Store the result as a **plain property** on `PlayerEntity`.  
-> ✅ Read that property whenever the game needs it (spawning orbs, firing lightning, etc.).  
+> ✅ Read that property whenever the game needs it (spawning thorns, firing lightning, etc.).  
 > ❌ Do NOT store effects in a dictionary and recalculate from it every frame.
 
 ### PlayerEntity Properties
 
 ```swift
 // Skills — set once on pick, read by GameScene
-var orbitCount: Int = 0
+var wardenThornCount: Int = 0
 var lightningCooldown: TimeInterval = 0   // 0 = inactive
 var lightningStrikeCount: Int = 0
 var mistCooldown: TimeInterval = 0        // 0 = inactive
@@ -178,8 +178,8 @@ var movementSpeedMultiplier: Float = 1.0
 ```swift
 func applySkill(_ skill: Skill, at level: Int) {
     switch skill.effect(at: level) {
-    case .orbitingSpell(let count):
-        orbitCount = count
+    case .wardenThorns(let count):
+        wardenThornCount = count
     case .lightningStrike(let cooldown, let strikeCount):
         lightningCooldown = cooldown
         lightningStrikeCount = strikeCount
@@ -201,21 +201,21 @@ func applySkill(_ skill: Skill, at level: Int) {
 
 ```swift
 // ✅ Correct
-updateOrbitingSpells(count: player.orbitCount)
+updateWardenThorns(count: player.wardenThornCount)
 movePlayer(speed: baseSpeed * player.movementSpeedMultiplier)
 
 // ❌ Wrong
-let effect = player.activeSkills["orbiting_spell"] // no dictionaries
+let effect = player.activeSkills["warden_thorns"] // no dictionaries
 ```
 
 ---
 
 ## GameScene Responsibilities
 
-- Spawn and update orbiting spell positions each frame using `player.orbitCount`
+- Spawn and update Warden Thorns positions each frame using `player.wardenThornCount`
 - Auto-fire lightning at `player.lightningCooldown`, firing `player.lightningStrikeCount` independent strikes per cast
 - Spawn mist clouds up to `player.mistCloudCount` concurrently, gated by `player.mistCooldown` (per-player); each cloud uses `SkillConfig.mistBaseDamage` + `SkillConfig.mistBaseDuration`
-- Track per-(orb, enemy) orbit cooldowns
+- Track per-(thorn, enemy) cooldowns
 - Apply `player.attackSpeedMultiplier` to all relevant attack timers
 
 ---

@@ -10,7 +10,7 @@ struct PlayerEntityApplySkillTests {
         PlayerEntity(texture: SKTexture(), health: health)
     }
 
-    private let orbitingSpell = Skill(id: "orbiting_spell", name: "Orbiting Spell", type: .weapon, iconName: "", maxLevel: 3)
+    private let wardenThorns = Skill(id: "warden_thorns", name: "Warden Thorns", type: .weapon, iconName: "", maxLevel: 3)
     private let lightningStrike = Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon, iconName: "", maxLevel: 3)
     private let poisonousMist = Skill(id: "poisonous_mist", name: "Poisonous Mist", type: .weapon, iconName: "", maxLevel: 3)
     private let tome = Skill(id: "ancient_tome", name: "Ancient Tome", type: .powerUp, iconName: "", maxLevel: 3)
@@ -21,17 +21,17 @@ struct PlayerEntityApplySkillTests {
         rates.prefix(level).reduce(1.0) { $0 * (1.0 + $1) }
     }
 
-    // MARK: - Orbiting Spell
+    // MARK: - Warden Thorns
 
-    @Test("orbiting_spell sets orbitCount per level")
-    func orbitingSpellSetsCount() {
+    @Test("warden_thorns sets wardenThornCount per level")
+    func wardenThornsSetsCount() {
         let player = makePlayer()
-        player.applySkill(orbitingSpell)
-        #expect(player.orbitCount == SkillConfig.orbitCountByLevel[0])
-        player.applySkill(orbitingSpell)
-        #expect(player.orbitCount == SkillConfig.orbitCountByLevel[1])
-        player.applySkill(orbitingSpell)
-        #expect(player.orbitCount == SkillConfig.orbitCountByLevel[2])
+        player.applySkill(wardenThorns)
+        #expect(player.wardenThornCount == SkillConfig.wardenThornCountByLevel[0])
+        player.applySkill(wardenThorns)
+        #expect(player.wardenThornCount == SkillConfig.wardenThornCountByLevel[1])
+        player.applySkill(wardenThorns)
+        #expect(player.wardenThornCount == SkillConfig.wardenThornCountByLevel[2])
     }
 
     // MARK: - Lightning Strike

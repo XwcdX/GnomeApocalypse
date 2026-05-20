@@ -7,7 +7,7 @@ enum SkillType {
 }
 
 enum SkillEffect {
-    case orbitingSpell(orbitCount: Int)
+    case wardenThorns(thornCount: Int)
     case lightningStrike(cooldown: TimeInterval, strikeCount: Int)
     case poisonousMist(cooldown: TimeInterval, cloudCount: Int)
     case increaseAttackSpeed(bonusRate: CGFloat)
@@ -25,8 +25,8 @@ struct Skill {
     func effect(at level: Int) -> SkillEffect {
         let index = max(0, min(level - 1, 2))
         switch id {
-        case "orbiting_spell":
-            return .orbitingSpell(orbitCount: SkillConfig.orbitCountByLevel[index])
+        case "warden_thorns":
+            return .wardenThorns(thornCount: SkillConfig.wardenThornCountByLevel[index])
         case "lightning_strike":
             return .lightningStrike(
                 cooldown: SkillConfig.lightningCooldownByLevel[index],
@@ -113,7 +113,7 @@ struct PlayerSkillState {
 
 final class SkillSystem {
     private let pool: [Skill] = [
-        Skill(id: "orbiting_spell",   name: "Orbiting Spell",   type: .weapon,  iconName: "icon_orbiting_weapon",  maxLevel: 3),
+        Skill(id: "warden_thorns",   name: "Warden Thorns",   type: .weapon,  iconName: "icon_warden_thorns",  maxLevel: 3),
         Skill(id: "lightning_strike", name: "Lightning Strike", type: .weapon,  iconName: "icon_lightning_strike", maxLevel: 3),
         Skill(id: "poisonous_mist",   name: "Poisonous Mist",   type: .weapon,  iconName: "icon_poisonous_mist",   maxLevel: 3),
         Skill(id: "ancient_tome",     name: "Ancient Tome",     type: .powerUp, iconName: "icon_ancient_tome",     maxLevel: 3),

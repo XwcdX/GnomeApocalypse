@@ -30,7 +30,7 @@ class PlayerEntity: SKSpriteNode {
 
     private(set) var attackSpeedMultiplier: CGFloat = 1.0
     private(set) var movementSpeedMultiplier: CGFloat = 1.0
-    private(set) var orbitCount: Int = 0
+    private(set) var wardenThornCount: Int = 0
     private(set) var lightningCooldown: TimeInterval = 0
     private(set) var lightningStrikeCount: Int = 0
     private(set) var mistCooldown: TimeInterval = 0
@@ -85,8 +85,8 @@ class PlayerEntity: SKSpriteNode {
         let effect = skill.effect(at: currentLevel)
 
         switch effect {
-        case .orbitingSpell(let count):
-            orbitCount = count
+        case .wardenThorns(let count):
+            wardenThornCount = count
         case .lightningStrike(let cooldown, let strikeCount):
             lightningCooldown = cooldown
             lightningStrikeCount = strikeCount

@@ -1,6 +1,6 @@
 import CoreGraphics
 
-enum OrbitingSpellLayout {
+enum WardenThornsLayout {
     private static let fullTurn = CGFloat.pi * 2
 
     static func angles(count: Int, phase: CGFloat) -> [CGFloat] {
@@ -14,7 +14,7 @@ enum OrbitingSpellLayout {
         angles(count: desiredCount, phase: existing.first ?? 0)
     }
 
-    static func spriteRotation(forOrbitAngle angle: CGFloat) -> CGFloat {
+    static func spriteRotation(forThornAngle angle: CGFloat) -> CGFloat {
         angle + CGFloat.pi / 2
     }
 }
