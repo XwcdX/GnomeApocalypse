@@ -6,6 +6,7 @@ private let referenceSpriteHeight: CGFloat = 48
 private let lightningStrikeRadiusFactor: CGFloat = 0.8
 private let lightningBoltHeightFactor: CGFloat = 1.5
 private let lightningBoltOffsetFactor: CGFloat = 0.15
+private let wardenThornAnimationKey = "wardenThornAnimation"
 
 final class GameScene: SKScene {
     private struct ActiveMistCloud {
@@ -48,6 +49,9 @@ final class GameScene: SKScene {
     private let lightningAtlas = SKTextureAtlas(named: "lightning_strike")
     private let mistAtlas = SKTextureAtlas(named: "poisonous_mist")
     private let wardenThornsAtlas = SKTextureAtlas(named: "warden_thorns")
+    private lazy var wardenThornFrames: [SKTexture] = (0..<SkillConfig.wardenThornFrameCount).map {
+        wardenThornTexture(named: "weapon_warden_thorns_\(String(format: "%03d", $0))")
+    }
     var onReplayRequested: (() -> Void)?
     
     private var players: [PlayerEntity] = []
@@ -414,11 +418,10 @@ final class GameScene: SKScene {
             thorns.removeLast(thorns.count - desired)
         }
 
-        let texture = wardenThornsAtlas.textureNamed("weapon_warden_thorns_000")
-        texture.filteringMode = .nearest
         while thorns.count < desired {
-            let sprite = SKSpriteNode(texture: texture, size: SkillConfig.wardenThornSize)
+            let sprite = SKSpriteNode(texture: wardenThornFrames.first, size: SkillConfig.wardenThornSize)
             sprite.zPosition = Layer.world
+            animateWardenThorn(sprite)
             addChild(sprite)
             thorns.append(ActiveThorn(sprite: sprite, angle: phase))
         }
@@ -511,6 +514,22 @@ final class GameScene: SKScene {
     private func removeAllThorns(for playerID: ObjectIdentifier) {
         guard let thorns = wardenThorns.removeValue(forKey: playerID) else { return }
         thorns.forEach { $0.sprite.removeFromParent() }
+    }
+
+    private func animateWardenThorn(_ sprite: SKSpriteNode) {
+        guard wardenThornFrames.count > 1 else { return }
+
+        let animate = SKAction.animate(
+            with: wardenThornFrames,
+            timePerFrame: SkillConfig.wardenThornAnimFrameTime
+        )
+        sprite.run(.repeatForever(animate), withKey: wardenThornAnimationKey)
+    }
+
+    private func wardenThornTexture(named name: String) -> SKTexture {
+        let texture = wardenThornsAtlas.textureNamed(name)
+        texture.filteringMode = .nearest
+        return texture
     }
 
     private func makeMistCloudNode(radius: CGFloat) -> SKNode {
