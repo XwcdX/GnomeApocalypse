@@ -29,12 +29,23 @@ struct WardenThornsLayoutTests {
         assertEvenSpacing(sixThorns, expectedGap: (CGFloat.pi * 2) / 6)
     }
 
-    @Test("thorn tip follows counter-clockwise travel direction")
-    func thornTipFollowsCounterClockwiseTravelDirection() {
-        #expect(approximatelyEqual(
-            WardenThornsLayout.spriteRotation(forThornAngle: 0),
-            CGFloat.pi / 2
-        ))
+    @Test("animated thorn source art follows counter-clockwise orbit tangent")
+    func animatedThornSourceArtFollowsCounterClockwiseOrbitTangent() {
+        for angle in [CGFloat.zero, .pi / 2, .pi, .pi * 1.5] {
+            #expect(approximatelyEqual(
+                WardenThornsLayout.spriteRotation(forThornAngle: angle),
+                angle
+            ))
+        }
+    }
+
+    @Test("animated thorn visual footprint stays compact while gameplay values stay unchanged")
+    func animatedThornVisualFootprintStaysCompactWhileGameplayValuesStayUnchanged() {
+        #expect(approximatelyEqual(SkillConfig.wardenThornSize.width, 12))
+        #expect(approximatelyEqual(SkillConfig.wardenThornSize.height, 38))
+        #expect(approximatelyEqual(SkillConfig.wardenThornRadius, 90))
+        #expect(approximatelyEqual(SkillConfig.wardenThornRotationSpeed, 3.0))
+        #expect(approximatelyEqual(SkillConfig.wardenThornHitRadius, 10))
     }
 
     private func assertEvenSpacing(_ angles: [CGFloat], expectedGap: CGFloat) {
