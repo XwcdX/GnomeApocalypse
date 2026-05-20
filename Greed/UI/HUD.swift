@@ -86,9 +86,9 @@ final class HUD: SKNode {
     private let healthFill = SKSpriteNode(color: SKColor(red: 0.94, green: 0.02, blue: 0.10, alpha: 1), size: .zero)
     private let healthIcon = SKShapeNode()
     private let healthValueLabel = OutlinedLabel(text: "100/100")
-    private let levelLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-    private let stageLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-    private let timerLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let levelLabel = SKLabelNode(fontNamed: GameConfig.fontName)
+    private let stageLabel = OutlinedLabel(text: "Stage")
+    private let timerLabel = OutlinedLabel(text: "00:00")
     private let guideRoot = SKNode()
     private let moveGuide = GuidePromptVisual(title: "W, A, S, D", subtitle: "to move")
     private let aimGuide = GuidePromptVisual(title: "Move Mouse", subtitle: "to aim")
@@ -98,8 +98,8 @@ final class HUD: SKNode {
         let background = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.34), size: .zero)
         let frame = SKShapeNode()
         let icon = SKSpriteNode(color: .clear, size: .zero)
-        let initials = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-        let levelLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        let initials = SKLabelNode(fontNamed: GameConfig.fontName)
+        let levelLabel = SKLabelNode(fontNamed: GameConfig.fontName)
         var representedSkillID: String?
     }
 
@@ -131,7 +131,7 @@ final class HUD: SKNode {
                 CGPoint(x: 0, y: 2)
             ]
             shadows = offsets.map { offset in
-                let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+                let label = SKLabelNode(fontNamed: GameConfig.fontName)
                 label.text = text
                 label.fontColor = SKColor.black.withAlphaComponent(0.78)
                 label.horizontalAlignmentMode = .center
@@ -140,7 +140,7 @@ final class HUD: SKNode {
                 label.zPosition = 0
                 return label
             }
-            foreground = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            foreground = SKLabelNode(fontNamed: GameConfig.fontName)
             foreground.text = text
             foreground.fontColor = .white
             foreground.horizontalAlignmentMode = .center
@@ -154,9 +154,9 @@ final class HUD: SKNode {
         }
 
         func setFontSize(_ fontSize: CGFloat) {
-            foreground.fontSize = fontSize
+            foreground.fontSize = fontSize * 1.5
             for shadow in shadows {
-                shadow.fontSize = fontSize
+                shadow.fontSize = fontSize * 1.5
             }
         }
 
@@ -204,7 +204,7 @@ final class HUD: SKNode {
         setEssenceFraction(player.level.xpFraction)
         healthValueLabel.setText("\(player.health.current)/\(player.health.maximum)")
         levelLabel.text = "LV \(player.level.currentLevel)"
-        timerLabel.text = formatElapsedTime(elapsedTime)
+        timerLabel.setText(formatElapsedTime(elapsedTime))
         updateItemSlots(for: player)
         updateGuideVisibility()
     }
@@ -294,19 +294,17 @@ final class HUD: SKNode {
         levelLabel.zPosition = 2
         addChild(levelLabel)
 
-        stageLabel.text = "Stage"
-        stageLabel.fontColor = .white
-        stageLabel.horizontalAlignmentMode = .center
-        stageLabel.verticalAlignmentMode = .center
-        stageLabel.name = "stageLabel"
-        addChild(stageLabel)
+        stageLabel.setText("Stage")
+        stageLabel.setHorizontalAlignment(.center)
+        stageLabel.root.name = "stageLabel"
+        stageLabel.root.zPosition = 2
+        addChild(stageLabel.root)
 
-        timerLabel.text = "00:00"
-        timerLabel.fontColor = .white
-        timerLabel.horizontalAlignmentMode = .center
-        timerLabel.verticalAlignmentMode = .center
-        timerLabel.name = "timerLabel"
-        addChild(timerLabel)
+        timerLabel.setText("00:00")
+        timerLabel.setHorizontalAlignment(.center)
+        timerLabel.root.name = "timerLabel"
+        timerLabel.root.zPosition = 2
+        addChild(timerLabel.root)
 
         guideRoot.name = "controlGuide"
         guideRoot.zPosition = 20
@@ -357,7 +355,7 @@ final class HUD: SKNode {
         essenceFill.size = CGSize(width: essenceFillWidth, height: essenceFillHeight)
         essenceFillMask.position = .zero
 
-        levelLabel.fontSize = scaled(21, scale)
+        levelLabel.fontSize = scaled(21, scale) * 1.5
         levelLabel.position = CGPoint(
             x: essenceLeft + essenceWidth - scaled(Metrics.levelRightInset, scale),
             y: essenceTrack.position.y
@@ -408,10 +406,10 @@ final class HUD: SKNode {
             transform: nil
         )
 
-        stageLabel.fontSize = scaled(18, scale)
-        timerLabel.fontSize = scaled(32, scale)
-        stageLabel.position = CGPoint(x: 0, y: top - scaled(128, scale))
-        timerLabel.position = CGPoint(x: 0, y: top - scaled(156, scale))
+        stageLabel.setFontSize(scaled(18, scale))
+        timerLabel.setFontSize(scaled(32, scale))
+        stageLabel.root.position = CGPoint(x: 0, y: top - scaled(128, scale))
+        timerLabel.root.position = CGPoint(x: 0, y: top - scaled(156, scale))
         layoutGuide()
 
         layoutItemSlots(
@@ -493,7 +491,7 @@ final class HUD: SKNode {
             background.zPosition = 0
             root.addChild(background)
 
-            let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            let label = SKLabelNode(fontNamed: GameConfig.fontName)
             label.text = key
             label.name = "guideKeyLabel"
             label.fontColor = SKColor.black.withAlphaComponent(0.88)
@@ -545,7 +543,7 @@ final class HUD: SKNode {
         knob.zPosition = 2
         root.addChild(knob)
 
-        let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+        let label = SKLabelNode(fontNamed: GameConfig.fontName)
         label.name = "guideStickLabel"
         label.fontColor = SKColor.black.withAlphaComponent(0.84)
         label.horizontalAlignmentMode = .center
@@ -599,7 +597,7 @@ final class HUD: SKNode {
                 cornerWidth: corner, cornerHeight: corner, transform: nil
             )
             background.lineWidth = scaled(guideKeyBorderWidth, scale)
-            label.fontSize = scaled(guideKeyFontSize, scale)
+            label.fontSize = scaled(guideKeyFontSize, scale) * 1.5
         }
     }
 
@@ -655,7 +653,7 @@ final class HUD: SKNode {
 
         if let stickLabel = root.childNode(withName: "guideStickLabel") as? SKLabelNode {
             stickLabel.text = label
-            stickLabel.fontSize = scaled(guideStickLabelFontSize, scale)
+            stickLabel.fontSize = scaled(guideStickLabelFontSize, scale) * 1.5
             stickLabel.position = CGPoint(x: isAimStick ? knobOffset : -knobOffset, y: knobOffset)
         }
 
@@ -791,8 +789,8 @@ final class HUD: SKNode {
                 transform: nil
             )
             slot.icon.size = CGSize(width: slotSize.width * 0.72, height: slotSize.height * 0.72)
-            slot.initials.fontSize = slotSize.height * 0.30
-            slot.levelLabel.fontSize = slotSize.height * 0.26
+            slot.initials.fontSize = slotSize.height * 0.30 * 1.5
+            slot.levelLabel.fontSize = slotSize.height * 0.26 * 1.5
             slot.levelLabel.position = CGPoint(x: slotSize.width / 2 - 4, y: -slotSize.height / 2 + 3)
         }
     }

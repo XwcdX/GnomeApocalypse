@@ -67,6 +67,7 @@ enum GameConfig {
     /// Fixed reference canvas for HUD and overlay scaling. Keep this independent
     /// from mapSize so changing the world dimensions does not resize UI.
     static let uiReferenceSize: CGSize = CGSize(width: 1440, height: 810)
+    static let fontName = "Pixelade"
 
 
     // MARK: - Input
