@@ -50,9 +50,8 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
         }
         
         guard let enemy = enemyNode else { return }
-        enemy.health.takeDamage(projectile.damage)
+        enemy.takeDamage(projectile.damage)
         AudioManager.shared.play(.hit)
-        if enemy.health.isDead { enemy.die() }
         projectile.deactivate()
     }
     
