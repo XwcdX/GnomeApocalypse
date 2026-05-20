@@ -21,11 +21,11 @@ final class LuminousWisp: PlayerEntity {
         animator = AnimationComponent(atlasName: "luminous_wisp", owner: self, canMirror: false)
         
         let directions = ["up", "down", "left", "right", "up_left", "up_right", "down_left", "down_right"]
-        let actions = ["idle", "walk", "shoot"]
+        let actionFrameCounts = [("idle", 6), ("walk", 4), ("shoot", 6)]
         
         for direction in directions {
-            for action in actions {
-                animator.loadAnimation(name: "luminous_wisp_\(direction)_\(action)", frameCount: 6)
+            for (action, frameCount) in actionFrameCounts {
+                animator.loadAnimation(name: "luminous_wisp_\(direction)_\(action)", frameCount: frameCount)
             }
         }
     }
