@@ -18,6 +18,8 @@ final class GameOverOverlay: SKNode {
     private enum Metrics {
         static let baseWidth: CGFloat = GameConfig.uiReferenceSize.width
         static let baseHeight: CGFloat = GameConfig.uiReferenceSize.height
+        static let summaryPaddingX: CGFloat = 34
+        static let summaryPaddingY: CGFloat = 30
     }
 
     private let survivedTime: TimeInterval
@@ -103,47 +105,48 @@ final class GameOverOverlay: SKNode {
         timeLabel.zPosition = 1
         addChild(timeLabel)
 
-        replayButton.fillColor = .black
-        replayButton.strokeColor = .white
-        replayButton.lineJoin = .round
+        replayButton.fillColor = .white
+        replayButton.strokeColor = .black
+        replayButton.lineJoin = .miter
         replayButton.zPosition = 1
         addChild(replayButton)
 
         replayLabel.text = "Press Any Button to Start Again"
-        replayLabel.fontColor = .white
+        replayLabel.fontColor = .black
         replayLabel.horizontalAlignmentMode = .center
         replayLabel.verticalAlignmentMode = .center
         replayLabel.zPosition = 2
         replayButton.addChild(replayLabel)
 
-        summaryPanel.fillColor = SKColor(red: 0.20, green: 0.22, blue: 0.34, alpha: 0.66)
-        summaryPanel.strokeColor = SKColor.white.withAlphaComponent(0.18)
+        summaryPanel.fillColor = .white
+        summaryPanel.strokeColor = .black
+        summaryPanel.lineJoin = .miter
         summaryPanel.zPosition = 1
         addChild(summaryPanel)
 
-        summaryDivider.strokeColor = SKColor.white.withAlphaComponent(0.34)
+        summaryDivider.strokeColor = SKColor.black.withAlphaComponent(0.72)
         summaryDivider.zPosition = 2
         addChild(summaryDivider)
 
         statsTitleLabel.text = "Stats"
-        statsTitleLabel.fontColor = .white
+        statsTitleLabel.fontColor = .black
         statsTitleLabel.horizontalAlignmentMode = .left
         statsTitleLabel.verticalAlignmentMode = .center
-        statsTitleLabel.zPosition = 1
+        statsTitleLabel.zPosition = 2
         addChild(statsTitleLabel)
 
         itemsTitleLabel.text = "Items"
-        itemsTitleLabel.fontColor = .white
+        itemsTitleLabel.fontColor = .black
         itemsTitleLabel.horizontalAlignmentMode = .left
         itemsTitleLabel.verticalAlignmentMode = .center
-        itemsTitleLabel.zPosition = 1
+        itemsTitleLabel.zPosition = 2
         addChild(itemsTitleLabel)
 
         makeStatLabels()
         makeItemSlots()
 
         noItemsLabel.text = "No items"
-        noItemsLabel.fontColor = SKColor.white.withAlphaComponent(0.72)
+        noItemsLabel.fontColor = .black
         noItemsLabel.horizontalAlignmentMode = .left
         noItemsLabel.verticalAlignmentMode = .center
         noItemsLabel.zPosition = 2
@@ -170,14 +173,12 @@ final class GameOverOverlay: SKNode {
         let buttonY = -halfHeight + scaled(190, scale)
         replayButton.position = CGPoint(x: 0, y: buttonY)
         replayButton.path = CGPath(
-            roundedRect: CGRect(
+            rect: CGRect(
                 x: -buttonSize.width / 2,
                 y: -buttonSize.height / 2,
                 width: buttonSize.width,
                 height: buttonSize.height
             ),
-            cornerWidth: scaled(12, scale),
-            cornerHeight: scaled(12, scale),
             transform: nil
         )
         replayButton.lineWidth = scaled(2, scale)
@@ -223,7 +224,7 @@ final class GameOverOverlay: SKNode {
         for (key, value) in statRows() {
             let keyLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
             keyLabel.text = key
-            keyLabel.fontColor = SKColor.white.withAlphaComponent(0.88)
+            keyLabel.fontColor = .black
             keyLabel.horizontalAlignmentMode = .left
             keyLabel.verticalAlignmentMode = .center
             keyLabel.zPosition = 2
@@ -232,7 +233,7 @@ final class GameOverOverlay: SKNode {
 
             let valueLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
             valueLabel.text = value
-            valueLabel.fontColor = .white
+            valueLabel.fontColor = .black
             valueLabel.horizontalAlignmentMode = .right
             valueLabel.verticalAlignmentMode = .center
             valueLabel.zPosition = 2
@@ -257,7 +258,7 @@ final class GameOverOverlay: SKNode {
 
             let initialsLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
             initialsLabel.text = initials(for: item.name)
-            initialsLabel.fontColor = .white
+            initialsLabel.fontColor = .black
             initialsLabel.horizontalAlignmentMode = .center
             initialsLabel.verticalAlignmentMode = .center
             initialsLabel.zPosition = 2
@@ -267,7 +268,7 @@ final class GameOverOverlay: SKNode {
 
             let levelLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
             levelLabel.text = "\(item.level)"
-            levelLabel.fontColor = SKColor(red: 1.0, green: 0.92, blue: 0.16, alpha: 1.0)
+            levelLabel.fontColor = .black
             levelLabel.horizontalAlignmentMode = .center
             levelLabel.verticalAlignmentMode = .center
             levelLabel.zPosition = 2
@@ -277,8 +278,20 @@ final class GameOverOverlay: SKNode {
     }
 
     private func layoutSummaryColumns(scale: CGFloat, halfHeight: CGFloat) {
+        let titleFontSize = scaled(24, scale)
+        let rowFontSize = scaled(18, scale)
+        let lineGap = scaled(screenSize.height < 700 ? 24 : 29, scale)
+        let contentInsetX = scaled(Metrics.summaryPaddingX, scale)
+        let contentInsetY = scaled(Metrics.summaryPaddingY, scale)
+        let rowCount = CGFloat(statKeyLabels.count)
         let panelWidth = min(screenSize.width * 0.76, scaled(930, scale))
-        let panelHeight = scaled(screenSize.height < 700 ? 150 : 170, scale)
+        let panelHeight = max(
+            scaled(screenSize.height < 700 ? 150 : 170, scale),
+            contentInsetY * 2
+                + titleFontSize / 2
+                + lineGap * rowCount
+                + rowFontSize / 2
+        )
         let panelCenterY = halfHeight - scaled(390, scale)
         let panelRect = CGRect(
             x: -panelWidth / 2,
@@ -287,35 +300,32 @@ final class GameOverOverlay: SKNode {
             height: panelHeight
         )
         summaryPanel.path = CGPath(
-            roundedRect: panelRect,
-            cornerWidth: scaled(6, scale),
-            cornerHeight: scaled(6, scale),
+            rect: panelRect,
             transform: nil
         )
-        summaryPanel.lineWidth = scaled(1.5, scale)
+        summaryPanel.lineWidth = scaled(2, scale)
 
         let dividerX = panelRect.midX
         let dividerPath = CGMutablePath()
-        dividerPath.move(to: CGPoint(x: dividerX, y: panelRect.minY + scaled(16, scale)))
-        dividerPath.addLine(to: CGPoint(x: dividerX, y: panelRect.maxY - scaled(16, scale)))
+        dividerPath.move(to: CGPoint(x: dividerX, y: panelRect.minY))
+        dividerPath.addLine(to: CGPoint(x: dividerX, y: panelRect.maxY))
         summaryDivider.path = dividerPath
         summaryDivider.lineWidth = scaled(1.5, scale)
 
-        let leftX = panelRect.minX + scaled(34, scale)
-        let leftValueX = dividerX - scaled(38, scale)
-        let rightX = dividerX + scaled(34, scale)
-        let topY = panelRect.maxY - scaled(36, scale)
-        let lineGap = scaled(screenSize.height < 700 ? 24 : 29, scale)
+        let leftX = panelRect.minX + contentInsetX
+        let leftValueX = dividerX - contentInsetX
+        let rightX = dividerX + contentInsetX
+        let topY = panelRect.maxY - contentInsetY - titleFontSize / 2
 
-        statsTitleLabel.fontSize = scaled(24, scale)
+        statsTitleLabel.fontSize = titleFontSize
         statsTitleLabel.position = CGPoint(x: leftX, y: topY)
-        itemsTitleLabel.fontSize = scaled(24, scale)
+        itemsTitleLabel.fontSize = titleFontSize
         itemsTitleLabel.position = CGPoint(x: rightX, y: topY)
 
         for index in statKeyLabels.indices {
-            statKeyLabels[index].fontSize = scaled(18, scale)
+            statKeyLabels[index].fontSize = rowFontSize
             statKeyLabels[index].position = CGPoint(x: leftX, y: topY - lineGap * CGFloat(index + 1))
-            statValueLabels[index].fontSize = scaled(18, scale)
+            statValueLabels[index].fontSize = rowFontSize
             statValueLabels[index].position = CGPoint(x: leftValueX, y: topY - lineGap * CGFloat(index + 1))
         }
 

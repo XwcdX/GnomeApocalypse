@@ -6,6 +6,7 @@ private let referenceSpriteHeight: CGFloat = 48
 private let lightningStrikeRadiusFactor: CGFloat = 0.8
 private let lightningBoltHeightFactor: CGFloat = 1.5
 private let lightningBoltOffsetFactor: CGFloat = 0.15
+private let levelUpOverlayDelay: TimeInterval = 0.35
 
 final class GameScene: SKScene {
     private struct ActiveMistCloud {
@@ -39,6 +40,8 @@ final class GameScene: SKScene {
     private var skillCardOverlay: SkillCardOverlay?
     private var gameOverOverlay: GameOverOverlay?
     private weak var skillSelectionPlayer: PlayerEntity?
+    private weak var pendingSkillSelectionPlayer: PlayerEntity?
+    private var pendingSkillSelectionDelay: TimeInterval = 0
     private var wasSkillConfirmPressed = false
     private var lightningCooldowns: [ObjectIdentifier: TimeInterval] = [:]
     private var activeMistClouds: [ObjectIdentifier: [ActiveMistCloud]] = [:]
@@ -124,6 +127,7 @@ final class GameScene: SKScene {
         updateControlGuideDismissal()
         updateAimCursorMode()
         hud.update(elapsedTime: elapsedRunTime)
+        updatePendingSkillSelection(deltaTime: deltaTime)
         cameraSystem.update(deltaTime: deltaTime)
         refreshWorldRenderers()
         updateYSort()
@@ -660,10 +664,11 @@ final class GameScene: SKScene {
     
     func handleLevelUp(for player: PlayerEntity) {
         Log.debug("GameScene: player leveled up to \(player.level.currentLevel)")
-        guard skillCardOverlay == nil else { return }
+        guard skillCardOverlay == nil, pendingSkillSelectionPlayer == nil else { return }
         audioManager.play(.levelUp)
-        skillSelectionPlayer = player
-        presentSkillCardOverlay()
+        hud.showFullEssenceBriefly(duration: levelUpOverlayDelay)
+        pendingSkillSelectionPlayer = player
+        pendingSkillSelectionDelay = levelUpOverlayDelay
     }
 
     @discardableResult
@@ -694,6 +699,8 @@ final class GameScene: SKScene {
 
     func handlePlayerDeath(_ player: PlayerEntity) {
         Log.debug("GameScene: player died")
+        pendingSkillSelectionPlayer = nil
+        pendingSkillSelectionDelay = 0
         audioManager.stopBackgroundMusic()
         audioManager.playDeathExclusively()
         presentGameOverOverlay(for: player)
@@ -755,11 +762,23 @@ final class GameScene: SKScene {
         onAimModeChanged?(.manual)
     }
 
+    private func updatePendingSkillSelection(deltaTime: TimeInterval) {
+        guard skillCardOverlay == nil, gameOverOverlay == nil, let player = pendingSkillSelectionPlayer else { return }
+        pendingSkillSelectionDelay = max(0, pendingSkillSelectionDelay - deltaTime)
+        guard pendingSkillSelectionDelay == 0 else { return }
+
+        pendingSkillSelectionPlayer = nil
+        skillSelectionPlayer = player
+        presentSkillCardOverlay()
+    }
+
     private func presentGameOverOverlay(for player: PlayerEntity) {
         guard gameOverOverlay == nil else { return }
         skillCardOverlay?.removeFromParent()
         skillCardOverlay = nil
         skillSelectionPlayer = nil
+        pendingSkillSelectionPlayer = nil
+        pendingSkillSelectionDelay = 0
         players.forEach { $0.hideAimGuide() }
         physicsWorld.speed = 0
         onGameOverPresented?()
