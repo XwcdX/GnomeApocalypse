@@ -15,6 +15,6 @@ enum WardenThornsLayout {
     }
 
     static func spriteRotation(forThornAngle angle: CGFloat) -> CGFloat {
-        angle + CGFloat.pi / 2
+        angle
     }
 }
