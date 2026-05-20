@@ -8,7 +8,7 @@ enum SkillConfig {
     static let wardenThornRadius: CGFloat = 90
     static let wardenThornDamage: Int = 30
     static let wardenThornCooldownPerEnemy: TimeInterval = 0.5
-    static let wardenThornSize = CGSize(width: 12, height: 38)
+    static let wardenThornSize = CGSize(width: 28, height: 38)
     static let wardenThornHitRadius: CGFloat = 10
     static let wardenThornFrameCount = 5
     static let wardenThornAnimFrameTime: TimeInterval = 0.08

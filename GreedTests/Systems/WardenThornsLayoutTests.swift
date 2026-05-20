@@ -41,7 +41,7 @@ struct WardenThornsLayoutTests {
 
     @Test("animated thorn visual footprint stays compact while gameplay values stay unchanged")
     func animatedThornVisualFootprintStaysCompactWhileGameplayValuesStayUnchanged() {
-        #expect(approximatelyEqual(SkillConfig.wardenThornSize.width, 12))
+        #expect(approximatelyEqual(SkillConfig.wardenThornSize.width, 28))
         #expect(approximatelyEqual(SkillConfig.wardenThornSize.height, 38))
         #expect(approximatelyEqual(SkillConfig.wardenThornRadius, 90))
         #expect(approximatelyEqual(SkillConfig.wardenThornRotationSpeed, 3.0))
