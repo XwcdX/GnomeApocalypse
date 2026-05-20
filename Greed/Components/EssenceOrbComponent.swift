@@ -69,6 +69,7 @@ final class EssenceOrbComponent: SKSpriteNode {
     private(set) var currentTextureName: String = EssenceTier.green.textureName
     private var stateElapsedTime: TimeInterval = 0
     private var mutationElapsedTime: TimeInterval = 0
+    private var lifetimeElapsedTime: TimeInterval = 0
     
     init() {
         let texture = Self.pickupTexture(named: EssenceTier.green.textureName)
@@ -95,6 +96,7 @@ final class EssenceOrbComponent: SKSpriteNode {
         ghostRenderer?.update(cameraPosition: cameraSystem.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
 
         stateElapsedTime += deltaTime
+        lifetimeElapsedTime += deltaTime
         switch essenceTier {
         case .green where stateElapsedTime >= GameConfig.smallOrbEvolveTime:
             become(.blue)
@@ -113,6 +115,20 @@ final class EssenceOrbComponent: SKSpriteNode {
         ghostRenderer?.clear()
         removeAction(forKey: "idleBob")
         removeFromParent()
+    }
+
+    func applyMagnet(toward targetPosition: CGPoint, deltaTime: TimeInterval, speed: CGFloat) {
+        guard visualPhase != .mutating else { return }
+        guard lifetimeElapsedTime >= GameConfig.orbMagnetActivationDelay else { return }
+
+        let dx = targetPosition.x - position.x
+        let dy = targetPosition.y - position.y
+        let distance = sqrt(dx * dx + dy * dy)
+        guard distance > 0 else { return }
+
+        let step = min(speed * CGFloat(deltaTime), distance)
+        position.x += (dx / distance) * step
+        position.y += (dy / distance) * step
     }
     
     private func become(_ nextTier: EssenceTier) {

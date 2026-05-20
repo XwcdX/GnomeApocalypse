@@ -38,6 +38,9 @@ enum GameConfig {
     static let smallOrbEssenceValue: Int = 10
     static let grownOrbEssenceValue: Int = 25
     static let redOrbEssenceValue: Int = 50
+    static let orbMagnetRadius: CGFloat = 40
+    static let orbMagnetSpeed: CGFloat = 360
+    static let orbMagnetActivationDelay: TimeInterval = 0.45
 
 
     // MARK: - Shield (Level Up)
@@ -99,7 +102,7 @@ enum GameConfig {
 
     // MARK: - Boss Stage
     /// Interval (in seconds) between Boss eruptions, regardless of Director budget state.
-    static let bossSpawnInterval: TimeInterval = 600.0
+    static let bossSpawnInterval: TimeInterval = 300.0
 
 
     // MARK: - Enemy Spawn

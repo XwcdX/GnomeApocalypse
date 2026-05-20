@@ -621,6 +621,39 @@ final class GameScene: SKScene {
         return false
     }
 
+    func canPlayerShoot(from playerPosition: CGPoint) -> Bool {
+        let halfViewport = CGSize(
+            width: cameraSystem.worldViewportSize.width / 2,
+            height: cameraSystem.worldViewportSize.height / 2
+        )
+        let shootRadius = sqrt(halfViewport.width * halfViewport.width + halfViewport.height * halfViewport.height) * 0.6
+
+        return enemies.contains { enemy in
+            enemy.parent != nil
+                && toroidalDistance(from: playerPosition, to: enemy.position, mapSize: GameConfig.mapSize) <= shootRadius
+        }
+    }
+
+    func magnetTargetForOrb(at orbPosition: CGPoint, radius: CGFloat) -> CGPoint? {
+        let radiusSquared = radius * radius
+
+        return players
+            .filter { $0.parent != nil }
+            .map { $0.position }
+            .filter { position in
+                let dx = position.x - orbPosition.x
+                let dy = position.y - orbPosition.y
+                return (dx * dx + dy * dy) <= radiusSquared
+            }
+            .min(by: { lhs, rhs in
+                let ldx = lhs.x - orbPosition.x
+                let ldy = lhs.y - orbPosition.y
+                let rdx = rhs.x - orbPosition.x
+                let rdy = rhs.y - orbPosition.y
+                return (ldx * ldx + ldy * ldy) < (rdx * rdx + rdy * rdy)
+            })
+    }
+
     private func isVisible(_ position: CGPoint) -> Bool {
         let cameraPos = cameraSystem.cameraNode.position
         let viewport = GameConfig.cameraViewportSize
