@@ -3,6 +3,9 @@ import SpriteKit
 class EnemyEntity: SKSpriteNode {
     var health: HealthComponent
     private var ghostRenderer: ToroidalRenderingComponent?
+    private let hitFeedbackActionKey = "enemyHitFeedback"
+    private let deathFeedbackActionKey = "enemyDeathFeedback"
+    private(set) var isDying = false
     
     var targetPosition: CGPoint = .zero
     var isTargetingActive: Bool = true
@@ -35,6 +38,7 @@ class EnemyEntity: SKSpriteNode {
     var movementDelta: CGPoint { CGPoint(x: position.x - lastPosition.x, y: position.y - lastPosition.y) }
 
     func update(deltaTime: TimeInterval) {
+        guard !isDying else { return }
         if ghostRenderer == nil {
             ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
         }
@@ -48,12 +52,40 @@ class EnemyEntity: SKSpriteNode {
     }
 
     func die() {
+        guard !isDying else { return }
+        isDying = true
         ghostRenderer?.clear()
         ghostRenderer = nil
         gameScene?.spawnEssenceOrb(at: position)
         gameScene?.directorSystem.recordKill()
         gameScene?.deregister(enemy: self)
-        removeFromParent()
+        physicsBody = nil
+        removeAllActions()
+        alpha = 1
+
+        let blinkOut = SKAction.fadeAlpha(to: 0.25, duration: 0.04)
+        let blinkIn = SKAction.fadeAlpha(to: 1, duration: 0.04)
+        let fadeAway = SKAction.fadeAlpha(to: 0, duration: 0.10)
+        run(.sequence([blinkOut, blinkIn, fadeAway, .removeFromParent()]), withKey: deathFeedbackActionKey)
+    }
+
+    func takeDamage(_ amount: Int) {
+        guard amount > 0, !health.isDead, !isDying else { return }
+        let didDie = health.takeDamage(amount)
+        if didDie {
+            die()
+        } else {
+            playHitFeedback()
+        }
+    }
+
+    private func playHitFeedback() {
+        removeAction(forKey: hitFeedbackActionKey)
+        alpha = 1
+
+        let blinkOut = SKAction.fadeAlpha(to: 0.35, duration: 0.035)
+        let blinkIn = SKAction.fadeAlpha(to: 1, duration: 0.055)
+        run(.sequence([blinkOut, blinkIn]), withKey: hitFeedbackActionKey)
     }
 
     private func moveTowardTarget(deltaTime: TimeInterval) {

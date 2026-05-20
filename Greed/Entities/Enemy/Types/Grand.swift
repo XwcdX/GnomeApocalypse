@@ -53,6 +53,7 @@ final class Grand: EnemyEntity {
     }
     
     override func die() {
+        guard !isDying else { return }
         gameScene?.handleBossDeath()
         super.die()
     }

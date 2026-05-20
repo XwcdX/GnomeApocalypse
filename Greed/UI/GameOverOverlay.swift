@@ -24,13 +24,14 @@ final class GameOverOverlay: SKNode {
 
     private let survivedTime: TimeInterval
     private let onReplay: () -> Void
+    private let usesControllerPrompt: Bool
     private var screenSize: CGSize
     private var replayRect: CGRect = .zero
     private var hasReplayed = false
 
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.58), size: .zero)
-    private var survivedLabel: OutlinedLabel!
-    private var timeLabel: OutlinedLabel!
+    private let survivedLabel = OutlinedLabel(text: "You survived for")
+    private let timeLabel = OutlinedLabel(text: "00:00")
     private let replayButton = SKShapeNode()
     private let replayLabel = SKLabelNode(fontNamed: GameConfig.fontName)
     private let summaryPanel = SKShapeNode()
@@ -50,11 +51,13 @@ final class GameOverOverlay: SKNode {
         survivedTime: TimeInterval,
         screenSize: CGSize,
         stats: GameOverStats,
+        usesControllerPrompt: Bool,
         onReplay: @escaping () -> Void
     ) {
         self.survivedTime = survivedTime
         self.screenSize = screenSize
         self.stats = stats
+        self.usesControllerPrompt = usesControllerPrompt
         self.onReplay = onReplay
         super.init()
 
@@ -91,12 +94,11 @@ final class GameOverOverlay: SKNode {
         dimmer.zPosition = 0
         addChild(dimmer)
 
-        survivedLabel = OutlinedLabel(text: "You survived for")
-        survivedLabel.setZPosition(1)
+        survivedLabel.root.zPosition = 1
         addChild(survivedLabel.root)
 
-        timeLabel = OutlinedLabel(text: formatTime(survivedTime))
-        timeLabel.setZPosition(1)
+        timeLabel.setText(formatTime(survivedTime))
+        timeLabel.root.zPosition = 1
         addChild(timeLabel.root)
 
         replayButton.fillColor = .white
@@ -105,7 +107,7 @@ final class GameOverOverlay: SKNode {
         replayButton.zPosition = 1
         addChild(replayButton)
 
-        replayLabel.text = "Press Any Button to Start Again"
+        replayLabel.text = usesControllerPrompt ? "Press Any Button to Start Again" : "Start Again"
         replayLabel.fontColor = .black
         replayLabel.horizontalAlignmentMode = .center
         replayLabel.verticalAlignmentMode = .center
