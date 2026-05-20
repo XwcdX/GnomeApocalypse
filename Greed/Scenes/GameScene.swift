@@ -292,8 +292,7 @@ final class GameScene: SKScene {
         let strike = makeLightningStrikeNode(at: position, radius: referenceSpriteHeight * lightningStrikeRadiusFactor)
         addChild(strike)
         particleAssets.emit(.lightningImpact, at: position, in: self)
-        enemy.health.takeDamage(damage)
-        if enemy.health.isDead { enemy.die() }
+        enemy.takeDamage(damage)
     }
 
     private func updateMistSkills(deltaTime: TimeInterval) {
@@ -369,8 +368,7 @@ final class GameScene: SKScene {
         for enemy in enemies where enemy.parent != nil {
             let distance = toroidalDistance(from: cloud.position, to: enemy.position, mapSize: GameConfig.mapSize)
             guard distance <= cloud.radius else { continue }
-            enemy.health.takeDamage(damage)
-            if enemy.health.isDead { enemy.die() }
+            enemy.takeDamage(damage)
         }
     }
 
@@ -496,9 +494,8 @@ final class GameScene: SKScene {
                 let distance = toroidalDistance(from: orbPos, to: enemy.position, mapSize: GameConfig.mapSize)
                 guard distance <= enemyRadius + orbHitRadius else { continue }
 
-                enemy.health.takeDamage(SkillConfig.orbitDamage)
+                enemy.takeDamage(SkillConfig.orbitDamage)
                 particleAssets.emit(.orbitingSpellHit, at: enemy.position, in: self)
-                if enemy.health.isDead { enemy.die() }
 
                 var perOrb = orbitHitCooldowns[playerID] ?? [:]
                 var perEnemy = perOrb[orbIndex] ?? [:]
@@ -689,12 +686,38 @@ final class GameScene: SKScene {
     }
 
     @discardableResult
+    func handleMouseMoved(atViewPosition viewPosition: CGPoint, viewSize: CGSize) -> Bool {
+        guard viewSize.width > 0, viewSize.height > 0 else { return true }
+        guard let skillCardOverlay else { return gameOverOverlay != nil }
+
+        let overlayPoint = CGPoint(
+            x: (viewPosition.x / viewSize.width) * size.width - size.width / 2,
+            y: (viewPosition.y / viewSize.height) * size.height - size.height / 2
+        )
+        return skillCardOverlay.handleMouseMoved(at: overlayPoint)
+    }
+
+    @discardableResult
     func handleKeyDown(_ event: NSEvent) -> Bool {
         if gameOverOverlay != nil {
-            gameOverOverlay?.replay()
             return true
         }
-        return skillCardOverlay != nil
+        guard let skillCardOverlay else { return false }
+
+        let shortcutModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
+        guard event.modifierFlags.intersection(shortcutModifiers).isEmpty else { return true }
+
+        switch event.keyCode {
+        case 0:
+            skillCardOverlay.moveSelection(.left)
+        case 2:
+            skillCardOverlay.moveSelection(.right)
+        case 36, 49:
+            skillCardOverlay.selectHighlightedCard()
+        default:
+            break
+        }
+        return true
     }
 
     func handlePlayerDeath(_ player: PlayerEntity) {
@@ -786,7 +809,8 @@ final class GameScene: SKScene {
         let overlay = GameOverOverlay(
             survivedTime: elapsedRunTime,
             screenSize: size,
-            stats: makeGameOverStats(for: player)
+            stats: makeGameOverStats(for: player),
+            usesControllerPrompt: inputSystem.hasConnectedController
         ) { [weak self] in
             self?.onReplayRequested?()
         }

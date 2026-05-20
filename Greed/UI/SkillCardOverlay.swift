@@ -21,11 +21,54 @@ final class SkillCardOverlay: SKNode {
     private var hasSelected = false
 
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.44), size: .zero)
-    private let titleLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let titleLabel = OutlinedLabel(text: "Choose 1 of these Ancient Cards")
     private let confirmPromptRoot = SKNode()
     private let confirmButtonCircle = SKShapeNode()
     private let confirmButtonLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
     private let confirmTextLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+
+    private final class OutlinedLabel {
+        let root = SKNode()
+        private let shadows: [SKLabelNode]
+        private let foreground: SKLabelNode
+
+        init(text: String) {
+            let offsets = [
+                CGPoint(x: -2, y: 0),
+                CGPoint(x: 2, y: 0),
+                CGPoint(x: 0, y: -2),
+                CGPoint(x: 0, y: 2)
+            ]
+            shadows = offsets.map { offset in
+                let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+                label.text = text
+                label.fontColor = SKColor.black.withAlphaComponent(0.78)
+                label.horizontalAlignmentMode = .center
+                label.verticalAlignmentMode = .center
+                label.position = offset
+                label.zPosition = 0
+                return label
+            }
+            foreground = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            foreground.text = text
+            foreground.fontColor = .white
+            foreground.horizontalAlignmentMode = .center
+            foreground.verticalAlignmentMode = .center
+            foreground.zPosition = 1
+
+            for shadow in shadows {
+                root.addChild(shadow)
+            }
+            root.addChild(foreground)
+        }
+
+        func setFontSize(_ fontSize: CGFloat) {
+            foreground.fontSize = fontSize
+            for shadow in shadows {
+                shadow.fontSize = fontSize
+            }
+        }
+    }
 
     init(skills: [Skill], screenSize: CGSize, onSelect: @escaping (Skill) -> Void) {
         self.skills = skills
@@ -51,7 +94,18 @@ final class SkillCardOverlay: SKNode {
     func handleMouseDown(at point: CGPoint) -> Bool {
         guard !hasSelected else { return true }
         guard let index = cardRects.firstIndex(where: { $0.contains(point) }) else { return true }
+        setSelectedIndex(index)
         select(index: index)
+        return true
+    }
+
+    @discardableResult
+    func handleMouseMoved(at point: CGPoint) -> Bool {
+        guard !hasSelected,
+              let index = cardRects.firstIndex(where: { $0.contains(point) })
+        else { return true }
+
+        setSelectedIndex(index)
         return true
     }
 
@@ -63,11 +117,10 @@ final class SkillCardOverlay: SKNode {
         guard !hasSelected, !skills.isEmpty else { return }
         switch direction {
         case .left, .up:
-            selectedIndex = (selectedIndex - 1 + skills.count) % skills.count
+            setSelectedIndex((selectedIndex - 1 + skills.count) % skills.count)
         case .right, .down:
-            selectedIndex = (selectedIndex + 1) % skills.count
+            setSelectedIndex((selectedIndex + 1) % skills.count)
         }
-        updateCardSelection()
     }
 
     private func setupNodes() {
@@ -75,12 +128,8 @@ final class SkillCardOverlay: SKNode {
         dimmer.zPosition = 0
         addChild(dimmer)
 
-        titleLabel.text = "Choose 1 of these Ancient Cards"
-        titleLabel.fontColor = .white
-        titleLabel.horizontalAlignmentMode = .center
-        titleLabel.verticalAlignmentMode = .center
-        titleLabel.zPosition = 1
-        addChild(titleLabel)
+        titleLabel.root.zPosition = 1
+        addChild(titleLabel.root)
 
         confirmPromptRoot.zPosition = 1
         addChild(confirmPromptRoot)
@@ -161,9 +210,9 @@ final class SkillCardOverlay: SKNode {
         dimmer.position = .zero
         dimmer.size = screenSize
 
-        titleLabel.isHidden = screenSize.height < 540
-        titleLabel.fontSize = min(34, max(20, screenSize.height * 0.032))
-        titleLabel.position = CGPoint(x: 0, y: halfHeight - max(48, screenSize.height * 0.10))
+        titleLabel.root.isHidden = screenSize.height < 540
+        titleLabel.setFontSize(min(34, max(20, screenSize.height * 0.032)))
+        titleLabel.root.position = CGPoint(x: 0, y: halfHeight - max(48, screenSize.height * 0.10))
 
         layoutConfirmPrompt()
 
@@ -266,6 +315,12 @@ final class SkillCardOverlay: SKNode {
         guard !hasSelected, skills.indices.contains(index) else { return }
         hasSelected = true
         onSelect(skills[index])
+    }
+
+    private func setSelectedIndex(_ index: Int) {
+        guard skills.indices.contains(index), selectedIndex != index else { return }
+        selectedIndex = index
+        updateCardSelection()
     }
 
     private func updateCardSelection() {

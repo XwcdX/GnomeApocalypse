@@ -24,13 +24,14 @@ final class GameOverOverlay: SKNode {
 
     private let survivedTime: TimeInterval
     private let onReplay: () -> Void
+    private let usesControllerPrompt: Bool
     private var screenSize: CGSize
     private var replayRect: CGRect = .zero
     private var hasReplayed = false
 
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.58), size: .zero)
-    private let survivedLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-    private let timeLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let survivedLabel = OutlinedLabel(text: "You survived for")
+    private let timeLabel = OutlinedLabel(text: "00:00")
     private let replayButton = SKShapeNode()
     private let replayLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
     private let summaryPanel = SKShapeNode()
@@ -46,15 +47,67 @@ final class GameOverOverlay: SKNode {
     private let noItemsLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
     private let stats: GameOverStats
 
+    private final class OutlinedLabel {
+        let root = SKNode()
+        private let shadows: [SKLabelNode]
+        private let foreground: SKLabelNode
+
+        init(text: String) {
+            let offsets = [
+                CGPoint(x: -2, y: 0),
+                CGPoint(x: 2, y: 0),
+                CGPoint(x: 0, y: -2),
+                CGPoint(x: 0, y: 2)
+            ]
+            shadows = offsets.map { offset in
+                let label = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+                label.text = text
+                label.fontColor = SKColor.black.withAlphaComponent(0.78)
+                label.horizontalAlignmentMode = .center
+                label.verticalAlignmentMode = .center
+                label.position = offset
+                label.zPosition = 0
+                return label
+            }
+            foreground = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+            foreground.text = text
+            foreground.fontColor = .white
+            foreground.horizontalAlignmentMode = .center
+            foreground.verticalAlignmentMode = .center
+            foreground.zPosition = 1
+
+            for shadow in shadows {
+                root.addChild(shadow)
+            }
+            root.addChild(foreground)
+        }
+
+        func setFontSize(_ fontSize: CGFloat) {
+            foreground.fontSize = fontSize
+            for shadow in shadows {
+                shadow.fontSize = fontSize
+            }
+        }
+
+        func setText(_ text: String) {
+            foreground.text = text
+            for shadow in shadows {
+                shadow.text = text
+            }
+        }
+    }
+
     init(
         survivedTime: TimeInterval,
         screenSize: CGSize,
         stats: GameOverStats,
+        usesControllerPrompt: Bool,
         onReplay: @escaping () -> Void
     ) {
         self.survivedTime = survivedTime
         self.screenSize = screenSize
         self.stats = stats
+        self.usesControllerPrompt = usesControllerPrompt
         self.onReplay = onReplay
         super.init()
 
@@ -91,19 +144,12 @@ final class GameOverOverlay: SKNode {
         dimmer.zPosition = 0
         addChild(dimmer)
 
-        survivedLabel.text = "You survived for"
-        survivedLabel.fontColor = .white
-        survivedLabel.horizontalAlignmentMode = .center
-        survivedLabel.verticalAlignmentMode = .center
-        survivedLabel.zPosition = 1
-        addChild(survivedLabel)
+        survivedLabel.root.zPosition = 1
+        addChild(survivedLabel.root)
 
-        timeLabel.text = formatTime(survivedTime)
-        timeLabel.fontColor = .white
-        timeLabel.horizontalAlignmentMode = .center
-        timeLabel.verticalAlignmentMode = .center
-        timeLabel.zPosition = 1
-        addChild(timeLabel)
+        timeLabel.setText(formatTime(survivedTime))
+        timeLabel.root.zPosition = 1
+        addChild(timeLabel.root)
 
         replayButton.fillColor = .white
         replayButton.strokeColor = .black
@@ -111,7 +157,7 @@ final class GameOverOverlay: SKNode {
         replayButton.zPosition = 1
         addChild(replayButton)
 
-        replayLabel.text = "Press Any Button to Start Again"
+        replayLabel.text = usesControllerPrompt ? "Press Any Button to Start Again" : "Start Again"
         replayLabel.fontColor = .black
         replayLabel.horizontalAlignmentMode = .center
         replayLabel.verticalAlignmentMode = .center
@@ -161,11 +207,11 @@ final class GameOverOverlay: SKNode {
         dimmer.position = .zero
         dimmer.size = screenSize
 
-        survivedLabel.fontSize = scaled(34, scale)
-        survivedLabel.position = CGPoint(x: 0, y: halfHeight - scaled(125, scale))
+        survivedLabel.setFontSize(scaled(34, scale))
+        survivedLabel.root.position = CGPoint(x: 0, y: halfHeight - scaled(125, scale))
 
-        timeLabel.fontSize = scaled(74, scale)
-        timeLabel.position = CGPoint(x: 0, y: halfHeight - scaled(205, scale))
+        timeLabel.setFontSize(scaled(74, scale))
+        timeLabel.root.position = CGPoint(x: 0, y: halfHeight - scaled(205, scale))
 
         layoutSummaryColumns(scale: scale, halfHeight: halfHeight)
 

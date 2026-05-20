@@ -2,16 +2,17 @@ import Cocoa
 import MetalKit
 import SpriteKit
 
-private let aimCursorSize: CGFloat = 28
-private let aimCursorRingInset: CGFloat = 5
-private let aimCursorDotInset: CGFloat = 12
-private let aimCursorRingShadowWidth: CGFloat = 4
-private let aimCursorRingWidth: CGFloat = 2
+private let aimCursorSize: CGFloat = 34
+private let aimCursorRingInset: CGFloat = 6
+private let aimCursorDotInset: CGFloat = 15
+private let aimCursorRingShadowWidth: CGFloat = 5
+private let aimCursorRingWidth: CGFloat = 2.5
 private let aimCursorCrossStart: CGFloat = 2
-private let aimCursorCrossEnd: CGFloat = 9
-private let aimCursorCrossStart2: CGFloat = 19
-private let aimCursorCrossEnd2: CGFloat = 26
-private let aimCursorCrossWidth: CGFloat = 2
+private let aimCursorCrossEnd: CGFloat = 11
+private let aimCursorCrossStart2: CGFloat = 23
+private let aimCursorCrossEnd2: CGFloat = 32
+private let aimCursorCrossWidth: CGFloat = 2.5
+private let aimCursorAccentColor = NSColor(calibratedRed: 1.0, green: 0.16, blue: 0.78, alpha: 1)
 private let minimumContentSize = NSSize(width: 1024, height: 640)
 
 final class ViewController: NSViewController {
@@ -27,6 +28,7 @@ final class ViewController: NSViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         view.window?.contentMinSize = minimumContentSize
+        view.window?.acceptsMouseMovedEvents = true
         view.window?.makeFirstResponder(self)
         guard homeScene == nil, gameScene == nil else { return }
         setupRenderer()
@@ -102,7 +104,7 @@ final class ViewController: NSViewController {
             outerShadow.lineWidth = aimCursorRingShadowWidth
             outerShadow.stroke()
 
-            NSColor(calibratedRed: 0.35, green: 0.9, blue: 1.0, alpha: 1).setStroke()
+            aimCursorAccentColor.setStroke()
             let outer = NSBezierPath(ovalIn: rect.insetBy(dx: aimCursorRingInset, dy: aimCursorRingInset))
             outer.lineWidth = aimCursorRingWidth
             outer.stroke()
@@ -110,7 +112,7 @@ final class ViewController: NSViewController {
             NSColor.white.setFill()
             NSBezierPath(ovalIn: rect.insetBy(dx: aimCursorDotInset, dy: aimCursorDotInset)).fill()
 
-            NSColor(calibratedRed: 0.35, green: 0.9, blue: 1.0, alpha: 1).setStroke()
+            aimCursorAccentColor.setStroke()
             let horizontal = NSBezierPath()
             horizontal.move(to: NSPoint(x: aimCursorCrossStart, y: rect.midY))
             horizontal.line(to: NSPoint(x: aimCursorCrossEnd, y: rect.midY))
@@ -170,6 +172,9 @@ final class ViewController: NSViewController {
             let viewSize = metalRenderer.mtkView.bounds.size
             guard viewSize.width > 0, viewSize.height > 0, metalRenderer.mtkView.bounds.contains(viewPos) else {
                 return event
+            }
+            if gameScene.handleMouseMoved(atViewPosition: viewPos, viewSize: viewSize) == true {
+                return nil
             }
             let nx = (viewPos.x / viewSize.width) - 0.5
             let ny = (viewPos.y / viewSize.height) - 0.5
