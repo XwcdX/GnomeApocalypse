@@ -6,8 +6,8 @@ final class HomeScene: SKScene {
 
     private let background = SKSpriteNode(texture: SKTexture(imageNamed: "tile_ground"))
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.58), size: .zero)
-    private let titleLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-    private let startLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontName)
+    private let startLabel = SKLabelNode(fontNamed: GameConfig.fontName)
 
     init(size: CGSize, onStart: @escaping () -> Void) {
         self.onStart = onStart
@@ -68,10 +68,10 @@ final class HomeScene: SKScene {
         dimmer.position = background.position
         dimmer.size = size
 
-        titleLabel.fontSize = max(30, size.width * 0.035)
+        titleLabel.fontSize = max(30, size.width * 0.035) * 1.5
         titleLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.70)
 
-        startLabel.fontSize = max(18, size.width * 0.018)
+        startLabel.fontSize = max(18, size.width * 0.018) * 1.5
         startLabel.position = CGPoint(x: size.width / 2, y: size.height * 0.32)
     }
 }

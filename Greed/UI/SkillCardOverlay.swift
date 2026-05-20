@@ -21,11 +21,11 @@ final class SkillCardOverlay: SKNode {
     private var hasSelected = false
 
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.44), size: .zero)
-    private let titleLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let titleLabel = SKLabelNode(fontNamed: GameConfig.fontName)
     private let confirmPromptRoot = SKNode()
     private let confirmButtonCircle = SKShapeNode()
-    private let confirmButtonLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
-    private let confirmTextLabel = SKLabelNode(fontNamed: "HelveticaNeue-Bold")
+    private let confirmButtonLabel = SKLabelNode(fontNamed: GameConfig.fontName)
+    private let confirmTextLabel = SKLabelNode(fontNamed: GameConfig.fontName)
 
     init(skills: [Skill], screenSize: CGSize, onSelect: @escaping (Skill) -> Void) {
         self.skills = skills
@@ -141,7 +141,7 @@ final class SkillCardOverlay: SKNode {
         icon.isHidden = card.childNode(withName: "skillCardArt") != nil
         card.addChild(icon)
 
-        let nameLabel = SKLabelNode(fontNamed: "HelveticaNeue")
+        let nameLabel = SKLabelNode(fontNamed: GameConfig.fontName)
         nameLabel.text = skill.name
         nameLabel.fontColor = .black
         nameLabel.horizontalAlignmentMode = .center
@@ -162,7 +162,7 @@ final class SkillCardOverlay: SKNode {
         dimmer.size = screenSize
 
         titleLabel.isHidden = screenSize.height < 540
-        titleLabel.fontSize = min(34, max(20, screenSize.height * 0.032))
+        titleLabel.fontSize = min(34, max(20, screenSize.height * 0.032)) * 1.5
         titleLabel.position = CGPoint(x: 0, y: halfHeight - max(48, screenSize.height * 0.10))
 
         layoutConfirmPrompt()
@@ -212,7 +212,7 @@ final class SkillCardOverlay: SKNode {
             }
 
             if let nameLabel = card.childNode(withName: "skillCardName") as? SKLabelNode {
-                nameLabel.fontSize = min(layout.cardSize.height * 0.052, layout.cardSize.width * 0.105)
+                nameLabel.fontSize = min(layout.cardSize.height * 0.052, layout.cardSize.width * 0.105) * 1.5
                 nameLabel.position = CGPoint(x: 0, y: -layout.cardSize.height * 0.27)
             }
 
@@ -255,10 +255,10 @@ final class SkillCardOverlay: SKNode {
         )
         confirmButtonCircle.lineWidth = max(1.5, buttonDiameter * 0.07)
 
-        confirmButtonLabel.fontSize = buttonDiameter * 0.58
+        confirmButtonLabel.fontSize = buttonDiameter * 0.58 * 1.5
         confirmButtonLabel.position = .zero
 
-        confirmTextLabel.fontSize = fontSize
+        confirmTextLabel.fontSize = fontSize * 1.5
         confirmTextLabel.position = CGPoint(x: buttonDiameter / 2 + gap, y: 0)
     }
 
