@@ -36,7 +36,7 @@ private let guideCursorRays: [(name: String, start: CGPoint, end: CGPoint)] = [
     ("guideAimRay_3", CGPoint(x: 94,  y: -15), CGPoint(x: 138,  y: -15))
 ]
 private let guideCursorRayWidth: CGFloat = 9
-private let healthValueFontSize: CGFloat = 24
+private let healthValueFontSize: CGFloat = 16
 
 final class HUD: SKNode {
     private enum ControlGuideInputMode {
@@ -47,46 +47,52 @@ final class HUD: SKNode {
     private enum Metrics {
         static let baseWidth: CGFloat = GameConfig.uiReferenceSize.width
         static let baseHeight: CGFloat = GameConfig.uiReferenceSize.height
-        static let avatarSize = CGSize(width: 104, height: 82)
+        static let hudEdgePadding: CGFloat = 16
+        static let avatarSize = CGSize(width: 102.4, height: 102.4)
         static let essenceBarHeight: CGFloat = 52
         static let healthBarHeight: CGFloat = 48
         static let healthBarMaxWidth: CGFloat = 620
         static let healthFramePadding: CGFloat = 6
-        static let barLeftGap: CGFloat = 14
-        static let barRowGap: CGFloat = 14
+        static let barLeftGap: CGFloat = 12
+        static let barRowGap: CGFloat = 4
         static let levelRightInset: CGFloat = 34
-        static let xpFillInsetLeft: CGFloat = 0
-        static let xpFillInsetRight: CGFloat = 0
-        static let xpFillInsetY: CGFloat = 0
+        static let xpFillInsetLeft: CGFloat = 44
+        static let xpFillInsetRight: CGFloat = 17
+        static let xpFillInsetY: CGFloat = 18.5
         static let healthFillInsetLeft: CGFloat = 0
         static let healthFillInsetRight: CGFloat = 0
         static let healthFillInsetY: CGFloat = 0
-        static let healthValueGap: CGFloat = 10
-        static let healthValueReservedWidth: CGFloat = 150
+        static let healthValueRightInset: CGFloat = 34
         static let itemSlotSize = CGSize(width: 52, height: 52)
-        static let itemSlotGapX: CGFloat = 50
-        static let itemSlotGapY: CGFloat = 40
+        static let itemSlotGapX: CGFloat = 18
+        static let itemSlotGapY: CGFloat = 18
     }
 
     private weak var player: PlayerEntity?
     private var screenSize: CGSize
     private var currentLayoutScale: CGFloat = 1
+    private var essenceTextureScale: CGFloat = 1
+    private var healthTextureScale: CGFloat = 1
     private var weaponSlots: [ItemSlotVisual] = []
     private var powerUpSlots: [ItemSlotVisual] = []
     private var isControlGuideDismissed = false
     private var controlGuideInputMode: ControlGuideInputMode = InputSystem.shared.hasConnectedController ? .controller : .keyboardMouse
+    private var forcedEssenceFraction: CGFloat?
+    private var forcedEssenceFractionUntil: TimeInterval = 0
 
-    private let avatarNode = SKShapeNode()
+    private let avatarNode = SKSpriteNode(texture: nil)
     private let essenceTrack = SKSpriteNode(color: .white, size: .zero)
     private let essenceFillCrop = SKCropNode()
     private let essenceFillMask = SKSpriteNode(color: .white, size: .zero)
     private let essenceFill = SKSpriteNode(color: SKColor(red: 0.25, green: 0.72, blue: 1.0, alpha: 1), size: .zero)
     private let healthFrame = SKShapeNode()
     private let healthTrack = SKSpriteNode(color: SKColor(red: 0.08, green: 0.04, blue: 0.06, alpha: 1), size: .zero)
+    private let healthFillCrop = SKCropNode()
+    private let healthFillMask = SKSpriteNode(color: .white, size: .zero)
     private let healthFill = SKSpriteNode(color: SKColor(red: 0.94, green: 0.02, blue: 0.10, alpha: 1), size: .zero)
     private let healthIcon = SKShapeNode()
     private let healthValueLabel = OutlinedLabel(text: "100/100")
-    private let levelLabel = SKLabelNode(fontNamed: GameConfig.fontName)
+    private let levelLabel = OutlinedLabel(text: "LV 1")
     private let stageLabel = OutlinedLabel(text: "Stage")
     private let timerLabel = OutlinedLabel(text: "00:00")
     private let guideRoot = SKNode()
@@ -201,12 +207,23 @@ final class HUD: SKNode {
         guard let player else { return }
         setControlGuideUsesController(InputSystem.shared.hasConnectedController)
         setHealthFraction(player.health.fraction)
-        setEssenceFraction(player.level.xpFraction)
+        if let forcedEssenceFraction, CACurrentMediaTime() < forcedEssenceFractionUntil {
+            setEssenceFraction(forcedEssenceFraction)
+        } else {
+            forcedEssenceFraction = nil
+            setEssenceFraction(player.level.xpFraction)
+        }
         healthValueLabel.setText("\(player.health.current)/\(player.health.maximum)")
-        levelLabel.text = "LV \(player.level.currentLevel)"
+        levelLabel.setText("LV \(player.level.currentLevel)")
         timerLabel.setText(formatElapsedTime(elapsedTime))
         updateItemSlots(for: player)
         updateGuideVisibility()
+    }
+
+    func showFullEssenceBriefly(duration: TimeInterval) {
+        forcedEssenceFraction = 1
+        forcedEssenceFractionUntil = CACurrentMediaTime() + duration
+        setEssenceFraction(1)
     }
 
     func dismissControlGuide() {
@@ -224,15 +241,15 @@ final class HUD: SKNode {
     }
 
     private func setupNodes() {
-        avatarNode.fillColor = SKColor(red: 0.28, green: 0.37, blue: 0.72, alpha: 1)
-        avatarNode.strokeColor = .clear
+        avatarNode.texture = hudTexture("Icon_luminous_wisp")
+        avatarNode.colorBlendFactor = 0
+        avatarNode.anchorPoint = CGPoint(x: 0.5, y: 0.5)
         avatarNode.name = "hudAvatar"
         addChild(avatarNode)
 
         essenceTrack.anchorPoint = CGPoint(x: 0, y: 0.5)
         essenceTrack.texture = hudTexture("xp_bar_frame")
         essenceTrack.colorBlendFactor = 0
-        essenceTrack.centerRect = CGRect(x: 0.045, y: 0, width: 0.91, height: 1)
         essenceTrack.name = "essenceBarTrack"
         essenceTrack.zPosition = 0
         addChild(essenceTrack)
@@ -240,7 +257,6 @@ final class HUD: SKNode {
         essenceFill.anchorPoint = CGPoint(x: 0, y: 0.5)
         essenceFill.texture = hudTexture("xp_bar_fill")
         essenceFill.colorBlendFactor = 0
-        essenceFill.centerRect = CGRect(x: 0.045, y: 0, width: 0.91, height: 1)
         essenceFill.name = "essenceBarFill"
         essenceFill.zPosition = 0
         essenceFillCrop.name = "essenceBarFillCrop"
@@ -262,7 +278,6 @@ final class HUD: SKNode {
         healthTrack.anchorPoint = CGPoint(x: 0, y: 0.5)
         healthTrack.texture = hudTexture("health_bar_frame")
         healthTrack.colorBlendFactor = 0
-        healthTrack.centerRect = CGRect(x: 0.16, y: 0, width: 0.72, height: 1)
         healthTrack.name = "healthBarTrack"
         healthTrack.zPosition = 3
         addChild(healthTrack)
@@ -270,10 +285,15 @@ final class HUD: SKNode {
         healthFill.anchorPoint = CGPoint(x: 0, y: 0.5)
         healthFill.texture = hudTexture("health_bar_fill")
         healthFill.colorBlendFactor = 0
-        healthFill.centerRect = CGRect(x: 0.16, y: 0, width: 0.72, height: 1)
         healthFill.name = "healthBarFill"
-        healthFill.zPosition = 2
-        addChild(healthFill)
+        healthFill.zPosition = 0
+        healthFillCrop.name = "healthBarFillCrop"
+        healthFillCrop.zPosition = 2
+        healthFillMask.anchorPoint = CGPoint(x: 0, y: 0.5)
+        healthFillMask.position = .zero
+        healthFillCrop.maskNode = healthFillMask
+        healthFillCrop.addChild(healthFill)
+        addChild(healthFillCrop)
 
         healthIcon.fillColor = SKColor(red: 1.0, green: 0.04, blue: 0.10, alpha: 1)
         healthIcon.strokeColor = SKColor(red: 0.32, green: 0.0, blue: 0.02, alpha: 1)
@@ -284,15 +304,13 @@ final class HUD: SKNode {
 
         healthValueLabel.root.name = "healthValueLabel"
         healthValueLabel.root.zPosition = 5
-        healthValueLabel.setHorizontalAlignment(.left)
+        healthValueLabel.setHorizontalAlignment(.right)
         addChild(healthValueLabel.root)
 
-        levelLabel.fontColor = .black
-        levelLabel.horizontalAlignmentMode = .right
-        levelLabel.verticalAlignmentMode = .center
-        levelLabel.name = "levelLabel"
-        levelLabel.zPosition = 2
-        addChild(levelLabel)
+        levelLabel.root.name = "levelLabel"
+        levelLabel.root.zPosition = 5
+        levelLabel.setHorizontalAlignment(.right)
+        addChild(levelLabel.root)
 
         stageLabel.setText("Stage")
         stageLabel.setHorizontalAlignment(.center)
@@ -327,37 +345,39 @@ final class HUD: SKNode {
         let left = -visibleSize.width / 2
         let right = visibleSize.width / 2
         let top = visibleSize.height / 2
+        let edgePadding = scaled(Metrics.hudEdgePadding, scale)
+        let hudLeft = left + edgePadding
+        let hudRight = right - edgePadding
+        let hudTop = top - edgePadding
         let avatarSize = scaled(Metrics.avatarSize)
         let essenceBarHeight = scaled(Metrics.essenceBarHeight, scale)
 
-        avatarNode.path = rectPath(size: avatarSize)
+        avatarNode.size = fittedSize(for: avatarNode.texture, inside: avatarSize)
         avatarNode.position = CGPoint(
-            x: left + avatarSize.width / 2,
-            y: top - avatarSize.height / 2
+            x: hudLeft + avatarSize.width / 2,
+            y: hudTop - avatarSize.height / 2
         )
 
-        let essenceLeft = left + avatarSize.width + scaled(Metrics.barLeftGap, scale)
-        let essenceWidth = max(0, right - essenceLeft)
-        essenceTrack.position = CGPoint(x: essenceLeft, y: top - essenceBarHeight / 2)
-        essenceTrack.size = CGSize(width: essenceWidth, height: essenceBarHeight)
-        let essenceFillWidth = max(
-            0,
-            essenceWidth
-                - scaled(Metrics.xpFillInsetLeft, scale)
-                - scaled(Metrics.xpFillInsetRight, scale)
+        let essenceLeft = hudLeft + avatarSize.width + scaled(Metrics.barLeftGap, scale)
+        let essenceSize = fittedSize(
+            for: essenceTrack.texture,
+            inside: CGSize(width: max(0, hudRight - essenceLeft), height: essenceBarHeight)
         )
-        let essenceFillHeight = max(0, essenceBarHeight - scaled(Metrics.xpFillInsetY * 2, scale))
+        essenceTextureScale = textureScale(for: essenceTrack.texture, displayedSize: essenceSize)
+        essenceTrack.position = CGPoint(x: essenceLeft, y: hudTop - essenceBarHeight / 2)
+        essenceTrack.size = essenceSize
+        let essenceFillSize = scaledTextureSize(for: essenceFill.texture, scale: essenceTextureScale)
         essenceFillCrop.position = CGPoint(
-            x: essenceLeft + scaled(Metrics.xpFillInsetLeft, scale),
+            x: essenceLeft + Metrics.xpFillInsetLeft * essenceTextureScale,
             y: essenceTrack.position.y
         )
         essenceFill.position = .zero
-        essenceFill.size = CGSize(width: essenceFillWidth, height: essenceFillHeight)
+        essenceFill.size = essenceFillSize
         essenceFillMask.position = .zero
 
-        levelLabel.fontSize = scaled(21, scale) * 1.5
-        levelLabel.position = CGPoint(
-            x: essenceLeft + essenceWidth - scaled(Metrics.levelRightInset, scale),
+        levelLabel.setFontSize(scaled(21, scale))
+        levelLabel.root.position = CGPoint(
+            x: essenceLeft + essenceTrack.size.width - Metrics.levelRightInset * essenceTextureScale,
             y: essenceTrack.position.y
         )
 
@@ -368,25 +388,26 @@ final class HUD: SKNode {
             - (scaled(Metrics.healthBarHeight, scale) / 2)
         let healthBarWidth = min(
             scaled(Metrics.healthBarMaxWidth, scale),
-            max(
-                0,
-                right
-                    - healthLeft
-                    - scaled(Metrics.healthValueGap, scale)
-                    - scaled(Metrics.healthValueReservedWidth, scale)
-                    - scaled(18, scale)
-            )
+            max(0, hudRight - healthLeft - scaled(18, scale)),
+            aspectWidth(for: healthTrack.texture, height: scaled(Metrics.healthBarHeight, scale))
         )
-        let healthBarSize = CGSize(width: healthBarWidth, height: scaled(Metrics.healthBarHeight, scale))
+        let healthBarSize = fittedSize(
+            for: healthTrack.texture,
+            inside: CGSize(width: healthBarWidth, height: scaled(Metrics.healthBarHeight, scale))
+        )
+        healthTextureScale = textureScale(for: healthTrack.texture, displayedSize: healthBarSize)
         healthTrack.position = CGPoint(x: healthLeft, y: healthY)
         healthTrack.size = healthBarSize
-        healthFill.position = CGPoint(
-            x: healthLeft + scaled(Metrics.healthFillInsetLeft, scale),
+        healthFillCrop.position = CGPoint(
+            x: healthLeft + Metrics.healthFillInsetLeft * healthTextureScale,
             y: healthY
         )
+        healthFill.position = .zero
+        healthFill.size = scaledTextureSize(for: healthFill.texture, scale: healthTextureScale)
+        healthFillMask.position = .zero
         healthValueLabel.setFontSize(scaled(healthValueFontSize, scale))
         healthValueLabel.root.position = CGPoint(
-            x: healthLeft + healthBarWidth + scaled(Metrics.healthValueGap, scale),
+            x: healthLeft + healthBarSize.width - Metrics.healthValueRightInset * healthTextureScale,
             y: healthY
         )
         healthIcon.path = nil
@@ -415,8 +436,11 @@ final class HUD: SKNode {
         layoutItemSlots(
             slotSize: scaled(Metrics.itemSlotSize, scale),
             origin: CGPoint(
-                x: healthLeft + scaled(8, scale),
-                y: healthY - scaled(82, scale)
+                x: hudLeft + scaled(Metrics.itemSlotSize.width, scale) / 2,
+                y: healthY
+                    - healthBarSize.height / 2
+                    - scaled(Metrics.itemSlotSize.height, scale) / 2
+                    - scaled(Metrics.itemSlotGapY, scale)
             ),
             scale: scale
         )
@@ -700,12 +724,12 @@ final class HUD: SKNode {
         let availableWidth = max(
             0,
             healthTrack.size.width
-                - scaled(Metrics.healthFillInsetLeft, currentLayoutScale)
-                - scaled(Metrics.healthFillInsetRight, currentLayoutScale)
+                - Metrics.healthFillInsetLeft * healthTextureScale
+                - Metrics.healthFillInsetRight * healthTextureScale
         )
-        healthFill.size = CGSize(
+        healthFillMask.size = CGSize(
             width: availableWidth * clampedFraction(fraction),
-            height: max(0, healthTrack.size.height - scaled(Metrics.healthFillInsetY * 2, currentLayoutScale))
+            height: max(0, healthTrack.size.height - Metrics.healthFillInsetY * 2 * healthTextureScale)
         )
     }
 
@@ -713,12 +737,12 @@ final class HUD: SKNode {
         let availableWidth = max(
             0,
             essenceTrack.size.width
-                - scaled(Metrics.xpFillInsetLeft, currentLayoutScale)
-                - scaled(Metrics.xpFillInsetRight, currentLayoutScale)
+                - Metrics.xpFillInsetLeft * essenceTextureScale
+                - Metrics.xpFillInsetRight * essenceTextureScale
         )
         essenceFillMask.size = CGSize(
             width: availableWidth * clampedFraction(fraction),
-            height: max(0, essenceTrack.size.height - scaled(Metrics.xpFillInsetY * 2, currentLayoutScale))
+            height: essenceFill.size.height
         )
     }
 
@@ -901,6 +925,35 @@ final class HUD: SKNode {
 
     private func scaled(_ size: CGSize, _ scale: CGFloat) -> CGSize {
         CGSize(width: scaled(size.width, scale), height: scaled(size.height, scale))
+    }
+
+    private func fittedSize(for texture: SKTexture?, inside maxSize: CGSize) -> CGSize {
+        guard let texture else { return maxSize }
+        let textureSize = texture.size()
+        guard textureSize.width > 0, textureSize.height > 0 else { return maxSize }
+        let scale = min(maxSize.width / textureSize.width, maxSize.height / textureSize.height)
+        return CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
+    }
+
+    private func aspectWidth(for texture: SKTexture?, height: CGFloat) -> CGFloat {
+        guard let texture, height > 0 else { return 0 }
+        let textureSize = texture.size()
+        guard textureSize.width > 0, textureSize.height > 0 else { return 0 }
+        return height * (textureSize.width / textureSize.height)
+    }
+
+    private func scaledTextureSize(for texture: SKTexture?, scale: CGFloat) -> CGSize {
+        guard let texture else { return .zero }
+        let textureSize = texture.size()
+        guard textureSize.width > 0, textureSize.height > 0 else { return .zero }
+        return CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
+    }
+
+    private func textureScale(for texture: SKTexture?, displayedSize: CGSize) -> CGFloat {
+        guard let texture else { return 1 }
+        let textureSize = texture.size()
+        guard textureSize.width > 0, textureSize.height > 0 else { return 1 }
+        return min(displayedSize.width / textureSize.width, displayedSize.height / textureSize.height)
     }
 
     private func rectPath(size: CGSize) -> CGPath {
