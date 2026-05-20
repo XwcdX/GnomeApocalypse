@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "grumble_attack_000.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

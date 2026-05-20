@@ -11,7 +11,7 @@ final class Grove: EnemyEntity {
     private var queuedAttackLifespan: TimeInterval = 0
     
     init() {
-        let atlas = SKTextureAtlas(named: "Grove")
+        let atlas = SKTextureAtlas(named: "grove")
         let firstFrame = atlas.textureNamed("grove_walk_000")
         super.init(
             texture: firstFrame,
@@ -28,7 +28,7 @@ final class Grove: EnemyEntity {
     override var moveSpeed: CGFloat { GameConfig.smallGnomeMoveSpeed }
     
     private func setupAnimations() {
-        animator = AnimationComponent(atlasName: "Grove", owner: self, canMirror: true)
+        animator = AnimationComponent(atlasName: "grove", owner: self, canMirror: true)
         animator.loadAnimation(name: "grove_walk", frameCount: 4)
         animator.loadAnimation(name: "grove_attack", frameCount: 4)
     }
@@ -86,7 +86,7 @@ final class Grove: EnemyEntity {
             at: position,
             direction: queuedAttackDirection,
             damage: GameConfig.smallGnomeAttackDamage,
-            textureName: "GroveBullet",
+            textureName: "projectile_enemy_grove",
             lifespan: queuedAttackLifespan
         )
     }

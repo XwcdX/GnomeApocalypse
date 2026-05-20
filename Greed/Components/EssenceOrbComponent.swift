@@ -12,29 +12,66 @@ private let orbBobMinAmplitude: CGFloat = 2
 private let orbBobDurationMin: TimeInterval = 0.6
 private let orbBobDurationMax: TimeInterval = 0.9
 private let orbBobInitialDelayMax: TimeInterval = 0.35
-private let orbMistBurstSize: CGFloat = orbSpriteHeight * 2.2
-private let orbMistBurstAnimFrameTime: TimeInterval = 0.08
-private let orbMistBurstScale: CGFloat = 1.5
-private let orbMistBurstDuration: TimeInterval = 0.24
+private let mutationFrameCount: Int = 5
+private let mutationFrameTime: TimeInterval = 0.08
 
 final class EssenceOrbComponent: SKSpriteNode {
-    enum OrbState {
-        case small
-        case grown
+    enum EssenceTier {
+        case green
+        case blue
         case red
-        case mistExplosion
+
+        var essenceValue: Int {
+            switch self {
+            case .green: return GameConfig.smallOrbEssenceValue
+            case .blue: return GameConfig.grownOrbEssenceValue
+            case .red: return GameConfig.redOrbEssenceValue
+            }
+        }
+
+        var textureName: String {
+            switch self {
+            case .green: return "forest_essence_green"
+            case .blue: return "forest_essence_blue"
+            case .red: return "forest_essence_red"
+            }
+        }
+
+        var targetHeight: CGFloat {
+            switch self {
+            case .green: return smallOrbTargetHeight
+            case .blue: return grownOrbTargetHeight
+            case .red: return redOrbTargetHeight
+            }
+        }
+
+        var physicsRadius: CGFloat {
+            switch self {
+            case .green: return smallOrbPhysicsRadius
+            case .blue: return grownOrbPhysicsRadius
+            case .red: return redOrbPhysicsRadius
+            }
+        }
     }
 
+    enum VisualPhase {
+        case collectible
+        case mutating
+    }
+
+    static let mutationDuration: TimeInterval = TimeInterval(mutationFrameCount) * mutationFrameTime
+
     private var ghostRenderer: ToroidalRenderingComponent?
-    private let orbAtlas = SKTextureAtlas(named: "EssenceOrb")
-    private let mistAtlas = SKTextureAtlas(named: "MistEffect")
-    private(set) var state: OrbState = .small
-    private(set) var essenceValue: Int
+    private let mutationAtlas = SKTextureAtlas(named: "forest_essence_mutation")
+    private(set) var essenceTier: EssenceTier = .green
+    private(set) var visualPhase: VisualPhase = .collectible
+    private(set) var essenceValue: Int = GameConfig.smallOrbEssenceValue
+    private(set) var currentTextureName: String = EssenceTier.green.textureName
     private var stateElapsedTime: TimeInterval = 0
+    private var mutationElapsedTime: TimeInterval = 0
     
-    init(essenceValue: Int = GameConfig.smallOrbEssenceValue) {
-        self.essenceValue = essenceValue
-        let texture = SKTextureAtlas(named: "EssenceOrb").textureNamed("orb_000")
+    init() {
+        let texture = Self.pickupTexture(named: EssenceTier.green.textureName)
         texture.filteringMode = .nearest
         super.init(texture: texture, color: .clear, size: Self.scaledSize(for: texture, targetHeight: smallOrbTargetHeight))
         self.zPosition = Layer.world
@@ -49,22 +86,27 @@ final class EssenceOrbComponent: SKSpriteNode {
             ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
         }
         cameraSystem.clampToroidal(&position)
+
+        if visualPhase == .mutating {
+            ghostRenderer?.clear()
+            return advanceMutation(deltaTime: deltaTime)
+        }
+
         ghostRenderer?.update(cameraPosition: cameraSystem.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
 
         stateElapsedTime += deltaTime
-        switch state {
-        case .small where stateElapsedTime >= GameConfig.smallOrbEvolveTime:
-            becomeGrown()
-        case .grown where stateElapsedTime >= GameConfig.grownOrbEvolveTime:
-            becomeRed()
+        switch essenceTier {
+        case .green where stateElapsedTime >= GameConfig.smallOrbEvolveTime:
+            become(.blue)
+        case .blue where stateElapsedTime >= GameConfig.grownOrbEvolveTime:
+            become(.red)
         case .red where stateElapsedTime >= GameConfig.redOrbEvolveTime:
-            explodeIntoMist()
-            return true
+            startMutation()
         default:
             break
         }
 
-        return state == .mistExplosion
+        return false
     }
     
     func cleanup() {
@@ -73,62 +115,57 @@ final class EssenceOrbComponent: SKSpriteNode {
         removeFromParent()
     }
     
-    private func becomeGrown() {
-        state = .grown
+    private func become(_ nextTier: EssenceTier) {
+        essenceTier = nextTier
         stateElapsedTime = 0
-        essenceValue = GameConfig.grownOrbEssenceValue
-        let nextTexture = orbTexture("orb_001")
+        essenceValue = nextTier.essenceValue
+        currentTextureName = nextTier.textureName
+        let nextTexture = Self.pickupTexture(named: nextTier.textureName)
         texture = nextTexture
-        size = Self.scaledSize(for: nextTexture, targetHeight: grownOrbTargetHeight)
-        setupPhysics(radius: grownOrbPhysicsRadius)
+        size = Self.scaledSize(for: nextTexture, targetHeight: nextTier.targetHeight)
+        setupPhysics(radius: nextTier.physicsRadius)
     }
 
-    private func becomeRed() {
-        state = .red
+    private func startMutation() {
+        visualPhase = .mutating
         stateElapsedTime = 0
-        essenceValue = GameConfig.redOrbEssenceValue
-        let nextTexture = orbTexture("orb_002")
-        texture = nextTexture
-        size = Self.scaledSize(for: nextTexture, targetHeight: redOrbTargetHeight)
-        setupPhysics(radius: redOrbPhysicsRadius)
-    }
-
-    private func explodeIntoMist() {
-        state = .mistExplosion
-        stateElapsedTime = 0
+        mutationElapsedTime = 0
         physicsBody = nil
-        isHidden = true
+        isHidden = false
         removeAction(forKey: "idleBob")
         ghostRenderer?.clear()
-        playMistExplosionPlaceholder()
+        applyMutationFrame(index: 0)
     }
 
-    private func playMistExplosionPlaceholder() {
-        guard let parent else { return }
-
-        let mistBurst = SKSpriteNode(texture: mistTexture("mist_000"))
-        mistBurst.position = position
-        mistBurst.size = CGSize(width: orbMistBurstSize, height: orbMistBurstSize)
-        mistBurst.zPosition = zPosition + 1
-        parent.addChild(mistBurst)
-
-        let frames = (0..<3).map { mistTexture("mist_\(String(format: "%03d", $0))") }
-        let animate = SKAction.animate(with: frames, timePerFrame: orbMistBurstAnimFrameTime)
-        let expand = SKAction.scale(to: orbMistBurstScale, duration: orbMistBurstDuration)
-        let fade = SKAction.fadeOut(withDuration: orbMistBurstDuration)
-        mistBurst.run(.sequence([.group([animate, expand, fade]), .removeFromParent()]))
+    private func advanceMutation(deltaTime: TimeInterval) -> Bool {
+        mutationElapsedTime += deltaTime
+        let frameIndex = min(mutationFrameCount - 1, Int(mutationElapsedTime / mutationFrameTime))
+        applyMutationFrame(index: frameIndex)
+        return mutationElapsedTime >= Self.mutationDuration
     }
 
-    private func orbTexture(_ name: String) -> SKTexture {
-        let texture = orbAtlas.textureNamed(name)
+    private func applyMutationFrame(index: Int) {
+        let frameName = Self.mutationFrameName(index: index)
+        currentTextureName = frameName
+        let frameTexture = mutationTexture(named: frameName)
+        texture = frameTexture
+        size = Self.scaledSize(for: frameTexture, targetHeight: redOrbTargetHeight)
+    }
+
+    private func mutationTexture(named name: String) -> SKTexture {
+        let texture = mutationAtlas.textureNamed(name)
         texture.filteringMode = .nearest
         return texture
     }
 
-    private func mistTexture(_ name: String) -> SKTexture {
-        let texture = mistAtlas.textureNamed(name)
+    private static func pickupTexture(named name: String) -> SKTexture {
+        let texture = SKTexture(imageNamed: name)
         texture.filteringMode = .nearest
         return texture
+    }
+
+    private static func mutationFrameName(index: Int) -> String {
+        "vfx_forest_essence_mutation_\(String(format: "%03d", index))"
     }
 
     private static func scaledSize(for texture: SKTexture, targetHeight: CGFloat) -> CGSize {

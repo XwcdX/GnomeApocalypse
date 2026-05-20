@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "vfx_lightning_strike_003.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

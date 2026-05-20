@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "weapon_orbiting_knife_000.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
