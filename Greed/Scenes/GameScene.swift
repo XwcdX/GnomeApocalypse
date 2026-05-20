@@ -130,14 +130,17 @@ final class GameScene: SKScene {
     }
 
     private func updateYSort() {
+        let mapH = GameConfig.mapSize.height
         for node in children where node !== floorLayer && node !== propsLayer {
             guard let camera = self.camera, node !== camera else { continue }
-            guard let sprite = node as? SKSpriteNode else {
-                node.zPosition = Layer.world - node.position.y * 0.001
-                continue
+            let footY: CGFloat
+            if let sprite = node as? SKSpriteNode {
+                footY = sprite.position.y - sprite.size.height / 2
+            } else {
+                footY = node.position.y
             }
-            let footY = sprite.position.y - sprite.size.height / 2
-            node.zPosition = Layer.world - footY * 0.001
+            let wrappedY = footY - mapH * floor((footY + mapH / 2) / mapH)
+            node.zPosition = Layer.world - wrappedY / mapH
         }
     }
 
