@@ -623,7 +623,7 @@ final class GameScene: SKScene {
             width: cameraSystem.worldViewportSize.width / 2,
             height: cameraSystem.worldViewportSize.height / 2
         )
-        let shootRadius = sqrt(halfViewport.width * halfViewport.width + halfViewport.height * halfViewport.height) * 0.5
+        let shootRadius = sqrt(halfViewport.width * halfViewport.width + halfViewport.height * halfViewport.height) * 0.6
 
         return enemies.contains { enemy in
             enemy.parent != nil

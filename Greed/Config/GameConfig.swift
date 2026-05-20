@@ -102,7 +102,7 @@ enum GameConfig {
 
     // MARK: - Boss Stage
     /// Interval (in seconds) between Boss eruptions, regardless of Director budget state.
-    static let bossSpawnInterval: TimeInterval = 6.0
+    static let bossSpawnInterval: TimeInterval = 300.0
 
 
     // MARK: - Enemy Spawn
