@@ -85,7 +85,18 @@ final class SpawnSystem {
     ) -> Int {
         var spawnedBudget = 0
         var explodedOrbs: [EssenceOrbComponent] = []
+        let gameScene = entityLayer?.scene as? GameScene
+
         for orb in orbs {
+            if let gameScene,
+               let playerPosition = gameScene.magnetTargetForOrb(at: orb.position, radius: GameConfig.orbMagnetRadius) {
+                orb.applyMagnet(
+                    toward: playerPosition,
+                    deltaTime: deltaTime,
+                    speed: GameConfig.orbMagnetSpeed
+                )
+            }
+
             if orb.update(deltaTime: deltaTime, cameraSystem: camera) {
                 explodedOrbs.append(orb)
             }

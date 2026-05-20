@@ -30,23 +30,24 @@ final class PlayerAttack {
 
         let fireInterval = GameConfig.baseFireRate / Double(owner.attackSpeedMultiplier)
         guard timeSinceLastShot >= fireInterval else { return }
+
+        guard fire(from: owner) else { return }
+
         timeSinceLastShot = 0
         isShooting = true
         shootingTimer = 0
-
-        fire(from: owner)
     }
 
-    private func fire(from owner: PlayerEntity) {
-        spawnProjectile(from: owner.position, direction: owner.aimDirection, damage: GameConfig.basePlayerDamage)
+    private func fire(from owner: PlayerEntity) -> Bool {
+        spawnProjectile(from: owner.position, direction: owner.aimDirection, damage: GameConfig.basePlayerDamage, owner: owner)
     }
 
-    private func spawnProjectile(from position: CGPoint, direction: CGVector, damage: Int) {
+    private func spawnProjectile(from position: CGPoint, direction: CGVector, damage: Int, owner: PlayerEntity) -> Bool {
         guard let pool, let entityLayer,
-              let projectile = pool.dequeue() else { return }
+              let projectile = pool.dequeue() else { return false }
         
         let magnitude = sqrt(direction.dx * direction.dx + direction.dy * direction.dy)
-        guard magnitude > 0 else { return }
+        guard magnitude > 0 else { return false }
         
         let normalisedDirection = CGVector(dx: direction.dx / magnitude, dy: direction.dy / magnitude)
         let spawnPosition = CGPoint(
@@ -57,8 +58,14 @@ final class PlayerAttack {
             dx: normalisedDirection.dx * GameConfig.projectileSpeed,
             dy: normalisedDirection.dy * GameConfig.projectileSpeed
         )
-        
+
+        if let scene = owner.scene as? GameScene,
+           !scene.canPlayerShoot(from: owner.position) {
+            return false
+        }
+
         projectile.activate(at: spawnPosition, velocity: velocity, damage: damage, lifespan: GameConfig.projectileLifeSpan)
         entityLayer.addChild(projectile)
+        return true
     }
 }
