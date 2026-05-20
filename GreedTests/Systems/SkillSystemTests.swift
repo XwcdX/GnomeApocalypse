@@ -36,7 +36,7 @@ struct SkillSystemTests {
     @MainActor
     func drawNoNewWeaponsAtCap() {
         var state = PlayerSkillState()
-        for id in ["orbiting_spell", "lightning_strike", "poisonous_mist"] {
+        for id in ["warden_thorns", "lightning_strike", "poisonous_mist"] {
             state.upgrade(Skill(id: id, name: id, type: .weapon, iconName: "", maxLevel: 3))
         }
         #expect(state.weaponCapReached)
@@ -51,7 +51,7 @@ struct SkillSystemTests {
     @MainActor
     func drawOffersWeaponUpgradesAtCap() {
         var state = PlayerSkillState()
-        for id in ["orbiting_spell", "lightning_strike", "poisonous_mist"] {
+        for id in ["warden_thorns", "lightning_strike", "poisonous_mist"] {
             state.upgrade(Skill(id: id, name: id, type: .weapon, iconName: "", maxLevel: 3))
         }
         let drawn = system.draw(for: state, count: 99)
@@ -283,16 +283,16 @@ struct SkillEffectTests {
         }
     }
 
-        @Test("orbiting_spell returns SkillConfig.orbitCountByLevel value")
-    func orbitingSpellLevels() {
-        let skill = Skill(id: "orbiting_spell", name: "Orbiting Spell", type: .weapon, iconName: "", maxLevel: 3)
+    @Test("warden_thorns returns SkillConfig.wardenThornCountByLevel value")
+    func wardenThornsLevels() {
+        let skill = Skill(id: "warden_thorns", name: "Warden Thorns", type: .weapon, iconName: "", maxLevel: 3)
         for level in 1...3 {
             let effect = skill.effect(at: level)
-            guard case .orbitingSpell(let count) = effect else {
-                Issue.record("expected .orbitingSpell at level \(level)")
+            guard case .wardenThorns(let count) = effect else {
+                Issue.record("expected .wardenThorns at level \(level)")
                 return
             }
-            #expect(count == SkillConfig.orbitCountByLevel[level - 1])
+            #expect(count == SkillConfig.wardenThornCountByLevel[level - 1])
         }
     }
 

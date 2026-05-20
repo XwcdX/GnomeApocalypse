@@ -2,14 +2,14 @@ import Foundation
 import CoreGraphics
 
 enum SkillConfig {
-    // MARK: - Orbiting Spell
-    static let orbitCountByLevel: [Int] = [2, 4, 6]
-    static let orbitRotationSpeed: CGFloat = 3.0
-    static let orbitRadius: CGFloat = 90
-    static let orbitDamage: Int = 30
-    static let orbitCooldownPerEnemy: TimeInterval = 0.5
-    static let orbitKnifeSize = CGSize(width: 38, height: 14)
-    static let orbitHitRadius: CGFloat = 10
+    // MARK: - Warden Thorns
+    static let wardenThornCountByLevel: [Int] = [2, 4, 6]
+    static let wardenThornRotationSpeed: CGFloat = 3.0
+    static let wardenThornRadius: CGFloat = 90
+    static let wardenThornDamage: Int = 30
+    static let wardenThornCooldownPerEnemy: TimeInterval = 0.5
+    static let wardenThornSize = CGSize(width: 38, height: 14)
+    static let wardenThornHitRadius: CGFloat = 10
 
     // MARK: - Lightning Strike
     static let lightningCooldownByLevel: [TimeInterval] = [1.5, 1.0, 0.6]

@@ -2,13 +2,13 @@ import CoreGraphics
 import Testing
 @testable import Greed
 
-@Suite("OrbitingSpellLayout")
-struct OrbitingSpellLayoutTests {
+@Suite("WardenThornsLayout")
+struct WardenThornsLayoutTests {
     @Test("angles are evenly spaced around the player")
     func anglesAreEvenlySpaced() {
         for count in [1, 2, 4, 6] {
             let phase: CGFloat = 0.42
-            let angles = OrbitingSpellLayout.angles(count: count, phase: phase)
+            let angles = WardenThornsLayout.angles(count: count, phase: phase)
 
             #expect(angles.count == count)
             assertEvenSpacing(angles, expectedGap: (CGFloat.pi * 2) / CGFloat(count))
@@ -16,23 +16,23 @@ struct OrbitingSpellLayoutTests {
         }
     }
 
-    @Test("upgrades redistribute knives without losing orbit phase")
-    func upgradesRedistributeKnivesWithoutLosingPhase() {
+    @Test("upgrades redistribute thorns without losing rotation phase")
+    func upgradesRedistributeThornsWithoutLosingPhase() {
         let phase: CGFloat = 0.75
-        let twoKnives = OrbitingSpellLayout.angles(count: 2, phase: phase)
-        let fourKnives = OrbitingSpellLayout.reconciledAngles(existing: twoKnives, desiredCount: 4)
-        let sixKnives = OrbitingSpellLayout.reconciledAngles(existing: fourKnives, desiredCount: 6)
+        let twoThorns = WardenThornsLayout.angles(count: 2, phase: phase)
+        let fourThorns = WardenThornsLayout.reconciledAngles(existing: twoThorns, desiredCount: 4)
+        let sixThorns = WardenThornsLayout.reconciledAngles(existing: fourThorns, desiredCount: 6)
 
-        #expect(approximatelyEqual(fourKnives[0], phase))
-        #expect(approximatelyEqual(sixKnives[0], phase))
-        assertEvenSpacing(fourKnives, expectedGap: (CGFloat.pi * 2) / 4)
-        assertEvenSpacing(sixKnives, expectedGap: (CGFloat.pi * 2) / 6)
+        #expect(approximatelyEqual(fourThorns[0], phase))
+        #expect(approximatelyEqual(sixThorns[0], phase))
+        assertEvenSpacing(fourThorns, expectedGap: (CGFloat.pi * 2) / 4)
+        assertEvenSpacing(sixThorns, expectedGap: (CGFloat.pi * 2) / 6)
     }
 
-    @Test("knife tip follows counter-clockwise travel direction")
-    func knifeTipFollowsCounterClockwiseTravelDirection() {
+    @Test("thorn tip follows counter-clockwise travel direction")
+    func thornTipFollowsCounterClockwiseTravelDirection() {
         #expect(approximatelyEqual(
-            OrbitingSpellLayout.spriteRotation(forOrbitAngle: 0),
+            WardenThornsLayout.spriteRotation(forThornAngle: 0),
             CGFloat.pi / 2
         ))
     }

@@ -73,7 +73,7 @@ Challenge2/                             # Xcode project root
 │   │   └── AudioManager.swift              # Sound effect and music playback (AVFoundation)
 │   ├── Config/
 │   │   ├── GameConfig.swift                # System-level tuning: map, player, camera, input, director, spawn, gnome stats
-│   │   └── SkillConfig.swift               # Skill and power-up tuning: orbiting spell, lightning, mist, power-ups
+│   │   └── SkillConfig.swift               # Skill and power-up tuning: Warden Thorns, lightning, mist, power-ups
 │   ├── Assets.xcassets/                    # All sprites, textures, icons
 │   ├── GameData.swift                      # Transient run state (current score, active players, run seed)
 │   ├── GameManager.swift                   # App entry, bootstraps scene, owns top-level state machine
@@ -566,7 +566,7 @@ Shield, Skill draw caps, Camera, Input, Director, Spawn waves, Grove/Grumble/Gra
 Contains all weapon and power-up balance values. Read by `SkillSystem` and `GameScene`.
 
 ```
-Orbiting Spell, Lightning Strike, Poisonous Mist, Power-ups
+Warden Thorns, Lightning Strike, Poisonous Mist, Power-ups
 ```
 
 ### Private file-level constants — visual set-and-forget values

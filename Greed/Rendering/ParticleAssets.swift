@@ -9,7 +9,7 @@ final class ParticleAssets {
         case shieldExpand = "ShieldExpand"
         case shieldBurst = "ShieldBurst"
         case mistExplosion = "MistExplosion"
-        case orbitingSpellHit = "OrbitingSpellHit"
+        case wardenThornsHit = "WardenThornsHit"
         case lightningImpact = "LightningImpact"
     }
 
@@ -48,7 +48,7 @@ final class ParticleAssets {
         case .shieldExpand:      return makeShieldExpandEmitter()
         case .shieldBurst:       return makeShieldBurstEmitter()
         case .mistExplosion:     return makeMistExplosionEmitter()
-        case .orbitingSpellHit:  return makeOrbitingSpellHitEmitter()
+        case .wardenThornsHit:   return makeWardenThornsHitEmitter()
         case .lightningImpact:   return makeLightningImpactEmitter()
         }
     }
@@ -121,7 +121,7 @@ final class ParticleAssets {
         )
     }
 
-    private func makeOrbitingSpellHitEmitter() -> SKEmitterNode {
+    private func makeWardenThornsHitEmitter() -> SKEmitterNode {
         makeBurstEmitter(
             color: SKColor(red: 0.65, green: 0.3, blue: 0.85, alpha: 1.0),
             count: 12, lifetime: 0.35, speed: 110, speedRange: 50, scale: 0.3

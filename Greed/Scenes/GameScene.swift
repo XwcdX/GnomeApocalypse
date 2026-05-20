@@ -17,7 +17,7 @@ final class GameScene: SKScene {
         var tickAccumulator: TimeInterval
     }
 
-    private struct ActiveOrb {
+    private struct ActiveThorn {
         let sprite: SKSpriteNode
         var angle: CGFloat
     }
@@ -43,11 +43,11 @@ final class GameScene: SKScene {
     private var lightningCooldowns: [ObjectIdentifier: TimeInterval] = [:]
     private var activeMistClouds: [ObjectIdentifier: [ActiveMistCloud]] = [:]
     private var mistSpawnCooldowns: [ObjectIdentifier: TimeInterval] = [:]
-    private var orbitOrbs: [ObjectIdentifier: [ActiveOrb]] = [:]
-    private var orbitHitCooldowns: [ObjectIdentifier: [Int: [ObjectIdentifier: TimeInterval]]] = [:]
+    private var wardenThorns: [ObjectIdentifier: [ActiveThorn]] = [:]
+    private var wardenThornHitCooldowns: [ObjectIdentifier: [Int: [ObjectIdentifier: TimeInterval]]] = [:]
     private let lightningAtlas = SKTextureAtlas(named: "lightning_strike")
     private let mistAtlas = SKTextureAtlas(named: "poisonous_mist")
-    private let orbitAtlas = SKTextureAtlas(named: "orbiting_knife")
+    private let wardenThornsAtlas = SKTextureAtlas(named: "warden_thorns")
     var onReplayRequested: (() -> Void)?
     
     private var players: [PlayerEntity] = []
@@ -105,7 +105,7 @@ final class GameScene: SKScene {
 
         updateLightningSkills(deltaTime: deltaTime)
         updateMistSkills(deltaTime: deltaTime)
-        updateOrbitingSpells(deltaTime: deltaTime)
+        updateWardenThorns(deltaTime: deltaTime)
 
         for attack in playerAttacks { attack.update(deltaTime: deltaTime) }
         playerProjectilePool.updateAll(deltaTime: deltaTime)
@@ -375,84 +375,84 @@ final class GameScene: SKScene {
         clouds.forEach { $0.node.removeFromParent() }
     }
 
-    private func updateOrbitingSpells(deltaTime: TimeInterval) {
+    private func updateWardenThorns(deltaTime: TimeInterval) {
         for player in players {
             let playerID = ObjectIdentifier(player)
-            let desired = player.orbitCount
+            let desired = player.wardenThornCount
 
             guard desired > 0 else {
-                removeAllOrbs(for: playerID)
-                orbitHitCooldowns.removeValue(forKey: playerID)
+                removeAllThorns(for: playerID)
+                wardenThornHitCooldowns.removeValue(forKey: playerID)
                 continue
             }
 
-            reconcileOrbCount(for: playerID, desired: desired)
-            advanceOrbAngles(for: playerID, deltaTime: deltaTime)
-            updateOrbPositions(for: player)
-            decayOrbitCooldowns(for: playerID, deltaTime: deltaTime)
-            applyOrbCollisions(for: player)
+            reconcileThornCount(for: playerID, desired: desired)
+            advanceThornAngles(for: playerID, deltaTime: deltaTime)
+            updateThornPositions(for: player)
+            decayWardenThornCooldowns(for: playerID, deltaTime: deltaTime)
+            applyThornCollisions(for: player)
         }
     }
 
-    private func reconcileOrbCount(for playerID: ObjectIdentifier, desired: Int) {
-        var orbs = orbitOrbs[playerID] ?? []
-        if orbs.count == desired {
-            orbitOrbs[playerID] = orbs
+    private func reconcileThornCount(for playerID: ObjectIdentifier, desired: Int) {
+        var thorns = wardenThorns[playerID] ?? []
+        if thorns.count == desired {
+            wardenThorns[playerID] = thorns
             return
         }
 
-        let existingAngles = orbs.map(\.angle)
+        let existingAngles = thorns.map(\.angle)
         let phase = existingAngles.first ?? 0
 
-        if orbs.count > desired {
-            for orb in orbs.suffix(orbs.count - desired) {
-                orb.sprite.removeFromParent()
+        if thorns.count > desired {
+            for thorn in thorns.suffix(thorns.count - desired) {
+                thorn.sprite.removeFromParent()
             }
-            orbs.removeLast(orbs.count - desired)
+            thorns.removeLast(thorns.count - desired)
         }
 
-        let texture = orbitAtlas.textureNamed("weapon_orbiting_knife_000")
+        let texture = wardenThornsAtlas.textureNamed("weapon_warden_thorns_000")
         texture.filteringMode = .nearest
-        while orbs.count < desired {
-            let sprite = SKSpriteNode(texture: texture, size: SkillConfig.orbitKnifeSize)
+        while thorns.count < desired {
+            let sprite = SKSpriteNode(texture: texture, size: SkillConfig.wardenThornSize)
             sprite.zPosition = Layer.world
             addChild(sprite)
-            orbs.append(ActiveOrb(sprite: sprite, angle: phase))
+            thorns.append(ActiveThorn(sprite: sprite, angle: phase))
         }
 
-        let angles = OrbitingSpellLayout.reconciledAngles(existing: existingAngles, desiredCount: desired)
-        for index in orbs.indices {
-            orbs[index].angle = angles[index]
+        let angles = WardenThornsLayout.reconciledAngles(existing: existingAngles, desiredCount: desired)
+        for index in thorns.indices {
+            thorns[index].angle = angles[index]
         }
-        orbitOrbs[playerID] = orbs
+        wardenThorns[playerID] = thorns
     }
 
-    private func advanceOrbAngles(for playerID: ObjectIdentifier, deltaTime: TimeInterval) {
-        guard var orbs = orbitOrbs[playerID] else { return }
-        let delta = SkillConfig.orbitRotationSpeed * CGFloat(deltaTime)
-        for index in orbs.indices {
-            orbs[index].angle += delta
+    private func advanceThornAngles(for playerID: ObjectIdentifier, deltaTime: TimeInterval) {
+        guard var thorns = wardenThorns[playerID] else { return }
+        let delta = SkillConfig.wardenThornRotationSpeed * CGFloat(deltaTime)
+        for index in thorns.indices {
+            thorns[index].angle += delta
         }
-        orbitOrbs[playerID] = orbs
+        wardenThorns[playerID] = thorns
     }
 
-    private func updateOrbPositions(for player: PlayerEntity) {
+    private func updateThornPositions(for player: PlayerEntity) {
         let playerID = ObjectIdentifier(player)
-        guard let orbs = orbitOrbs[playerID] else { return }
-        for orb in orbs {
-            orb.sprite.position = CGPoint(
-                x: player.position.x + cos(orb.angle) * SkillConfig.orbitRadius,
-                y: player.position.y + sin(orb.angle) * SkillConfig.orbitRadius
+        guard let thorns = wardenThorns[playerID] else { return }
+        for thorn in thorns {
+            thorn.sprite.position = CGPoint(
+                x: player.position.x + cos(thorn.angle) * SkillConfig.wardenThornRadius,
+                y: player.position.y + sin(thorn.angle) * SkillConfig.wardenThornRadius
             )
-            orb.sprite.zRotation = OrbitingSpellLayout.spriteRotation(forOrbitAngle: orb.angle)
+            thorn.sprite.zRotation = WardenThornsLayout.spriteRotation(forThornAngle: thorn.angle)
         }
     }
 
-    private func decayOrbitCooldowns(for playerID: ObjectIdentifier, deltaTime: TimeInterval) {
-        guard var perOrb = orbitHitCooldowns[playerID] else { return }
+    private func decayWardenThornCooldowns(for playerID: ObjectIdentifier, deltaTime: TimeInterval) {
+        guard var perThorn = wardenThornHitCooldowns[playerID] else { return }
         let aliveEnemyIDs = Set(enemies.compactMap { $0.parent != nil ? ObjectIdentifier($0) : nil })
 
-        for (orbIndex, enemyMap) in perOrb {
+        for (thornIndex, enemyMap) in perThorn {
             var updated = enemyMap
             for (enemyID, remaining) in updated {
                 if !aliveEnemyIDs.contains(enemyID) {
@@ -467,47 +467,47 @@ final class GameScene: SKScene {
                 }
             }
             if updated.isEmpty {
-                perOrb.removeValue(forKey: orbIndex)
+                perThorn.removeValue(forKey: thornIndex)
             } else {
-                perOrb[orbIndex] = updated
+                perThorn[thornIndex] = updated
             }
         }
-        orbitHitCooldowns[playerID] = perOrb.isEmpty ? nil : perOrb
+        wardenThornHitCooldowns[playerID] = perThorn.isEmpty ? nil : perThorn
     }
 
-    private func applyOrbCollisions(for player: PlayerEntity) {
+    private func applyThornCollisions(for player: PlayerEntity) {
         let playerID = ObjectIdentifier(player)
-        guard let orbs = orbitOrbs[playerID] else { return }
+        guard let thorns = wardenThorns[playerID] else { return }
 
-        let orbHitRadius = SkillConfig.orbitHitRadius
+        let thornHitRadius = SkillConfig.wardenThornHitRadius
 
-        for (orbIndex, orb) in orbs.enumerated() {
-            let orbPos = orb.sprite.position
+        for (thornIndex, thorn) in thorns.enumerated() {
+            let thornPosition = thorn.sprite.position
             for enemy in enemies where enemy.parent != nil {
                 let enemyID = ObjectIdentifier(enemy)
-                let cooldown = orbitHitCooldowns[playerID]?[orbIndex]?[enemyID]
+                let cooldown = wardenThornHitCooldowns[playerID]?[thornIndex]?[enemyID]
                 guard cooldown == nil else { continue }
 
                 let enemyRadius = enemy.size.width * 0.5
-                let distance = toroidalDistance(from: orbPos, to: enemy.position, mapSize: GameConfig.mapSize)
-                guard distance <= enemyRadius + orbHitRadius else { continue }
+                let distance = toroidalDistance(from: thornPosition, to: enemy.position, mapSize: GameConfig.mapSize)
+                guard distance <= enemyRadius + thornHitRadius else { continue }
 
-                enemy.health.takeDamage(SkillConfig.orbitDamage)
-                particleAssets.emit(.orbitingSpellHit, at: enemy.position, in: self)
+                enemy.health.takeDamage(SkillConfig.wardenThornDamage)
+                particleAssets.emit(.wardenThornsHit, at: enemy.position, in: self)
                 if enemy.health.isDead { enemy.die() }
 
-                var perOrb = orbitHitCooldowns[playerID] ?? [:]
-                var perEnemy = perOrb[orbIndex] ?? [:]
-                perEnemy[enemyID] = SkillConfig.orbitCooldownPerEnemy
-                perOrb[orbIndex] = perEnemy
-                orbitHitCooldowns[playerID] = perOrb
+                var perThorn = wardenThornHitCooldowns[playerID] ?? [:]
+                var perEnemy = perThorn[thornIndex] ?? [:]
+                perEnemy[enemyID] = SkillConfig.wardenThornCooldownPerEnemy
+                perThorn[thornIndex] = perEnemy
+                wardenThornHitCooldowns[playerID] = perThorn
             }
         }
     }
 
-    private func removeAllOrbs(for playerID: ObjectIdentifier) {
-        guard let orbs = orbitOrbs.removeValue(forKey: playerID) else { return }
-        orbs.forEach { $0.sprite.removeFromParent() }
+    private func removeAllThorns(for playerID: ObjectIdentifier) {
+        guard let thorns = wardenThorns.removeValue(forKey: playerID) else { return }
+        thorns.forEach { $0.sprite.removeFromParent() }
     }
 
     private func makeMistCloudNode(radius: CGFloat) -> SKNode {
