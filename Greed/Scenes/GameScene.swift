@@ -751,12 +751,17 @@ final class GameScene: SKScene {
     @discardableResult
     func handleMouseMoved(atViewPosition viewPosition: CGPoint, viewSize: CGSize) -> Bool {
         guard viewSize.width > 0, viewSize.height > 0 else { return true }
-        guard let skillCardOverlay else { return gameOverOverlay != nil }
 
         let overlayPoint = CGPoint(
             x: (viewPosition.x / viewSize.width) * size.width - size.width / 2,
             y: (viewPosition.y / viewSize.height) * size.height - size.height / 2
         )
+
+        if let gameOverOverlay {
+            return gameOverOverlay.handleMouseMoved(at: overlayPoint)
+        }
+
+        guard let skillCardOverlay else { return false }
         return skillCardOverlay.handleMouseMoved(at: overlayPoint)
     }
 
