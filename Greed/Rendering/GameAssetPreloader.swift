@@ -41,7 +41,9 @@ final class GameAssetPreloader {
         "icon_lightning_strike",
         "icon_warden_thorns",
         "icon_poisonous_mist",
-        "icon_spirit_fruit"
+        "icon_spirit_fruit",
+        "game_over_score_bg",
+        "game_over_restart_button"
     ]
 
     private init() {}
