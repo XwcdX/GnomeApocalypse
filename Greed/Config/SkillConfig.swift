@@ -19,15 +19,15 @@ enum SkillConfig {
     static let lightningBaseDamage: Int = 80
     static let lightningAoERadius: CGFloat = 100
     static let lightningBoltAlpha: CGFloat = 0.95
-    static let lightningBoltWidthFactor: CGFloat = 0.45
-    static let lightningBoltMinWidth: CGFloat = 28
+    static let lightningBoltWidthFactor: CGFloat = 1.3
+    static let lightningBoltMinWidth: CGFloat = 44
     static let lightningBoltAnimFrameTime: TimeInterval = 0.04
-    static let lightningImpactRadiusFactor: CGFloat = 0.12
-    static let lightningImpactMinRadius: CGFloat = 10
+    static let lightningImpactRadiusFactor: CGFloat = 0.22
+    static let lightningImpactMinRadius: CGFloat = 18
     static let lightningImpactScale: CGFloat = 1.5
     static let lightningImpactDuration: TimeInterval = 0.12
-    static let lightningStrikeLifetime: TimeInterval = 0.18
-    static let lightningTextureCropRect: CGRect = CGRect(x: 0.14, y: 0.05, width: 0.34, height: 0.90)
+    static let lightningStrikeLifetime: TimeInterval = 0.20
+    static let lightningTextureCropRect: CGRect = CGRect(x: 0.28, y: 0.05, width: 0.52, height: 0.90)
 
     // MARK: - Poisonous Mist
     static let mistCooldownByLevel: [TimeInterval] = [2.5, 1.5, 1.0]

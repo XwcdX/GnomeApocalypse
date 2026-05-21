@@ -4,7 +4,7 @@ import MetalKit
 private let visibilityCheckMargin: CGFloat = 100
 private let referenceSpriteHeight: CGFloat = 48
 private let lightningStrikeRadiusFactor: CGFloat = 0.8
-private let lightningBoltHeightFactor: CGFloat = 1.5
+private let lightningBoltHeightFactor: CGFloat = 2.75
 private let lightningBoltOffsetFactor: CGFloat = 0.15
 private let wardenThornAnimationKey = "wardenThornAnimation"
 private let levelUpOverlayDelay: TimeInterval = 0.35
@@ -564,11 +564,19 @@ final class GameScene: SKScene {
         strikeNode.zPosition = Layer.world
 
         let boltHeight = max(radius * 1.6, referenceSpriteHeight * lightningBoltHeightFactor)
+        let boltWidth = max(SkillConfig.lightningBoltMinWidth, radius * SkillConfig.lightningBoltWidthFactor)
         let bolt = SKSpriteNode(texture: lightningTexture(named: "vfx_lightning_strike_002"))
         bolt.anchorPoint = CGPoint(x: 0.5, y: 0.0)
         bolt.position = CGPoint(x: 0, y: -referenceSpriteHeight * lightningBoltOffsetFactor)
-        bolt.size = CGSize(width: max(SkillConfig.lightningBoltMinWidth, radius * SkillConfig.lightningBoltWidthFactor), height: boltHeight)
+        bolt.size = CGSize(width: boltWidth, height: boltHeight)
         bolt.alpha = SkillConfig.lightningBoltAlpha
+
+        let glow = SKShapeNode(ellipseOf: CGSize(width: boltWidth * 1.7, height: boltHeight * 1.2))
+        glow.fillColor = SKColor(red: 0.45, green: 0.95, blue: 1.0, alpha: 0.20)
+        glow.strokeColor = .clear
+        glow.position = CGPoint(x: 0, y: bolt.position.y + boltHeight * 0.5)
+        strikeNode.addChild(glow)
+
         strikeNode.addChild(bolt)
 
         let frames = [
