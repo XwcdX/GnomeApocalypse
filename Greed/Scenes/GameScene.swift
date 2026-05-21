@@ -608,11 +608,7 @@ final class GameScene: SKScene {
     private func lightningTexture(named name: String) -> SKTexture {
         let baseTexture = lightningAtlas.textureNamed(name)
         baseTexture.filteringMode = .nearest
-
-        let visibleRect = SkillConfig.lightningTextureCropRect
-        let texture = SKTexture(rect: visibleRect, in: baseTexture)
-        texture.filteringMode = .nearest
-        return texture
+        return baseTexture
     }
 
     private func randomPointInCameraView() -> CGPoint {

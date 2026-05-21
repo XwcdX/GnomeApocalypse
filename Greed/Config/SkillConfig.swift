@@ -27,7 +27,6 @@ enum SkillConfig {
     static let lightningImpactScale: CGFloat = 1.5
     static let lightningImpactDuration: TimeInterval = 0.12
     static let lightningStrikeLifetime: TimeInterval = 0.20
-    static let lightningTextureCropRect: CGRect = CGRect(x: 0.28, y: 0.05, width: 0.52, height: 0.90)
 
     // MARK: - Poisonous Mist
     static let mistCooldownByLevel: [TimeInterval] = [2.5, 1.5, 1.0]
