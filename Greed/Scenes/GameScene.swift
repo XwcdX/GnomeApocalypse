@@ -147,8 +147,12 @@ final class GameScene: SKScene {
             } else {
                 footY = node.position.y
             }
-            let wrappedY = footY - mapH * floor((footY + mapH / 2) / mapH)
-            node.zPosition = Layer.world - wrappedY / mapH
+            let sortPriority = (node as? WorldLayerSortable)?.worldSortPriority ?? 0
+            node.zPosition = Layer.worldZPosition(
+                forFootY: footY,
+                mapHeight: mapH,
+                sortPriority: sortPriority
+            )
         }
     }
 
