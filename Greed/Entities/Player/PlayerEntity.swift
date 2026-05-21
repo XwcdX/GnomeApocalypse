@@ -58,7 +58,9 @@ class PlayerEntity: SKSpriteNode {
         let movement = isMovementFrozen ? .zero : scene.inputSystem.movementVector(for: controllerIndex ?? 0)
         position.x += movement.dx * currentSpeed * deltaTime
         position.y += movement.dy * currentSpeed * deltaTime
-        scene.cameraSystem.clampToroidal(&position)
+        if !scene.directorSystem.isBossStageActive {
+            scene.cameraSystem.clampToroidal(&position)
+        }
         physicsBody?.velocity = .zero
         physicsBody?.angularVelocity = 0
         ghostRenderer?.update(cameraPosition: scene.cameraSystem.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
