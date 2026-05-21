@@ -68,6 +68,7 @@ final class GameScene: SKScene {
     private var lastUpdateTime: TimeInterval = 0
     private var lastReportedAimMode: InputSystem.AimMode?
     private var wasBossStageActive = false
+    private var bossArenaCenter: CGPoint = .zero
     var onAimModeChanged: ((InputSystem.AimMode) -> Void)?
     var onGameOverPresented: (() -> Void)?
 
@@ -788,7 +789,21 @@ final class GameScene: SKScene {
         directorSystem.recordBossDeath()
         cameraSystem.isLocked = false
     }
-    
+
+    func dealMeleeDamageToNearestPlayer(from position: CGPoint, damage: Int, range: CGFloat) {
+        guard let player = players.min(by: {
+            toroidalDistance(from: position, to: $0.position, mapSize: GameConfig.mapSize) <
+            toroidalDistance(from: position, to: $1.position, mapSize: GameConfig.mapSize)
+        }) else { return }
+
+        let dist = toroidalDistance(from: position, to: player.position, mapSize: GameConfig.mapSize)
+        guard dist <= range else { return }
+
+        player.takeDamage(damage)
+        directorSystem.recordDamageTaken(damage)
+        AudioManager.shared.play(.hit)
+    }
+
     func spawnBossMinions(count: Int, around position: CGPoint) {
         spawnSystem.spawnBossMinions(count: count, around: position)
     }
@@ -938,6 +953,8 @@ final class GameScene: SKScene {
         guard isBossStageActive != wasBossStageActive else { return }
 
         if isBossStageActive {
+            // Snapshot posisi kamera tepat saat boss stage mulai
+            bossArenaCenter = cameraSystem.cameraNode.position
             audioManager.playMusic(.boss)
         } else {
             audioManager.playBackgroundMusic()
@@ -956,10 +973,12 @@ final class GameScene: SKScene {
     private func enforceBossCameraLeash(for player: PlayerEntity) {
         guard directorSystem.isBossStageActive else { return }
 
-        let centre = cameraSystem.cameraNode.position
-        let halfWidth = cameraSystem.worldViewportSize.width * GameConfig.cameraLeashFactor / 2
-        let halfHeight = cameraSystem.worldViewportSize.height * GameConfig.cameraLeashFactor / 2
-        player.position.x = min(max(player.position.x, centre.x - halfWidth), centre.x + halfWidth)
-        player.position.y = min(max(player.position.y, centre.y - halfHeight), centre.y + halfHeight)
+        // Ukuran dunia yang benar-benar terlihat di layar = viewportSize × cameraScale
+        // cameraScale = 1/cameraZoom, jadi: visibleWorld = viewportSize / cameraZoom
+        let halfW = cameraSystem.viewportSize.width  / (GameConfig.cameraZoom * 2)
+        let halfH = cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)
+
+        player.position.x = min(max(player.position.x, bossArenaCenter.x - halfW), bossArenaCenter.x + halfW)
+        player.position.y = min(max(player.position.y, bossArenaCenter.y - halfH), bossArenaCenter.y + halfH)
     }
 }

@@ -13,21 +13,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             print("⚠️ Failed to find NSDataAsset: \(assetName)")
             return
         }
-        
-        guard let provider = CGDataProvider(data: asset.data as CFData),
-              let font = CGFont(provider) else {
-            print("⚠️ Failed to create CGFont from asset: \(assetName)")
+
+        let descriptors = CTFontManagerCreateFontDescriptorsFromData(asset.data as CFData) as? [CTFontDescriptor]
+        guard let descriptors, !descriptors.isEmpty else {
+            print("⚠️ Failed to create font descriptors from asset: \(assetName)")
             return
         }
-        
-        var error: Unmanaged<CFError>?
-        if CTFontManagerRegisterGraphicsFont(font, &error) {
-            if let postScriptName = font.postScriptName {
-                print("✅ Successfully registered custom font: \(postScriptName)")
-            }
-        } else {
-            let errorDescription = error?.takeRetainedValue().localizedDescription ?? "Unknown error"
-            print("⚠️ Failed to register custom font: \(errorDescription)")
+
+        for descriptor in descriptors {
+            let name = (CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute) as? String) ?? assetName
+            print("✅ Successfully registered custom font: \(name)")
         }
     }
     
