@@ -5,7 +5,7 @@ import CoreText
 class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        registerCustomFont(named: "PIXELADE")
+        registerCustomFont(named: "font_pixelade")
     }
     
     private func registerCustomFont(named assetName: String) {
