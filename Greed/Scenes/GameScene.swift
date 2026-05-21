@@ -68,7 +68,6 @@ final class GameScene: SKScene {
     private var lastUpdateTime: TimeInterval = 0
     private var lastReportedAimMode: InputSystem.AimMode?
     private var wasBossStageActive = false
-    private var bossArenaCenter: CGPoint = .zero
     var onAimModeChanged: ((InputSystem.AimMode) -> Void)?
     var onGameOverPresented: (() -> Void)?
 
@@ -97,7 +96,6 @@ final class GameScene: SKScene {
             return
         }
 
-        cameraSystem.isLocked = directorSystem.isBossStageActive
         elapsedRunTime += deltaTime
 
         let visibleEnemies = enemies.filter { isVisible($0.position) }
@@ -108,7 +106,7 @@ final class GameScene: SKScene {
                 gnomes: visibleEnemies
             )
             player.update(deltaTime: deltaTime)
-            enforceBossCameraLeash(for: player)
+            cameraSystem.enforceLeash(for: player)
         }
 
         updateLightningSkills(deltaTime: deltaTime)
@@ -787,7 +785,7 @@ final class GameScene: SKScene {
     
     func handleBossDeath() {
         directorSystem.recordBossDeath()
-        cameraSystem.isLocked = false
+        cameraSystem.unlockCamera()
     }
 
     func dealMeleeDamageToNearestPlayer(from position: CGPoint, damage: Int, range: CGFloat) {
@@ -953,10 +951,11 @@ final class GameScene: SKScene {
         guard isBossStageActive != wasBossStageActive else { return }
 
         if isBossStageActive {
-            // Snapshot posisi kamera tepat saat boss stage mulai
-            bossArenaCenter = cameraSystem.cameraNode.position
+            // Kunci kamera tepat saat boss stage mulai
+            cameraSystem.lockCamera(at: cameraSystem.cameraNode.position)
             audioManager.playMusic(.boss)
         } else {
+            cameraSystem.unlockCamera()
             audioManager.playBackgroundMusic()
         }
 
@@ -968,17 +967,5 @@ final class GameScene: SKScene {
         guard mode != lastReportedAimMode else { return }
         lastReportedAimMode = mode
         onAimModeChanged?(mode)
-    }
-
-    private func enforceBossCameraLeash(for player: PlayerEntity) {
-        guard directorSystem.isBossStageActive else { return }
-
-        // Ukuran dunia yang benar-benar terlihat di layar = viewportSize × cameraScale
-        // cameraScale = 1/cameraZoom, jadi: visibleWorld = viewportSize / cameraZoom
-        let halfW = cameraSystem.viewportSize.width  / (GameConfig.cameraZoom * 2)
-        let halfH = cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)
-
-        player.position.x = min(max(player.position.x, bossArenaCenter.x - halfW), bossArenaCenter.x + halfW)
-        player.position.y = min(max(player.position.y, bossArenaCenter.y - halfH), bossArenaCenter.y + halfH)
     }
 }
