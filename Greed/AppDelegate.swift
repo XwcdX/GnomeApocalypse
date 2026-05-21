@@ -13,16 +13,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             print("⚠️ Failed to find NSDataAsset: \(assetName)")
             return
         }
-
-        let descriptors = CTFontManagerCreateFontDescriptorsFromData(asset.data as CFData) as? [CTFontDescriptor]
-        guard let descriptors, !descriptors.isEmpty else {
-            print("⚠️ Failed to create font descriptors from asset: \(assetName)")
+        
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let tempFontURL = tempDirectory.appendingPathComponent("\(assetName).ttf")
+        
+        do {
+            try asset.data.write(to: tempFontURL, options: .atomic)
+        } catch {
+            print("⚠️ Failed to write custom font data to temp URL: \(error.localizedDescription)")
             return
         }
-
-        for descriptor in descriptors {
-            let name = (CTFontDescriptorCopyAttribute(descriptor, kCTFontNameAttribute) as? String) ?? assetName
-            print("✅ Successfully registered custom font: \(name)")
+        
+        var error: Unmanaged<CFError>?
+        if CTFontManagerRegisterFontsForURL(tempFontURL as CFURL, .process, &error) {
+            print("✅ Successfully registered custom font: \(assetName)")
+        } else {
+            let errorDescription = error?.takeRetainedValue().localizedDescription ?? "Unknown error"
+            print("⚠️ Failed to register custom font: \(errorDescription)")
         }
     }
     
