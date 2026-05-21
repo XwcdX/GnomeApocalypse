@@ -122,6 +122,11 @@ final class GameScene: SKScene {
 
         enemyAI.update(enemies: enemies, players: players)
 
+        let fraction = players.isEmpty ? 1.0 : players.map {
+            Double($0.health.current) / Double($0.health.maximum)
+        }.reduce(0, +) / Double(players.count)
+        directorSystem.updatePlayerHealthFraction(fraction)
+        
         let activeBudget = enemies.reduce(0) { $0 + $1.budgetWeight }
         directorSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
         updateBossStageAudio()

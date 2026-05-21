@@ -5,9 +5,8 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
     private var playerHealthCallbacks: [SKNode: (Int) -> Void] = [:]
     
     func register(player: PlayerEntity, directorSystem: DirectorSystem) {
-        playerHealthCallbacks[player] = { [weak player, weak directorSystem] damage in
+        playerHealthCallbacks[player] = { [weak player] damage in
             player?.takeDamage(damage)
-            directorSystem?.recordDamageTaken(damage)
         }
     }
     

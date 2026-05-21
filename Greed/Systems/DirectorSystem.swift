@@ -7,9 +7,13 @@ final class DirectorSystem {
     private var killTimestamps: [TimeInterval] = []
     private var damageEvents: [(time: TimeInterval, amount: Int)] = []
 
+    private var timePressureAccumulator: TimeInterval = 0
+    
     private var pollAccumulator: TimeInterval = 0
     private var bossAccumulator: TimeInterval = 0
     private var clock: TimeInterval = 0
+    
+    private var playerHealthFraction: Double = 1.0
 
     init() {
         currentBudget = GameConfig.directorMinBudget
@@ -19,7 +23,13 @@ final class DirectorSystem {
         clock += deltaTime
         pollAccumulator += deltaTime
         bossAccumulator += deltaTime
-
+        timePressureAccumulator += deltaTime
+        
+        if timePressureAccumulator >= GameConfig.directorTimePressureInterval {
+            timePressureAccumulator = 0
+            currentBudget = min(currentBudget + GameConfig.directorTimePressureStep, GameConfig.directorMaxBudget)
+        }
+        
         while pollAccumulator >= GameConfig.directorPollInterval {
             pollAccumulator -= GameConfig.directorPollInterval
             evaluateAndAdjust()
@@ -35,42 +45,35 @@ final class DirectorSystem {
         killTimestamps.append(clock)
     }
 
-    func recordDamageTaken(_ amount: Int) {
-        damageEvents.append((clock, amount))
-    }
-
     func recordBossDeath() {
         isBossStageActive = false
+    }
+    
+    func updatePlayerHealthFraction(_ fraction: Double) {
+        playerHealthFraction = fraction
     }
 
     private func evaluateAndAdjust() {
         let cutoff = clock - GameConfig.directorRollingWindowDuration
 
         killTimestamps.removeAll { $0 < cutoff }
-        damageEvents.removeAll { $0.time < cutoff }
 
         let killRate = Double(killTimestamps.count) / GameConfig.directorRollingWindowDuration
-        let totalDamage = damageEvents.reduce(0) { $0 + $1.amount }
-        let damageRate = Double(totalDamage) / GameConfig.directorRollingWindowDuration
-
         let highKills = killRate > GameConfig.directorKillRateThreshold
-        let highDamage = damageRate > GameConfig.directorDamageRateThreshold
+        let playerIsHurt = playerHealthFraction < GameConfig.directorHealthThreshold
 
-        if highKills && !highDamage {
+        if highKills && !playerIsHurt {
             currentBudget += GameConfig.directorBudgetStep
-        } else if !highKills && highDamage {
-            currentBudget -= GameConfig.directorBudgetStep
-        } else if !highKills && !highDamage {
+        } else if highKills && playerIsHurt {
             currentBudget += GameConfig.directorPassiveStep
+        } else if !highKills && !playerIsHurt {
+            currentBudget += GameConfig.directorPassiveStep
+        } else if !highKills && playerIsHurt {
+            currentBudget -= GameConfig.directorBudgetStep
         }
 
-        currentBudget = max(GameConfig.directorMinBudget, currentBudget)
-
-        if currentBudget > GameConfig.directorMaxBudget - GameConfig.directorBudgetStep {
-            let excess = currentBudget - GameConfig.directorMaxBudget
-            if excess > 0 {
-                currentBudget = GameConfig.directorMaxBudget
-            }
-        }
+        let minBudget = GameConfig.directorMinBudget
+        let maxBudget = GameConfig.directorMaxBudget
+        currentBudget = min(max(currentBudget, minBudget), maxBudget)
     }
 }
