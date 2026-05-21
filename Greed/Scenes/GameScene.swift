@@ -778,7 +778,7 @@ final class GameScene: SKScene {
         Log.debug("GameScene: player died")
         pendingSkillSelectionPlayer = nil
         pendingSkillSelectionDelay = 0
-        audioManager.stopBackgroundMusic()
+        audioManager.stopAllMusic()
         audioManager.playDeathExclusively()
         presentGameOverOverlay(for: player)
     }
@@ -788,7 +788,39 @@ final class GameScene: SKScene {
         cameraSystem.unlockCamera()
     }
 
+    private func spawnSmashEffect(at position: CGPoint) {
+        audioManager.play(.bossAttack)
+        
+        let atlas = SKTextureAtlas(named: "boss_smash")
+        let frames = (0..<6).compactMap { index -> SKTexture? in
+            let frameName = "boss_smash_\(String(format: "%03d", index))"
+            let texture = atlas.textureNamed(frameName)
+            texture.filteringMode = .nearest
+            return texture
+        }
+        
+        guard !frames.isEmpty else {
+            Log.warning("GameScene: No frames loaded for boss_smash animation")
+            return
+        }
+        
+        let smashNode = SKSpriteNode(texture: frames[0])
+        smashNode.position = position
+        smashNode.size = CGSize(width: 140, height: 140)
+        smashNode.zPosition = 1.0 // Render on top of floor tiles
+        floorLayer.addChild(smashNode)
+
+        let animate = SKAction.animate(with: frames, timePerFrame: 0.08)
+        let fadeOut = SKAction.fadeOut(withDuration: 0.25)
+        let remove = SKAction.removeFromParent()
+
+        smashNode.run(SKAction.sequence([animate, fadeOut, remove]))
+        cameraSystem.shakeCamera(duration: 0.25, amplitude: 8.0)
+    }
+
     func dealMeleeDamageToNearestPlayer(from position: CGPoint, damage: Int, range: CGFloat) {
+        spawnSmashEffect(at: position)
+
         guard let player = players.min(by: {
             toroidalDistance(from: position, to: $0.position, mapSize: GameConfig.mapSize) <
             toroidalDistance(from: position, to: $1.position, mapSize: GameConfig.mapSize)

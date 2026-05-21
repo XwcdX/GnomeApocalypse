@@ -82,6 +82,26 @@ final class CameraSystem {
         player.position.y = min(max(player.position.y, bossArenaCenter.y - halfH), bossArenaCenter.y + halfH)
     }
 
+    /// Efek kamera bergetar (screen shake) dengan durasi dan amplitudo tertentu.
+    func shakeCamera(duration: TimeInterval, amplitude: CGFloat) {
+        let originalPos = cameraNode.position
+        
+        let shakeAction = SKAction.customAction(withDuration: duration) { _, elapsedTime in
+            let percent = elapsedTime / CGFloat(duration)
+            let currentAmplitude = amplitude * (1.0 - percent)
+            let randomX = CGFloat.random(in: -currentAmplitude...currentAmplitude)
+            let randomY = CGFloat.random(in: -currentAmplitude...currentAmplitude)
+            self.cameraNode.position = CGPoint(x: originalPos.x + randomX, y: originalPos.y + randomY)
+        }
+        
+        let resetAction = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            self.cameraNode.position = self.isLocked ? self.bossArenaCenter : originalPos
+        }
+        
+        cameraNode.run(SKAction.sequence([shakeAction, resetAction]), withKey: "camera_shake")
+    }
+
     private func midpoint(of positions: [CGPoint]) -> CGPoint {
         guard !positions.isEmpty else { return cameraNode.position }
         let sum = positions.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
