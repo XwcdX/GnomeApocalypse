@@ -472,13 +472,13 @@ final class HUD: SKNode {
         case .keyboardMouse:
             moveGuide.title.setText("W, A, S, D")
             aimGuide.title.setText("Move Mouse")
-            setupGuideAssetIcon(named: "WASD", in: moveGuide.iconRoot)
-            setupGuideAssetIcon(named: "Cursor", in: aimGuide.iconRoot)
+            setupGuideAssetIcon(named: "guide_wasd", in: moveGuide.iconRoot)
+            setupGuideAssetIcon(named: "guide_cursor", in: aimGuide.iconRoot)
         case .controller:
             moveGuide.title.setText("Left Stick")
             aimGuide.title.setText("Right Stick")
-            setupGuideAssetIcon(named: "Left_analog", in: moveGuide.iconRoot)
-            setupGuideAssetIcon(named: "Right_analog", in: aimGuide.iconRoot)
+            setupGuideAssetIcon(named: "guide_left_analog", in: moveGuide.iconRoot)
+            setupGuideAssetIcon(named: "guide_right_analog", in: aimGuide.iconRoot)
         }
     }
 
