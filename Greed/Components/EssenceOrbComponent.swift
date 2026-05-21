@@ -15,7 +15,7 @@ private let orbBobInitialDelayMax: TimeInterval = 0.35
 private let mutationFrameCount: Int = 5
 private let mutationFrameTime: TimeInterval = 0.08
 
-final class EssenceOrbComponent: SKSpriteNode {
+final class EssenceOrbComponent: SKSpriteNode, WorldLayerSortable {
     enum EssenceTier {
         case green
         case blue
@@ -70,12 +70,16 @@ final class EssenceOrbComponent: SKSpriteNode {
     private var stateElapsedTime: TimeInterval = 0
     private var mutationElapsedTime: TimeInterval = 0
     private var lifetimeElapsedTime: TimeInterval = 0
+
+    var worldSortPriority: CGFloat {
+        Layer.groundPickupSortPriority
+    }
     
     init() {
         let texture = Self.pickupTexture(named: EssenceTier.green.textureName)
         texture.filteringMode = .nearest
         super.init(texture: texture, color: .clear, size: Self.scaledSize(for: texture, targetHeight: smallOrbTargetHeight))
-        self.zPosition = Layer.world
+        self.zPosition = Layer.world + worldSortPriority
         setupPhysics()
         startIdleBob()
     }
