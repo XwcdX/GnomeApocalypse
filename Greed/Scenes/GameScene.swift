@@ -676,11 +676,9 @@ final class GameScene: SKScene {
     }
 
     func canPlayerShoot(from playerPosition: CGPoint) -> Bool {
-        let halfViewport = CGSize(
-            width: cameraSystem.worldViewportSize.width / 2,
-            height: cameraSystem.worldViewportSize.height / 2
-        )
-        let shootRadius = sqrt(halfViewport.width * halfViewport.width + halfViewport.height * halfViewport.height) * 0.6
+        let halfW = cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)
+        let halfH = cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)
+        let shootRadius = sqrt(halfW * halfW + halfH * halfH) * 0.95
 
         return enemies.contains { enemy in
             enemy.parent != nil
@@ -882,6 +880,7 @@ final class GameScene: SKScene {
         direction: CGVector,
         damage: Int,
         textureName: String = "projectile_enemy_grumble",
+        speed: CGFloat? = nil,
         lifespan: TimeInterval = GameConfig.projectileLifeSpan
     ) {
         guard let projectile = enemyProjectilePool.dequeue() else { return }
@@ -890,9 +889,10 @@ final class GameScene: SKScene {
         guard magnitude > 0 else { return }
         
         let normalisedDirection = CGVector(dx: direction.dx / magnitude, dy: direction.dy / magnitude)
+        let actualSpeed = speed ?? GameConfig.projectileSpeed
         let velocity = CGVector(
-            dx: normalisedDirection.dx * GameConfig.projectileSpeed,
-            dy: normalisedDirection.dy * GameConfig.projectileSpeed
+            dx: normalisedDirection.dx * actualSpeed,
+            dy: normalisedDirection.dy * actualSpeed
         )
 
         let texture = SKTexture(imageNamed: textureName)
