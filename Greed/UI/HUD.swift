@@ -10,12 +10,13 @@ private let guideMaxScale: CGFloat = 0.58
 private let guideIconOffsetY: CGFloat = 112
 private let guideTitleOffsetY: CGFloat = -10
 private let guideSubtitleOffsetY: CGFloat = -70
+private let guideControllerTextPaddingY: CGFloat = 20
 private let guideTitleFontSize: CGFloat = 64
 private let guideSubtitleFontSize: CGFloat = 45
 private let guideKeyboardMoveIconSize = CGSize(width: 330, height: 176)
 private let guideKeyboardAimIconSize = CGSize(width: 342, height: 269)
-private let guideControllerMoveIconSize = CGSize(width: 224, height: 224)
 private let guideControllerAimIconSize = CGSize(width: 292, height: 292)
+private let guideControllerMoveIconSize = guideControllerAimIconSize
 private let healthValueFontSize: CGFloat = 16
 
 final class HUD: SKNode {
@@ -438,8 +439,9 @@ final class HUD: SKNode {
         let guideY = visibleSize.height * guideVerticalOffsetFactor
         let guideX = visibleSize.width * guideHorizontalInsetFactor
         let iconOffsetY = scaled(guideIconOffsetY, scale)
-        let titleOffsetY = scaled(guideTitleOffsetY, scale)
-        let subtitleOffsetY = scaled(guideSubtitleOffsetY, scale)
+        let controllerTextPadding = controlGuideInputMode == .controller ? guideControllerTextPaddingY : 0
+        let titleOffsetY = scaled(guideTitleOffsetY - controllerTextPadding, scale)
+        let subtitleOffsetY = scaled(guideSubtitleOffsetY - controllerTextPadding, scale)
         let titleSize = scaled(guideTitleFontSize, scale)
         let subtitleSize = scaled(guideSubtitleFontSize, scale)
 

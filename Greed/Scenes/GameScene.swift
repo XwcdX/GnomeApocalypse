@@ -40,6 +40,7 @@ final class GameScene: SKScene {
     private let particleAssets = ParticleAssets.shared
     private var skillCardOverlay: SkillCardOverlay?
     private var gameOverOverlay: GameOverOverlay?
+    private var startCountdownOverlay: StartCountdownOverlay?
     private weak var skillSelectionPlayer: PlayerEntity?
     private weak var pendingSkillSelectionPlayer: PlayerEntity?
     private var pendingSkillSelectionDelay: TimeInterval = 0
@@ -93,6 +94,19 @@ final class GameScene: SKScene {
 
         if gameOverOverlay != nil {
             updateGameOverInput()
+            return
+        }
+
+        if let startCountdownOverlay {
+            hud.updateViewport(size)
+            hud.update(elapsedTime: elapsedRunTime)
+            refreshWorldRenderers()
+            updateYSort()
+
+            if startCountdownOverlay.update(deltaTime: deltaTime) {
+                self.startCountdownOverlay = nil
+                lastUpdateTime = 0
+            }
             return
         }
 
@@ -232,6 +246,7 @@ final class GameScene: SKScene {
         hud?.updateViewport(size)
         skillCardOverlay?.updateViewport(size)
         gameOverOverlay?.updateViewport(size)
+        startCountdownOverlay?.updateViewport(size)
     }
 
     private func refreshWorldRenderers() {
@@ -251,12 +266,19 @@ final class GameScene: SKScene {
         playerAttacks.append(playerAttack)
         collisionSystem.register(player: player, directorSystem: directorSystem)
         setupHUD(for: player)
+        presentStartCountdown()
     }
 
     private func setupHUD(for player: PlayerEntity) {
         let hud = HUD(player: player, screenSize: size)
         cameraSystem.cameraNode.addChild(hud)
         self.hud = hud
+    }
+
+    private func presentStartCountdown() {
+        let overlay = StartCountdownOverlay(screenSize: size)
+        cameraSystem.cameraNode.addChild(overlay)
+        startCountdownOverlay = overlay
     }
 
     private func updateLightningSkills(deltaTime: TimeInterval) {
@@ -575,7 +597,7 @@ final class GameScene: SKScene {
         bolt.size = CGSize(width: boltWidth, height: boltHeight)
         bolt.alpha = SkillConfig.lightningBoltAlpha
 
-        let glow = SKShapeNode(ellipseOf: CGSize(width: boltWidth * 1.7, height: boltHeight * 1.2))
+        let glow = SKShapeNode(ellipseOf: CGSize(width: boltWidth * 0.5, height: boltHeight * 1.2))
         glow.fillColor = SKColor(red: 0.45, green: 0.95, blue: 1.0, alpha: 0.20)
         glow.strokeColor = .clear
         glow.position = CGPoint(x: 0, y: bolt.position.y + boltHeight * 0.5)
@@ -846,7 +868,6 @@ final class GameScene: SKScene {
         guard dist <= range else { return }
 
         player.takeDamage(damage)
-
         AudioManager.shared.play(.hit)
     }
 
@@ -892,7 +913,11 @@ final class GameScene: SKScene {
             return
         }
 
-        let overlay = SkillCardOverlay(skills: skills, screenSize: size) { [weak self, weak player] skill in
+        let skillLevels = Dictionary(uniqueKeysWithValues: skills.map { skill in
+            (skill.id, player.skillState.level(of: skill.id, type: skill.type))
+        })
+
+        let overlay = SkillCardOverlay(skills: skills, skillLevels: skillLevels, screenSize: size) { [weak self, weak player] skill in
             guard let self, let player else { return }
             self.completeSkillSelection(skill, for: player)
         }
