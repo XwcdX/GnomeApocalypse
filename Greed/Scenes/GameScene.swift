@@ -859,6 +859,7 @@ final class GameScene: SKScene {
         direction: CGVector,
         damage: Int,
         textureName: String = "projectile_enemy_grumble",
+        speed: CGFloat? = nil,
         lifespan: TimeInterval = GameConfig.projectileLifeSpan
     ) {
         guard let projectile = enemyProjectilePool.dequeue() else { return }
@@ -867,9 +868,10 @@ final class GameScene: SKScene {
         guard magnitude > 0 else { return }
         
         let normalisedDirection = CGVector(dx: direction.dx / magnitude, dy: direction.dy / magnitude)
+        let actualSpeed = speed ?? 200.0 // Default enemy projectile speed is slowed to 200.0
         let velocity = CGVector(
-            dx: normalisedDirection.dx * GameConfig.projectileSpeed,
-            dy: normalisedDirection.dy * GameConfig.projectileSpeed
+            dx: normalisedDirection.dx * actualSpeed,
+            dy: normalisedDirection.dy * actualSpeed
         )
 
         let texture = SKTexture(imageNamed: textureName)

@@ -54,6 +54,20 @@ final class Grumble: EnemyEntity {
     private func updateRangedAttack(deltaTime: TimeInterval) {
         timeSinceLastShot += deltaTime
         guard timeSinceLastShot >= GameConfig.miniBossShootInterval else { return }
+        
+        guard let gameScene, let cameraSystem = gameScene.cameraSystem else { return }
+        
+        // Ensure Grumble is within the camera's visible viewport
+        let halfW = cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)
+        let halfH = cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)
+        let camOffset = toroidalOffset(from: cameraSystem.cameraNode.position, to: position, mapSize: GameConfig.mapSize)
+        guard abs(camOffset.dx) <= halfW && abs(camOffset.dy) <= halfH else { return }
+        
+        // Enforce a smaller shooting range from the target player
+        let grumbleShootRadius: CGFloat = 250.0
+        let dist = toroidalDistance(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
+        guard dist <= grumbleShootRadius else { return }
+        
         timeSinceLastShot = 0
         fireTowardTarget()
     }
