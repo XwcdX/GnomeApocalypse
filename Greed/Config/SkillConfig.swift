@@ -14,9 +14,9 @@ enum SkillConfig {
     static let wardenThornAnimFrameTime: TimeInterval = 0.08
 
     // MARK: - Lightning Strike
-    static let lightningCooldownByLevel: [TimeInterval] = [1.5, 1.0, 0.6]
+    static let lightningCooldownByLevel: [TimeInterval] = [3, 2, 1]
     static let lightningStrikeCountByLevel: [Int] = [2, 3, 4]
-    static let lightningBaseDamage: Int = 80
+    static let lightningBaseDamage: Int = 30
     static let lightningAoERadius: CGFloat = 100
     static let lightningBoltAlpha: CGFloat = 0.95
     static let lightningBoltWidthFactor: CGFloat = 1.3
