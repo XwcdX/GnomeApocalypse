@@ -40,6 +40,7 @@ final class GameScene: SKScene {
     private let particleAssets = ParticleAssets.shared
     private var skillCardOverlay: SkillCardOverlay?
     private var gameOverOverlay: GameOverOverlay?
+    private var startCountdownOverlay: StartCountdownOverlay?
     private weak var skillSelectionPlayer: PlayerEntity?
     private weak var pendingSkillSelectionPlayer: PlayerEntity?
     private var pendingSkillSelectionDelay: TimeInterval = 0
@@ -93,6 +94,19 @@ final class GameScene: SKScene {
 
         if gameOverOverlay != nil {
             updateGameOverInput()
+            return
+        }
+
+        if let startCountdownOverlay {
+            hud.updateViewport(size)
+            hud.update(elapsedTime: elapsedRunTime)
+            refreshWorldRenderers()
+            updateYSort()
+
+            if startCountdownOverlay.update(deltaTime: deltaTime) {
+                self.startCountdownOverlay = nil
+                lastUpdateTime = 0
+            }
             return
         }
 
@@ -232,6 +246,7 @@ final class GameScene: SKScene {
         hud?.updateViewport(size)
         skillCardOverlay?.updateViewport(size)
         gameOverOverlay?.updateViewport(size)
+        startCountdownOverlay?.updateViewport(size)
     }
 
     private func refreshWorldRenderers() {
@@ -251,12 +266,19 @@ final class GameScene: SKScene {
         playerAttacks.append(playerAttack)
         collisionSystem.register(player: player, directorSystem: directorSystem)
         setupHUD(for: player)
+        presentStartCountdown()
     }
 
     private func setupHUD(for player: PlayerEntity) {
         let hud = HUD(player: player, screenSize: size)
         cameraSystem.cameraNode.addChild(hud)
         self.hud = hud
+    }
+
+    private func presentStartCountdown() {
+        let overlay = StartCountdownOverlay(screenSize: size)
+        cameraSystem.cameraNode.addChild(overlay)
+        startCountdownOverlay = overlay
     }
 
     private func updateLightningSkills(deltaTime: TimeInterval) {
@@ -848,7 +870,6 @@ final class GameScene: SKScene {
         guard dist <= range else { return }
 
         player.takeDamage(damage)
-        directorSystem.recordDamageTaken(damage)
         AudioManager.shared.play(.hit)
     }
 
