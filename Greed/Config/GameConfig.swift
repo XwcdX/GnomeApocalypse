@@ -147,6 +147,10 @@ enum GameConfig {
     static let bossHealth: Int = 2000
     static let bossPhase1MinionCount: Int = 3
     static let bossPhase2MinionCount: Int = 6
+    static let bossMeleeRange: CGFloat = 80
+    static let bossMeleeAttackInterval: TimeInterval = 1.5
+    static let bossMeleeWindup: TimeInterval = 0.5
+    static let bossMeleeDamage: Int = 30
 
 
     // MARK: - Side Quest

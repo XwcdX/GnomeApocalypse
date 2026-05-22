@@ -20,9 +20,20 @@ struct EssenceOrbComponentTests {
         #expect(orb.essenceTier == .green)
         #expect(orb.visualPhase == .collectible)
         #expect(orb.essenceValue == GameConfig.smallOrbEssenceValue)
-        #expect(orb.currentTextureName == "forest_essence_green")
+        #expect(orb.currentTextureName == "forest_essence_blue")
         #expect(orb.size.height > 0)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
+    }
+
+    @Test("orb sorts behind Grove standing on same position")
+    func orbSortsBehindGroveStandingOnSamePosition() {
+        let orb = EssenceOrbComponent()
+        let enemy = Grove()
+
+        let orbZ = worldZPosition(for: orb)
+        let enemyZ = worldZPosition(for: enemy)
+
+        #expect(orbZ < enemyZ)
     }
 
     @Test("orb grows at evolve time")
@@ -40,7 +51,7 @@ struct EssenceOrbComponentTests {
         #expect(orb.essenceTier == .blue)
         #expect(orb.visualPhase == .collectible)
         #expect(orb.essenceValue == GameConfig.grownOrbEssenceValue)
-        #expect(orb.currentTextureName == "forest_essence_blue")
+        #expect(orb.currentTextureName == "forest_essence_purple")
         #expect(orb.size.height > smallSize.height)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
         #expect(orb.physicsBody?.contactTestBitMask == PhysicsCategory.player)
@@ -133,5 +144,15 @@ struct EssenceOrbComponentTests {
 
     private func makeCameraSystem() -> CameraSystem {
         CameraSystem(cameraNode: SKCameraNode(), viewportSize: GameConfig.cameraViewportSize)
+    }
+
+    private func worldZPosition(for sprite: SKSpriteNode) -> CGFloat {
+        let footY = sprite.position.y - sprite.size.height / 2
+        let sortPriority = (sprite as? WorldLayerSortable)?.worldSortPriority ?? 0
+        return Layer.worldZPosition(
+            forFootY: footY,
+            mapHeight: GameConfig.mapSize.height,
+            sortPriority: sortPriority
+        )
     }
 }

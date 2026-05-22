@@ -1,7 +1,7 @@
 {
-  "images" : [
+  "data" : [
     {
-      "filename" : "Mc icon.png",
+      "filename" : "font_pixelade.ttf",
       "idiom" : "universal"
     }
   ],

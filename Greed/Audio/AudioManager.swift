@@ -23,6 +23,7 @@ final class AudioManager {
         case bossAppear = "sfx_boss_appear"
         case pickPower = "sfx_pick_power"
         case lightning = "sfx_lightning"
+        case bossAttack = "sfx_boss_attack"
     }
 
     private var musicPlayers: [Music: AVAudioPlayer] = [:]
@@ -46,6 +47,7 @@ final class AudioManager {
         .bossAppear: 0.85,
         .pickPower: 0.90,
         .lightning: 0.20
+        .bossAttack: 0.80
     ]
 
     private init() {}
@@ -151,7 +153,7 @@ final class AudioManager {
         }
     }
 
-    private func stopAllMusic() {
+    func stopAllMusic() {
         for player in musicPlayers.values {
             player.stop()
             player.currentTime = 0

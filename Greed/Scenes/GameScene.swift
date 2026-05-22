@@ -4,7 +4,7 @@ import MetalKit
 private let visibilityCheckMargin: CGFloat = 100
 private let referenceSpriteHeight: CGFloat = 48
 private let lightningStrikeRadiusFactor: CGFloat = 0.8
-private let lightningBoltHeightFactor: CGFloat = 1.5
+private let lightningBoltHeightFactor: CGFloat = 2.75
 private let lightningBoltOffsetFactor: CGFloat = 0.15
 private let wardenThornAnimationKey = "wardenThornAnimation"
 private let levelUpOverlayDelay: TimeInterval = 0.35
@@ -40,6 +40,7 @@ final class GameScene: SKScene {
     private let particleAssets = ParticleAssets.shared
     private var skillCardOverlay: SkillCardOverlay?
     private var gameOverOverlay: GameOverOverlay?
+    private var startCountdownOverlay: StartCountdownOverlay?
     private weak var skillSelectionPlayer: PlayerEntity?
     private weak var pendingSkillSelectionPlayer: PlayerEntity?
     private var pendingSkillSelectionDelay: TimeInterval = 0
@@ -96,7 +97,19 @@ final class GameScene: SKScene {
             return
         }
 
-        cameraSystem.isLocked = directorSystem.isBossStageActive
+        if let startCountdownOverlay {
+            hud.updateViewport(size)
+            hud.update(elapsedTime: elapsedRunTime)
+            refreshWorldRenderers()
+            updateYSort()
+
+            if startCountdownOverlay.update(deltaTime: deltaTime) {
+                self.startCountdownOverlay = nil
+                lastUpdateTime = 0
+            }
+            return
+        }
+
         elapsedRunTime += deltaTime
 
         let visibleEnemies = enemies.filter { isVisible($0.position) }
@@ -107,7 +120,7 @@ final class GameScene: SKScene {
                 gnomes: visibleEnemies
             )
             player.update(deltaTime: deltaTime)
-            enforceBossCameraLeash(for: player)
+            cameraSystem.enforceLeash(for: player)
         }
 
         updateLightningSkills(deltaTime: deltaTime)
@@ -152,8 +165,12 @@ final class GameScene: SKScene {
             } else {
                 footY = node.position.y
             }
-            let wrappedY = footY - mapH * floor((footY + mapH / 2) / mapH)
-            node.zPosition = Layer.world - wrappedY / mapH
+            let sortPriority = (node as? WorldLayerSortable)?.worldSortPriority ?? 0
+            node.zPosition = Layer.worldZPosition(
+                forFootY: footY,
+                mapHeight: mapH,
+                sortPriority: sortPriority
+            )
         }
     }
 
@@ -229,6 +246,7 @@ final class GameScene: SKScene {
         hud?.updateViewport(size)
         skillCardOverlay?.updateViewport(size)
         gameOverOverlay?.updateViewport(size)
+        startCountdownOverlay?.updateViewport(size)
     }
 
     private func refreshWorldRenderers() {
@@ -248,12 +266,19 @@ final class GameScene: SKScene {
         playerAttacks.append(playerAttack)
         collisionSystem.register(player: player, directorSystem: directorSystem)
         setupHUD(for: player)
+        presentStartCountdown()
     }
 
     private func setupHUD(for player: PlayerEntity) {
         let hud = HUD(player: player, screenSize: size)
         cameraSystem.cameraNode.addChild(hud)
         self.hud = hud
+    }
+
+    private func presentStartCountdown() {
+        let overlay = StartCountdownOverlay(screenSize: size)
+        cameraSystem.cameraNode.addChild(overlay)
+        startCountdownOverlay = overlay
     }
 
     private func updateLightningSkills(deltaTime: TimeInterval) {
@@ -565,11 +590,19 @@ final class GameScene: SKScene {
         strikeNode.zPosition = Layer.world
 
         let boltHeight = max(radius * 1.6, referenceSpriteHeight * lightningBoltHeightFactor)
+        let boltWidth = max(SkillConfig.lightningBoltMinWidth, radius * SkillConfig.lightningBoltWidthFactor)
         let bolt = SKSpriteNode(texture: lightningTexture(named: "vfx_lightning_strike_002"))
         bolt.anchorPoint = CGPoint(x: 0.5, y: 0.0)
         bolt.position = CGPoint(x: 0, y: -referenceSpriteHeight * lightningBoltOffsetFactor)
-        bolt.size = CGSize(width: max(SkillConfig.lightningBoltMinWidth, radius * SkillConfig.lightningBoltWidthFactor), height: boltHeight)
+        bolt.size = CGSize(width: boltWidth, height: boltHeight)
         bolt.alpha = SkillConfig.lightningBoltAlpha
+
+        let glow = SKShapeNode(ellipseOf: CGSize(width: boltWidth * 0.5, height: boltHeight * 1.2))
+        glow.fillColor = SKColor(red: 0.45, green: 0.95, blue: 1.0, alpha: 0.20)
+        glow.strokeColor = .clear
+        glow.position = CGPoint(x: 0, y: bolt.position.y + boltHeight * 0.5)
+        strikeNode.addChild(glow)
+
         strikeNode.addChild(bolt)
 
         let frames = [
@@ -605,11 +638,7 @@ final class GameScene: SKScene {
     private func lightningTexture(named name: String) -> SKTexture {
         let baseTexture = lightningAtlas.textureNamed(name)
         baseTexture.filteringMode = .nearest
-
-        let visibleRect = SkillConfig.lightningTextureCropRect
-        let texture = SKTexture(rect: visibleRect, in: baseTexture)
-        texture.filteringMode = .nearest
-        return texture
+        return baseTexture
     }
 
     private func randomPointInCameraView() -> CGPoint {
@@ -748,12 +777,17 @@ final class GameScene: SKScene {
     @discardableResult
     func handleMouseMoved(atViewPosition viewPosition: CGPoint, viewSize: CGSize) -> Bool {
         guard viewSize.width > 0, viewSize.height > 0 else { return true }
-        guard let skillCardOverlay else { return gameOverOverlay != nil }
 
         let overlayPoint = CGPoint(
             x: (viewPosition.x / viewSize.width) * size.width - size.width / 2,
             y: (viewPosition.y / viewSize.height) * size.height - size.height / 2
         )
+
+        if let gameOverOverlay {
+            return gameOverOverlay.handleMouseMoved(at: overlayPoint)
+        }
+
+        guard let skillCardOverlay else { return false }
         return skillCardOverlay.handleMouseMoved(at: overlayPoint)
     }
 
@@ -784,16 +818,61 @@ final class GameScene: SKScene {
         Log.debug("GameScene: player died")
         pendingSkillSelectionPlayer = nil
         pendingSkillSelectionDelay = 0
-        audioManager.stopBackgroundMusic()
+        audioManager.stopAllMusic()
         audioManager.playDeathExclusively()
         presentGameOverOverlay(for: player)
     }
     
     func handleBossDeath() {
         directorSystem.recordBossDeath()
-        cameraSystem.isLocked = false
+        cameraSystem.unlockCamera()
     }
-    
+
+    private func spawnSmashEffect(at position: CGPoint) {
+        audioManager.play(.bossAttack)
+        
+        let atlas = SKTextureAtlas(named: "boss_smash")
+        let frames = (0..<6).compactMap { index -> SKTexture? in
+            let frameName = "boss_smash_\(String(format: "%03d", index))"
+            let texture = atlas.textureNamed(frameName)
+            texture.filteringMode = .nearest
+            return texture
+        }
+        
+        guard !frames.isEmpty else {
+            Log.warning("GameScene: No frames loaded for boss_smash animation")
+            return
+        }
+        
+        let smashNode = SKSpriteNode(texture: frames[0])
+        smashNode.position = position
+        smashNode.size = CGSize(width: 140, height: 140)
+        smashNode.zPosition = 1.0 // Render on top of floor tiles
+        floorLayer.addChild(smashNode)
+
+        let animate = SKAction.animate(with: frames, timePerFrame: 0.08)
+        let fadeOut = SKAction.fadeOut(withDuration: 0.25)
+        let remove = SKAction.removeFromParent()
+
+        smashNode.run(SKAction.sequence([animate, fadeOut, remove]))
+        cameraSystem.shakeCamera(duration: 0.25, amplitude: 8.0)
+    }
+
+    func dealMeleeDamageToNearestPlayer(from position: CGPoint, damage: Int, range: CGFloat) {
+        spawnSmashEffect(at: position)
+
+        guard let player = players.min(by: {
+            toroidalDistance(from: position, to: $0.position, mapSize: GameConfig.mapSize) <
+            toroidalDistance(from: position, to: $1.position, mapSize: GameConfig.mapSize)
+        }) else { return }
+
+        let dist = toroidalDistance(from: position, to: player.position, mapSize: GameConfig.mapSize)
+        guard dist <= range else { return }
+
+        player.takeDamage(damage)
+        AudioManager.shared.play(.hit)
+    }
+
     func spawnBossMinions(count: Int, around position: CGPoint) {
         spawnSystem.spawnBossMinions(count: count, around: position)
     }
@@ -834,7 +913,11 @@ final class GameScene: SKScene {
             return
         }
 
-        let overlay = SkillCardOverlay(skills: skills, screenSize: size) { [weak self, weak player] skill in
+        let skillLevels = Dictionary(uniqueKeysWithValues: skills.map { skill in
+            (skill.id, player.skillState.level(of: skill.id, type: skill.type))
+        })
+
+        let overlay = SkillCardOverlay(skills: skills, skillLevels: skillLevels, screenSize: size) { [weak self, weak player] skill in
             guard let self, let player else { return }
             self.completeSkillSelection(skill, for: player)
         }
@@ -943,8 +1026,11 @@ final class GameScene: SKScene {
         guard isBossStageActive != wasBossStageActive else { return }
 
         if isBossStageActive {
+            // Kunci kamera tepat saat boss stage mulai
+            cameraSystem.lockCamera(at: cameraSystem.cameraNode.position)
             audioManager.playMusic(.boss)
         } else {
+            cameraSystem.unlockCamera()
             audioManager.playBackgroundMusic()
         }
 
@@ -956,15 +1042,5 @@ final class GameScene: SKScene {
         guard mode != lastReportedAimMode else { return }
         lastReportedAimMode = mode
         onAimModeChanged?(mode)
-    }
-
-    private func enforceBossCameraLeash(for player: PlayerEntity) {
-        guard directorSystem.isBossStageActive else { return }
-
-        let centre = cameraSystem.cameraNode.position
-        let halfWidth = cameraSystem.worldViewportSize.width * GameConfig.cameraLeashFactor / 2
-        let halfHeight = cameraSystem.worldViewportSize.height * GameConfig.cameraLeashFactor / 2
-        player.position.x = min(max(player.position.x, centre.x - halfWidth), centre.x + halfWidth)
-        player.position.y = min(max(player.position.y, centre.y - halfHeight), centre.y + halfHeight)
     }
 }

@@ -1,7 +1,7 @@
 {
-  "data" : [
+  "images" : [
     {
-      "filename" : "PIXELADE.TTF",
+      "filename" : "game_over_score_bg.png",
       "idiom" : "universal"
     }
   ],

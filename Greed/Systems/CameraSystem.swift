@@ -59,13 +59,47 @@ final class CameraSystem {
     }
 
     var isLocked: Bool = false
+    var bossArenaCenter: CGPoint = .zero
 
-    func isWithinLeash(_ position: CGPoint) -> Bool {
-        let halfW = (worldViewportSize.width  / 2) * GameConfig.cameraLeashFactor
-        let halfH = (worldViewportSize.height / 2) * GameConfig.cameraLeashFactor
-        let centre = cameraNode.position
-        return abs(position.x - centre.x) <= halfW
-            && abs(position.y - centre.y) <= halfH
+    func lockCamera(at position: CGPoint) {
+        isLocked = true
+        bossArenaCenter = position
+    }
+
+    func unlockCamera() {
+        isLocked = false
+    }
+
+    /// Membatasi posisi pemain agar tidak keluar dari layar/viewport yang terlihat saat kamera terkunci (Boss Stage).
+    func enforceLeash(for player: PlayerEntity) {
+        guard isLocked else { return }
+        
+        // Ukuran dunia yang terlihat di layar = viewportSize / cameraZoom
+        let halfW = viewportSize.width  / (GameConfig.cameraZoom * 2)
+        let halfH = viewportSize.height / (GameConfig.cameraZoom * 2)
+        
+        player.position.x = min(max(player.position.x, bossArenaCenter.x - halfW), bossArenaCenter.x + halfW)
+        player.position.y = min(max(player.position.y, bossArenaCenter.y - halfH), bossArenaCenter.y + halfH)
+    }
+
+    /// Efek kamera bergetar (screen shake) dengan durasi dan amplitudo tertentu.
+    func shakeCamera(duration: TimeInterval, amplitude: CGFloat) {
+        let originalPos = cameraNode.position
+        
+        let shakeAction = SKAction.customAction(withDuration: duration) { _, elapsedTime in
+            let percent = elapsedTime / CGFloat(duration)
+            let currentAmplitude = amplitude * (1.0 - percent)
+            let randomX = CGFloat.random(in: -currentAmplitude...currentAmplitude)
+            let randomY = CGFloat.random(in: -currentAmplitude...currentAmplitude)
+            self.cameraNode.position = CGPoint(x: originalPos.x + randomX, y: originalPos.y + randomY)
+        }
+        
+        let resetAction = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            self.cameraNode.position = self.isLocked ? self.bossArenaCenter : originalPos
+        }
+        
+        cameraNode.run(SKAction.sequence([shakeAction, resetAction]), withKey: "camera_shake")
     }
 
     private func midpoint(of positions: [CGPoint]) -> CGPoint {

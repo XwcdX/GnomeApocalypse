@@ -20,6 +20,7 @@ final class GameOverOverlay: SKNode {
         static let baseHeight: CGFloat = GameConfig.uiReferenceSize.height
         static let summaryPaddingX: CGFloat = 34
         static let summaryPaddingY: CGFloat = 30
+        static let summaryAspectRatio: CGFloat = 930 / 200
     }
 
     private let survivedTime: TimeInterval
@@ -28,13 +29,15 @@ final class GameOverOverlay: SKNode {
     private var screenSize: CGSize
     private var replayRect: CGRect = .zero
     private var hasReplayed = false
+    private var isReplayHovered = false
 
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.58), size: .zero)
     private let survivedLabel = OutlinedLabel(text: "You survived for")
     private let timeLabel = OutlinedLabel(text: "00:00")
-    private let replayButton = SKShapeNode()
+    private let replayButton = SKSpriteNode(imageNamed: "game_over_restart_button")
+    private let replayHoverOutline = SKShapeNode()
     private let replayLabel = SKLabelNode(fontNamed: GameConfig.fontName)
-    private let summaryPanel = SKShapeNode()
+    private let summaryPanel = SKSpriteNode(imageNamed: "game_over_score_bg")
     private let summaryDivider = SKShapeNode()
     private let statsTitleLabel = SKLabelNode(fontNamed: GameConfig.fontName)
     private let itemsTitleLabel = SKLabelNode(fontNamed: GameConfig.fontName)
@@ -76,6 +79,13 @@ final class GameOverOverlay: SKNode {
     }
 
     @discardableResult
+    func handleMouseMoved(at point: CGPoint) -> Bool {
+        guard !hasReplayed else { return true }
+        updateReplayHoverState(replayRect.contains(point))
+        return true
+    }
+
+    @discardableResult
     func handleMouseDown(at point: CGPoint) -> Bool {
         guard !hasReplayed else { return true }
         guard replayRect.contains(point) else { return true }
@@ -101,11 +111,17 @@ final class GameOverOverlay: SKNode {
         timeLabel.root.zPosition = 1
         addChild(timeLabel.root)
 
-        replayButton.fillColor = .white
-        replayButton.strokeColor = .black
-        replayButton.lineJoin = .miter
+        replayButton.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        replayButton.texture?.filteringMode = .nearest
         replayButton.zPosition = 1
         addChild(replayButton)
+
+        replayHoverOutline.fillColor = .clear
+        replayHoverOutline.strokeColor = .white
+        replayHoverOutline.lineJoin = .miter
+        replayHoverOutline.zPosition = 1
+        replayHoverOutline.isHidden = true
+        replayButton.addChild(replayHoverOutline)
 
         replayLabel.text = usesControllerPrompt ? "Press Any Button to Start Again" : "Start Again"
         replayLabel.fontColor = .black
@@ -114,9 +130,8 @@ final class GameOverOverlay: SKNode {
         replayLabel.zPosition = 2
         replayButton.addChild(replayLabel)
 
-        summaryPanel.fillColor = .white
-        summaryPanel.strokeColor = .black
-        summaryPanel.lineJoin = .miter
+        summaryPanel.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        summaryPanel.texture?.filteringMode = .nearest
         summaryPanel.zPosition = 1
         addChild(summaryPanel)
 
@@ -168,7 +183,8 @@ final class GameOverOverlay: SKNode {
         let buttonSize = CGSize(width: scaled(470, scale), height: scaled(68, scale))
         let buttonY = -halfHeight + scaled(190, scale)
         replayButton.position = CGPoint(x: 0, y: buttonY)
-        replayButton.path = CGPath(
+        replayButton.size = buttonSize
+        replayHoverOutline.path = CGPath(
             rect: CGRect(
                 x: -buttonSize.width / 2,
                 y: -buttonSize.height / 2,
@@ -177,7 +193,7 @@ final class GameOverOverlay: SKNode {
             ),
             transform: nil
         )
-        replayButton.lineWidth = scaled(2, scale)
+        replayHoverOutline.lineWidth = max(2, scaled(4, scale))
 
         replayLabel.fontSize = scaled(23, scale) * 1.5
         replayLabel.position = .zero
@@ -214,6 +230,12 @@ final class GameOverOverlay: SKNode {
             ("Attack speed:", formatMultiplier(stats.attackSpeedMultiplier)),
             ("Move speed:", "\(Int(stats.movementSpeed.rounded()))")
         ]
+    }
+
+    private func updateReplayHoverState(_ isHovered: Bool) {
+        guard isReplayHovered != isHovered else { return }
+        isReplayHovered = isHovered
+        replayHoverOutline.isHidden = !isHovered
     }
 
     private func makeStatLabels() {
@@ -279,15 +301,8 @@ final class GameOverOverlay: SKNode {
         let lineGap = scaled(screenSize.height < 700 ? 24 : 29, scale)
         let contentInsetX = scaled(Metrics.summaryPaddingX, scale)
         let contentInsetY = scaled(Metrics.summaryPaddingY, scale)
-        let rowCount = CGFloat(statKeyLabels.count)
         let panelWidth = min(screenSize.width * 0.76, scaled(930, scale))
-        let panelHeight = max(
-            scaled(screenSize.height < 700 ? 150 : 170, scale),
-            contentInsetY * 2
-                + titleFontSize / 2
-                + lineGap * rowCount
-                + rowFontSize / 2
-        )
+        let panelHeight = panelWidth / Metrics.summaryAspectRatio
         let panelCenterY = halfHeight - scaled(390, scale)
         let panelRect = CGRect(
             x: -panelWidth / 2,
@@ -295,11 +310,8 @@ final class GameOverOverlay: SKNode {
             width: panelWidth,
             height: panelHeight
         )
-        summaryPanel.path = CGPath(
-            rect: panelRect,
-            transform: nil
-        )
-        summaryPanel.lineWidth = scaled(2, scale)
+        summaryPanel.position = CGPoint(x: panelRect.midX, y: panelRect.midY)
+        summaryPanel.size = panelRect.size
 
         let dividerX = panelRect.midX
         let dividerPath = CGMutablePath()

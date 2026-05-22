@@ -27,21 +27,23 @@ final class GameAssetPreloader {
         "xp_bar_fill",
         "health_bar_frame",
         "health_bar_fill",
-        "WASD",
-        "Cursor",
-        "Left_analog",
-        "Right_analog",
+        "guide_wasd",
+        "guide_cursor",
+        "guide_left_analog",
+        "guide_right_analog",
         "projectile_enemy_grove",
         "projectile_enemy_grumble",
-        "forest_essence_small",
-        "forest_essence_grown",
+        "forest_essence_blue",
+        "forest_essence_purple",
         "forest_essence_red",
         "icon_ancient_tome",
         "icon_life_bloom",
         "icon_lightning_strike",
         "icon_warden_thorns",
         "icon_poisonous_mist",
-        "icon_spirit_fruit"
+        "icon_spirit_fruit",
+        "game_over_score_bg",
+        "game_over_restart_button"
     ]
 
     private init() {}
