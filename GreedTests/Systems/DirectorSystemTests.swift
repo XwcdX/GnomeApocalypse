@@ -13,7 +13,7 @@ struct DirectorSystemTests {
 
     @Test("high kills + low damage increases budget")
     func highKillsLowDamageIncreasesBudget() {
-        let director = makeDirectorWithSignal(kills: highKillCount(), damage: 0)
+        let director = makeDirectorWithSignal(kills: highKillCount(), isHurt: false)
         let before = director.currentBudget
         director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
         #expect(director.currentBudget > before)
@@ -31,7 +31,7 @@ struct DirectorSystemTests {
         for _ in 0..<Int(GameConfig.directorRollingWindowDuration / GameConfig.directorPollInterval) {
             director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
         }
-        director.recordDamageTaken(highDamageAmount())
+        director.updatePlayerHealthFraction(0.1) // Player is hurt
         let beforeDecrease = director.currentBudget
         director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
         #expect(director.currentBudget < beforeDecrease)
@@ -45,19 +45,19 @@ struct DirectorSystemTests {
         #expect(director.currentBudget == before + GameConfig.directorPassiveStep)
     }
 
-    @Test("high kills + high damage holds budget steady")
-    func highKillsHighDamageHoldsBudget() {
-        let director = makeDirectorWithSignal(kills: highKillCount(), damage: highDamageAmount())
+    @Test("high kills + player is hurt increases budget by passive step")
+    func highKillsPlayerIsHurtIncreasesByPassiveStep() {
+        let director = makeDirectorWithSignal(kills: highKillCount(), isHurt: true)
         let before = director.currentBudget
         director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
-        #expect(director.currentBudget == before)
+        #expect(director.currentBudget == before + GameConfig.directorPassiveStep)
     }
 
     @Test("budget never drops below minimum")
     func budgetNeverDropsBelowMinimum() {
         let director = DirectorSystem()
+        director.updatePlayerHealthFraction(0.1) // Player is hurt
         for _ in 0..<20 {
-            director.recordDamageTaken(highDamageAmount())
             director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
         }
         #expect(director.currentBudget >= GameConfig.directorMinBudget)
@@ -77,13 +77,18 @@ struct DirectorSystemTests {
     func oldKillEventsAreEvicted() {
         let director = DirectorSystem()
         for _ in 0..<highKillCount() { director.recordKill() }
-        let pollsToEvict = Int(GameConfig.directorRollingWindowDuration / GameConfig.directorPollInterval) + 1
-        for _ in 0..<pollsToEvict {
+        
+        // Update 4 times to reach 20.0s (just before eviction of kills recorded at 0s)
+        for _ in 0..<4 {
             director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
         }
-        let budgetAfterEviction = director.currentBudget
+        let budgetBeforeEviction = director.currentBudget
+        
+        // Update 5th time to reach 25.0s (eviction occurs because 0s < 25.0s - 20.0s = 5.0s)
         director.update(deltaTime: GameConfig.directorPollInterval, activeBudgetUsed: 0)
-        #expect(director.currentBudget == budgetAfterEviction + GameConfig.directorPassiveStep)
+        
+        // Check that budget increased only by the passive step (1) rather than the active step (20)
+        #expect(director.currentBudget == budgetBeforeEviction + GameConfig.directorPassiveStep)
     }
 
     @Test("boss stage activates after bossSpawnInterval")
@@ -112,18 +117,15 @@ struct DirectorSystemTests {
         #expect(director.isBossStageActive == true)
     }
 
-    private func makeDirectorWithSignal(kills: Int, damage: Int) -> DirectorSystem {
+    private func makeDirectorWithSignal(kills: Int, isHurt: Bool) -> DirectorSystem {
         let director = DirectorSystem()
         for _ in 0..<kills { director.recordKill() }
-        if damage > 0 { director.recordDamageTaken(damage) }
+        director.updatePlayerHealthFraction(isHurt ? 0.1 : 1.0)
         return director
     }
 
     private func highKillCount() -> Int {
         Int(ceil(GameConfig.directorKillRateThreshold * GameConfig.directorRollingWindowDuration)) + 1
     }
-
-    private func highDamageAmount() -> Int {
-        Int(ceil(GameConfig.directorDamageRateThreshold * GameConfig.directorRollingWindowDuration)) + 1
-    }
 }
+

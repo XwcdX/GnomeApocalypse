@@ -654,11 +654,9 @@ final class GameScene: SKScene {
     }
 
     func canPlayerShoot(from playerPosition: CGPoint) -> Bool {
-        let halfViewport = CGSize(
-            width: cameraSystem.worldViewportSize.width / 2,
-            height: cameraSystem.worldViewportSize.height / 2
-        )
-        let shootRadius = sqrt(halfViewport.width * halfViewport.width + halfViewport.height * halfViewport.height) * 0.6
+        let halfW = cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)
+        let halfH = cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)
+        let shootRadius = sqrt(halfW * halfW + halfH * halfH) * 0.95
 
         return enemies.contains { enemy in
             enemy.parent != nil
@@ -848,7 +846,7 @@ final class GameScene: SKScene {
         guard dist <= range else { return }
 
         player.takeDamage(damage)
-        directorSystem.recordDamageTaken(damage)
+
         AudioManager.shared.play(.hit)
     }
 
