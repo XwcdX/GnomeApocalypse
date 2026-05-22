@@ -13,6 +13,7 @@ final class SkillCardOverlay: SKNode {
     }
 
     private let skills: [Skill]
+    private let skillLevels: [String: Int]
     private let onSelect: (Skill) -> Void
     private var screenSize: CGSize
     private var cardRects: [CGRect] = []
@@ -70,8 +71,9 @@ final class SkillCardOverlay: SKNode {
         }
     }
 
-    init(skills: [Skill], screenSize: CGSize, onSelect: @escaping (Skill) -> Void) {
+    init(skills: [Skill], skillLevels: [String: Int] = [:], screenSize: CGSize, onSelect: @escaping (Skill) -> Void) {
         self.skills = skills
+        self.skillLevels = skillLevels
         self.screenSize = screenSize
         self.onSelect = onSelect
         super.init()
@@ -199,6 +201,17 @@ final class SkillCardOverlay: SKNode {
         nameLabel.zPosition = 1
         card.addChild(nameLabel)
 
+        let descriptionLabel = SKLabelNode(fontNamed: GameConfig.fontName)
+        descriptionLabel.text = descriptionText(for: skill)
+        descriptionLabel.fontColor = .black
+        descriptionLabel.horizontalAlignmentMode = .center
+        descriptionLabel.verticalAlignmentMode = .top
+        descriptionLabel.numberOfLines = 0
+        descriptionLabel.lineBreakMode = .byWordWrapping
+        descriptionLabel.name = "skillCardDescription"
+        descriptionLabel.zPosition = 1
+        card.addChild(descriptionLabel)
+
         return card
     }
 
@@ -262,7 +275,13 @@ final class SkillCardOverlay: SKNode {
 
             if let nameLabel = card.childNode(withName: "skillCardName") as? SKLabelNode {
                 nameLabel.fontSize = min(layout.cardSize.height * 0.052, layout.cardSize.width * 0.105) * 1.5
-                nameLabel.position = CGPoint(x: 0, y: -layout.cardSize.height * 0.27)
+                nameLabel.position = CGPoint(x: 0, y: -layout.cardSize.height * 0.065)
+            }
+
+            if let descriptionLabel = card.childNode(withName: "skillCardDescription") as? SKLabelNode {
+                descriptionLabel.fontSize = min(layout.cardSize.height * 0.033, layout.cardSize.width * 0.065) * 1.5
+                descriptionLabel.preferredMaxLayoutWidth = layout.cardSize.width * 0.72
+                descriptionLabel.position = CGPoint(x: 0, y: -layout.cardSize.height * 0.13)
             }
 
             cardRects.append(
@@ -321,6 +340,39 @@ final class SkillCardOverlay: SKNode {
         guard skills.indices.contains(index), selectedIndex != index else { return }
         selectedIndex = index
         updateCardSelection()
+    }
+
+    private func descriptionText(for skill: Skill) -> String {
+        let currentLevel = skillLevels[skill.id] ?? 0
+        let nextLevel = min(currentLevel + 1, skill.maxLevel)
+
+        switch skill.effect(at: nextLevel) {
+        case .wardenThorns(let thornCount):
+            return "Summon \(thornCount) orbiting thorns"
+        case .lightningStrike(let cooldown, let strikeCount):
+            return "Strike \(strikeCount) enemies every \(formattedSeconds(cooldown))"
+        case .poisonousMist(let cooldown, let cloudCount):
+            let noun = cloudCount == 1 ? "cloud" : "clouds"
+            return "Spawn \(cloudCount) poison \(noun) every \(formattedSeconds(cooldown))"
+        case .increaseAttackSpeed(let bonusRate):
+            return "+\(formattedPercent(bonusRate)) attack speed"
+        case .increaseMovementSpeed(let bonusRate):
+            return "+\(formattedPercent(bonusRate)) movement speed"
+        case .increaseMaxHealth(let bonusRate):
+            return "+\(formattedPercent(bonusRate)) max health"
+        }
+    }
+
+    private func formattedPercent(_ rate: CGFloat) -> String {
+        "\(Int((rate * 100).rounded()))%"
+    }
+
+    private func formattedSeconds(_ seconds: TimeInterval) -> String {
+        let roundedTenths = (seconds * 10).rounded() / 10
+        if roundedTenths == roundedTenths.rounded() {
+            return "\(Int(roundedTenths))s"
+        }
+        return String(format: "%.1fs", roundedTenths)
     }
 
     private func updateCardSelection() {

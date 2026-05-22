@@ -848,7 +848,6 @@ final class GameScene: SKScene {
         guard dist <= range else { return }
 
         player.takeDamage(damage)
-        directorSystem.recordDamageTaken(damage)
         AudioManager.shared.play(.hit)
     }
 
@@ -892,7 +891,11 @@ final class GameScene: SKScene {
             return
         }
 
-        let overlay = SkillCardOverlay(skills: skills, screenSize: size) { [weak self, weak player] skill in
+        let skillLevels = Dictionary(uniqueKeysWithValues: skills.map { skill in
+            (skill.id, player.skillState.level(of: skill.id, type: skill.type))
+        })
+
+        let overlay = SkillCardOverlay(skills: skills, skillLevels: skillLevels, screenSize: size) { [weak self, weak player] skill in
             guard let self, let player else { return }
             self.completeSkillSelection(skill, for: player)
         }
