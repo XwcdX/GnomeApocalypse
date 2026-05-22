@@ -107,7 +107,7 @@ enum GameConfig {
 
     // MARK: - Boss Stage
     /// Interval (in seconds) between Boss eruptions, regardless of Director budget state.
-    static let bossSpawnInterval: TimeInterval = 90.0
+    static let bossSpawnInterval: TimeInterval = 180.0
 
 
     // MARK: - Enemy Spawn
@@ -145,7 +145,7 @@ enum GameConfig {
     static let swarmBudgetWeight: Int = 20
     static let bossAbilityInterval: TimeInterval = 8.0
     static let bossMoveSpeed: CGFloat = 40
-    static let bossHealth: Int = 300
+    static let bossHealth: Int = 900
     static let bossPhase1MinionCount: Int = 3
     static let bossPhase2MinionCount: Int = 6
     static let bossMeleeRange: CGFloat = 80
