@@ -85,21 +85,25 @@ enum GameConfig {
     // MARK: - Director System
     /// How often (in seconds) the Director evaluates its rolling-window metrics and steps the budget.
     static let directorPollInterval: TimeInterval = 5.0
+    /// Checkpoint time before the enemy budget will be increased every this interval.
+    static let directorTimePressureInterval: TimeInterval = 30.0
     /// Duration of the rolling window used to compute kill rate and damage rate.
     static let directorRollingWindowDuration: TimeInterval = 20.0
     /// The minimum enemy budget.
-    static let directorMinBudget: Int = 100
+    static let directorMinBudget: Int = 50
     /// Soft ceiling for the enemy budget.
     static let directorMaxBudget: Int = 300
+    /// Time-based step application for each directorTimePressureInterval time.
+    static let directorTimePressureStep: Int = 5
     /// Normal budget step applied when the Director ramps up or ramps down per poll.
     static let directorBudgetStep: Int = 20
     /// Smaller step applied when the player is being passive (low kill rate + low damage rate).
-    static let directorPassiveStep: Int = 10
+    static let directorPassiveStep: Int = 1
     /// Kill rate (kills/sec) above which the Director considers the player to be dominating.
     static let directorKillRateThreshold: Double = 2.0
-    /// Damage rate (damage/sec) above which the Director considers the player to be struggling.
-    static let directorDamageRateThreshold: Double = 5.0
-
+    /// Health state in decimal to check is the player struggle or not.
+    static let directorHealthThreshold: Double = 0.5
+    
 
     // MARK: - Boss Stage
     /// Interval (in seconds) between Boss eruptions, regardless of Director budget state.
