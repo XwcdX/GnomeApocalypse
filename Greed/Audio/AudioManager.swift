@@ -46,7 +46,7 @@ final class AudioManager {
         .mistExplosion: 0.10,
         .bossAppear: 0.85,
         .pickPower: 0.90,
-        .lightning: 0.10,
+        .lightning: 0.20
         .bossAttack: 0.80
     ]
 
