@@ -75,8 +75,7 @@ final class Grove: EnemyEntity {
 
         timeSinceLastAttack = 0
         queuedAttackDirection = CGVector(dx: offset.dx / distance, dy: offset.dy / distance)
-        let enemyProjectileSpeed: CGFloat = 200.0
-        queuedAttackLifespan = TimeInterval(GameConfig.smallGnomeAttackRange / enemyProjectileSpeed) + 0.05
+        queuedAttackLifespan = TimeInterval(GameConfig.smallGnomeAttackRange / GameConfig.projectileSpeed) + 0.05
         attackWindupRemaining = GameConfig.smallGnomeAttackWindup
         animator.stop()
         animator.play(animation: "grove_attack", timePerFrame: 0.1, repeat: false)

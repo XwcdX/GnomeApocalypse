@@ -868,7 +868,7 @@ final class GameScene: SKScene {
         guard magnitude > 0 else { return }
         
         let normalisedDirection = CGVector(dx: direction.dx / magnitude, dy: direction.dy / magnitude)
-        let actualSpeed = speed ?? 200.0 // Default enemy projectile speed is slowed to 200.0
+        let actualSpeed = speed ?? GameConfig.projectileSpeed
         let velocity = CGVector(
             dx: normalisedDirection.dx * actualSpeed,
             dy: normalisedDirection.dy * actualSpeed

@@ -64,7 +64,7 @@ final class Grumble: EnemyEntity {
         guard abs(camOffset.dx) <= halfW && abs(camOffset.dy) <= halfH else { return }
         
         // Enforce a smaller shooting range from the target player
-        let grumbleShootRadius: CGFloat = 250.0
+        let grumbleShootRadius: CGFloat = 350.0
         let dist = toroidalDistance(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
         guard dist <= grumbleShootRadius else { return }
         
