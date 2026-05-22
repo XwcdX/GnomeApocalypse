@@ -20,7 +20,7 @@ struct EssenceOrbComponentTests {
         #expect(orb.essenceTier == .green)
         #expect(orb.visualPhase == .collectible)
         #expect(orb.essenceValue == GameConfig.smallOrbEssenceValue)
-        #expect(orb.currentTextureName == "forest_essence_green")
+        #expect(orb.currentTextureName == "forest_essence_blue")
         #expect(orb.size.height > 0)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
     }
@@ -51,7 +51,7 @@ struct EssenceOrbComponentTests {
         #expect(orb.essenceTier == .blue)
         #expect(orb.visualPhase == .collectible)
         #expect(orb.essenceValue == GameConfig.grownOrbEssenceValue)
-        #expect(orb.currentTextureName == "forest_essence_blue")
+        #expect(orb.currentTextureName == "forest_essence_purple")
         #expect(orb.size.height > smallSize.height)
         #expect(orb.physicsBody?.categoryBitMask == PhysicsCategory.forestEssenceOrb)
         #expect(orb.physicsBody?.contactTestBitMask == PhysicsCategory.player)
