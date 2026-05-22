@@ -1,12 +1,12 @@
 import SpriteKit
 
-private let aimGuideLength: CGFloat = 170
+private let aimGuideLength: CGFloat = 95
 private let aimGuideStartOffset: CGFloat = 20
-private let aimGuideHeadLength: CGFloat = 24
-private let aimGuideTailWidth: CGFloat = 3.5
-private let aimGuideHeadWidth: CGFloat = 7
-private let aimGuideLineWidth: CGFloat = 2.2
-private let aimGuideSideLineWidth: CGFloat = 0.9
+private let aimGuideHeadLength: CGFloat = 14
+private let aimGuideTailWidth: CGFloat = 1.1
+private let aimGuideHeadWidth: CGFloat = 3.8
+private let aimGuideLineWidth: CGFloat = 0.9
+private let aimGuideSideLineWidth: CGFloat = 0.45
 
 class PlayerEntity: SKSpriteNode {
     var health: HealthComponent
@@ -146,22 +146,22 @@ class PlayerEntity: SKSpriteNode {
         addChild(aimGuideRoot)
 
         aimGuideBody.name = "controllerAimGuideBody"
-        aimGuideBody.fillColor = SKColor(red: 0.18, green: 1.0, blue: 0.92, alpha: 0.22)
-        aimGuideBody.strokeColor = SKColor(red: 0.26, green: 1.0, blue: 0.95, alpha: 0.95)
+        aimGuideBody.fillColor = SKColor(white: 1.0, alpha: 0.16)
+        aimGuideBody.strokeColor = SKColor(red: 0.18, green: 0.58, blue: 1.0, alpha: 0.55)
         aimGuideBody.lineWidth = aimGuideSideLineWidth
         aimGuideBody.lineJoin = .round
         aimGuideBody.lineCap = .round
         aimGuideRoot.addChild(aimGuideBody)
 
         aimGuideCenterLine.name = "controllerAimGuideCenter"
-        aimGuideCenterLine.strokeColor = SKColor(red: 0.30, green: 1.0, blue: 0.95, alpha: 0.92)
+        aimGuideCenterLine.strokeColor = SKColor(white: 1.0, alpha: 0.22)
         aimGuideCenterLine.lineWidth = aimGuideLineWidth
         aimGuideCenterLine.lineCap = .round
         aimGuideCenterLine.zPosition = 2
         aimGuideRoot.addChild(aimGuideCenterLine)
 
         for edge in [aimGuideLeftEdge, aimGuideRightEdge] {
-            edge.strokeColor = SKColor(red: 0.30, green: 1.0, blue: 0.95, alpha: 0.42)
+            edge.strokeColor = SKColor(red: 0.18, green: 0.58, blue: 1.0, alpha: 0.24)
             edge.lineWidth = aimGuideSideLineWidth
             edge.lineCap = .round
             edge.zPosition = 1
