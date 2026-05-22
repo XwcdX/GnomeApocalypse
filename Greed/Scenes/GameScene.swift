@@ -597,7 +597,7 @@ final class GameScene: SKScene {
         bolt.size = CGSize(width: boltWidth, height: boltHeight)
         bolt.alpha = SkillConfig.lightningBoltAlpha
 
-        let glow = SKShapeNode(ellipseOf: CGSize(width: boltWidth * 1.7, height: boltHeight * 1.2))
+        let glow = SKShapeNode(ellipseOf: CGSize(width: boltWidth * 0.5, height: boltHeight * 1.2))
         glow.fillColor = SKColor(red: 0.45, green: 0.95, blue: 1.0, alpha: 0.20)
         glow.strokeColor = .clear
         glow.position = CGPoint(x: 0, y: bolt.position.y + boltHeight * 0.5)
