@@ -848,7 +848,6 @@ final class GameScene: SKScene {
         guard dist <= range else { return }
 
         player.takeDamage(damage)
-        directorSystem.recordDamageTaken(damage)
         AudioManager.shared.play(.hit)
     }
 

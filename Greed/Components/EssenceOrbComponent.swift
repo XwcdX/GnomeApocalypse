@@ -31,8 +31,8 @@ final class EssenceOrbComponent: SKSpriteNode, WorldLayerSortable {
 
         var textureName: String {
             switch self {
-            case .green: return "forest_essence_green"
-            case .blue: return "forest_essence_blue"
+            case .green: return "forest_essence_blue"
+            case .blue: return "forest_essence_purple"
             case .red: return "forest_essence_red"
             }
         }
