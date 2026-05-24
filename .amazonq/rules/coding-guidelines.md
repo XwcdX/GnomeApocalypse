@@ -51,7 +51,7 @@ Challenge2/                             # Xcode project root
 │   │   ├── CollisionSystem.swift           # Physics bitmask definitions, collision handler routing
 │   │   ├── SpawnSystem.swift               # Gnome wave logic, Forest Essence orb spawning, side quest button placement
 │   │   ├── SkillSystem.swift               # Skill pool, randomized 3-card draw, skill application
-│   │   └── DirectorSystem.swift            # Dynamic difficulty: monitors kill rate + damage taken rate, adjusts gnome budget; manages time-based Boss stage
+│   │   └── DirectorSystem.swift            # Dynamic difficulty: monitors kill rate + average player health fraction, adjusts gnome budget; manages time-based Boss stage
 │   ├── UI/
 │   │   ├── HUD.swift                       # Per-player HUD slots (health, level, essence meter)
 │   │   ├── SkillCardOverlay.swift          # 3-card skill selection UI anchored inside shield radius
@@ -206,29 +206,29 @@ class DirectorSystem {
     // Called by GameScene every frame with current live enemy budget consumption
     func update(deltaTime: TimeInterval, activeBudgetUsed: Int)
 
-    // Called by CollisionSystem or EnemyEntity.die() on every kill
+    // Called by EnemyEntity.die() on every kill
     func recordKill()
 
-    // Called by CollisionSystem on every player damage event
-    func recordDamageTaken(_ amount: Int)
+    // Called by GameScene each frame with the average active-player health fraction
+    func updatePlayerHealthFraction(_ fraction: Double)
 
     // Internal — fires every GameConfig.directorPollInterval seconds
     private func evaluateAndAdjust()
 }
 ```
 
-**Rolling window:** The Director maintains a fixed-duration circular buffer of kill events and damage events. On each poll it computes kill/sec and damage/sec from the buffer only — older events outside the window are discarded. This prevents early-run data from distorting mid-run difficulty.
+**Rolling window:** The Director maintains a fixed-duration buffer of kill events. On each poll it computes kill/sec from the buffer only — older events outside the window are discarded. Health pressure comes from the latest average active-player health fraction reported by `GameScene`.
 
 **Budget adjustment rules (evaluated each poll):**
 
-| Kill Rate | Damage Rate | Action |
+| Kill Rate | Average Health | Action |
 |---|---|---|
-| High | Low | Step budget up by `directorBudgetStep` |
-| Low | High | Step budget down by `directorBudgetStep` |
-| Low | Low | Step budget up by `directorPassiveStep` (smaller — gentle pressure) |
-| High | High | Hold. Do not change budget. |
+| High | Not hurt | Step budget up by `directorBudgetStep` |
+| Low | Hurt | Step budget down by `directorBudgetStep` |
+| Low | Not hurt | Step budget up by `directorPassiveStep` (smaller — gentle pressure) |
+| High | Hurt | Step budget up by `directorPassiveStep` |
 
-"High" and "low" thresholds are defined in `GameConfig` as `directorKillRateThreshold` and `directorDamageRateThreshold`.
+"High" kill rate is defined by `GameConfig.directorKillRateThreshold`. "Hurt" means the average health fraction is below `GameConfig.directorHealthThreshold`.
 
 **Hard bounds:** Budget never goes below `GameConfig.directorMinBudget`. The ceiling `GameConfig.directorMaxBudget` is a soft target — the Director slows its upward steps as it approaches the cap rather than hard-clamping, keeping the difficulty curve smooth.
 
@@ -637,7 +637,7 @@ enum GameConfig {
     static let directorBudgetStep: Int = 20
     static let directorPassiveStep: Int = 10
     static let directorKillRateThreshold: Double = 2.0
-    static let directorDamageRateThreshold: Double = 5.0
+    static let directorHealthThreshold: Double = 0.45
 
     // Boss Stage
     static let bossSpawnInterval: TimeInterval = 600.0
@@ -684,7 +684,7 @@ enum GameConfig {
 - All `update(deltaTime:)` methods must be O(n) or better. No nested loops over full entity lists in the update cycle.
 - Object pooling is mandatory for projectiles and XP orbs. Both are high-frequency spawn/despawn objects.
 - `SKAction` sequences are acceptable for one-off animations. Never use `SKAction` for game logic that needs to be queryable or cancellable at runtime — use explicit state machines instead.
-- `DirectorSystem` is read-only from outside. Only `GameScene` calls `update()` on it. Only `CollisionSystem` calls `recordKill()` and `recordDamageTaken()`. `SpawnSystem` reads `currentBudget` and `isBossStageActive` but never writes to the Director.
+- `DirectorSystem` is read-only from outside. Only `GameScene` calls `update()` and `updatePlayerHealthFraction(_:)` on it. Only enemy death handling calls `recordKill()`. `SpawnSystem` reads `currentBudget` and `isBossStageActive` but never writes to the Director.
 
 ---
 
@@ -709,7 +709,7 @@ Use **Swift Testing** (`import Testing`) for all unit and integration tests. XCT
 
 **What to test:**
 - `ToroidalMath` — all three functions at normal, edge, and corner positions (mandatory per roadmap)
-- `DirectorSystem` — rolling window eviction, budget adjustment logic for all 4 signal combinations, hard-bound clamping
+- `DirectorSystem` — rolling kill-window eviction, budget adjustment logic for kill-rate and health-pressure combinations, hard-bound clamping
 - `HealthComponent` — `takeDamage`, `heal`, `isDead` boundary conditions
 - `LevelComponent` — XP accumulation, threshold crossing, level-up return value
 - `ProjectilePool` — dequeue/enqueue cycle, pool exhaustion behavior

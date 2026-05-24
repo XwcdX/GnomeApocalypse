@@ -45,7 +45,7 @@
 - `ProjectilePool.swift` — pre-allocated pool, `dequeue/enqueue`, `attachAll`
 
 ### Systems
-- `DirectorSystem.swift` — rolling window, kill/damage rate, budget adjustment, Boss stage timer
+- `DirectorSystem.swift` — rolling kill window, average player health pressure, budget adjustment, Boss stage timer
 - `SkillSystem.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap, `PlayerSkillState`
 - `SpawnSystem.swift` — budget-gated spawning, outside-camera positions, orb tracking + cleanup, MiniBoss/Boss spawning, wave escalation
 - `CollisionSystem.swift` — projectile→enemy, projectile→player, orb→player, ghost redirect
@@ -108,7 +108,7 @@
 - Leash logic in `CameraSystem`
 - `SkillCardOverlay` anchored to shield radius (world-space, not screen-space)
 - Per-player HUD slots in `HUD.swift`
-- `DirectorSystem.recordDamageTaken` aggregated across players
+- `DirectorSystem.updatePlayerHealthFraction(_:)` reports average active-player health fraction
 - Controller hot-plug decision
 
 ---
