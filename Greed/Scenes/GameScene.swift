@@ -20,6 +20,7 @@ final class GameScene: SKScene {
     private var playerProjectilePool: ProjectilePool!
     private var enemyProjectilePool: ProjectilePool!
     private var hud: HUD!
+    private let entityStore = GameSceneEntityStore()
     private let audioManager = AudioManager.shared
     private let particleAssets = ParticleAssets.shared
     private var skillCardOverlay: SkillCardOverlay?
@@ -32,8 +33,6 @@ final class GameScene: SKScene {
     /// Called when the game-over overlay requests a fresh run.
     var onReplayRequested: (() -> Void)?
     
-    private var players: [PlayerEntity] = []
-    private var enemies: [EnemyEntity] = []
     private var playerAttacks: [PlayerAttack] = []
     
     private let floorLayer = SKNode()
@@ -89,7 +88,12 @@ final class GameScene: SKScene {
 
         elapsedRunTime += deltaTime
 
-        let visibleEnemies = enemies.filter { isVisible($0.position) }
+        let players = entityStore.players
+        let enemies = entityStore.enemies
+        let visibleEnemies = entityStore.visibleEnemies(
+            cameraPosition: cameraSystem.cameraNode.position,
+            margin: visibilityCheckMargin
+        )
         for player in players {
             player.aimDirection = inputSystem.aimVector(
                 for: player.controllerIndex ?? 0,
@@ -116,12 +120,9 @@ final class GameScene: SKScene {
 
         enemyAI.update(enemies: enemies, players: players)
 
-        let fraction = players.isEmpty ? 1.0 : players.map {
-            Double($0.health.current) / Double($0.health.maximum)
-        }.reduce(0, +) / Double(players.count)
-        directorSystem.updatePlayerHealthFraction(fraction)
+        directorSystem.updatePlayerHealthFraction(entityStore.averagePlayerHealthFraction)
         
-        let activeBudget = enemies.reduce(0) { $0 + $1.budgetWeight }
+        let activeBudget = entityStore.activeEnemyBudget
         directorSystem.update(deltaTime: deltaTime, activeBudgetUsed: activeBudget)
         updateBossStageAudio()
 
@@ -242,7 +243,7 @@ final class GameScene: SKScene {
         let player = LuminousWisp(inputIndex: 0)
         player.position = .zero
         addChild(player)
-        players.append(player)
+        entityStore.register(player: player)
         cameraSystem.addPlayer(player)
         let playerAttack = PlayerAttack(owner: player, pool: playerProjectilePool, entityLayer: self)
         player.attack = playerAttack
@@ -275,71 +276,30 @@ final class GameScene: SKScene {
     }
     /// Returns whether there is at least one shootable enemy in the visible camera bounds.
     func canPlayerShoot(from playerPosition: CGPoint) -> Bool {
-        let halfW = (cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)) * 0.95
-        let halfH = (cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)) * 0.95
-
-        return enemies.contains { enemy in
-            guard enemy.parent != nil else { return false }
-            let camOffset = toroidalOffset(from: cameraSystem.cameraNode.position, to: enemy.position, mapSize: GameConfig.mapSize)
-            return abs(camOffset.dx) <= halfW && abs(camOffset.dy) <= halfH
-        }
+        return entityStore.canPlayerShoot(
+            cameraPosition: cameraSystem.cameraNode.position,
+            viewportSize: cameraSystem.viewportSize
+        )
     }
 
     /// Finds the nearest player within an orb's magnet radius.
     func magnetTargetForOrb(at orbPosition: CGPoint, radius: CGFloat) -> CGPoint? {
-        let radiusSquared = radius * radius
-
-        return players
-            .filter { $0.parent != nil }
-            .map { $0.position }
-            .filter { position in
-                let dx = position.x - orbPosition.x
-                let dy = position.y - orbPosition.y
-                return (dx * dx + dy * dy) <= radiusSquared
-            }
-            .min(by: { lhs, rhs in
-                let ldx = lhs.x - orbPosition.x
-                let ldy = lhs.y - orbPosition.y
-                let rdx = rhs.x - orbPosition.x
-                let rdy = rhs.y - orbPosition.y
-                return (ldx * ldx + ldy * ldy) < (rdx * rdx + rdy * rdy)
-            })
-    }
-
-    private func isVisible(_ position: CGPoint) -> Bool {
-        let cameraPos = cameraSystem.cameraNode.position
-        let viewport = GameConfig.cameraViewportSize
-        let margin: CGFloat = visibilityCheckMargin
-        let rect = CGRect(
-            x: cameraPos.x - viewport.width / 2 - margin,
-            y: cameraPos.y - viewport.height / 2 - margin,
-            width: viewport.width + margin * 2,
-            height: viewport.height + margin * 2
-        )
-        for dx: CGFloat in [-GameConfig.mapSize.width, 0, GameConfig.mapSize.width] {
-            for dy: CGFloat in [-GameConfig.mapSize.height, 0, GameConfig.mapSize.height] {
-                if rect.contains(CGPoint(x: position.x + dx, y: position.y + dy)) { return true }
-            }
-        }
-        return false
+        entityStore.magnetTargetForOrb(at: orbPosition, radius: radius)
     }
 
     /// Returns the closest player position to a world point using toroidal distance.
     func nearestPlayerPosition(to position: CGPoint) -> CGPoint {
-        players.min {
-            toroidalDistance(from: position, to: $0.position, mapSize: GameConfig.mapSize) <
-            toroidalDistance(from: position, to: $1.position, mapSize: GameConfig.mapSize)
-        }?.position ?? .zero
+        entityStore.nearestPlayerPosition(to: position)
     }
 
     /// Starts tracking an enemy for updates, targeting, budget, and game-over cleanup.
     func register(enemy: EnemyEntity) {
-        enemies.append(enemy)
+        entityStore.register(enemy: enemy)
     }
 
     /// Stops tracking an enemy after death or removal.
     func deregister(enemy: EnemyEntity) {
-        enemies.removeAll { $0 === enemy }
+        entityStore.deregister(enemy: enemy)
     }
     
     /// Delegates essence-orb spawning to `SpawnSystem`.
@@ -472,7 +432,7 @@ final class GameScene: SKScene {
     func dealMeleeDamageToNearestPlayer(from position: CGPoint, damage: Int, range: CGFloat) {
         spawnSmashEffect(at: position)
 
-        guard let player = players.min(by: {
+        guard let player = entityStore.players.min(by: {
             toroidalDistance(from: position, to: $0.position, mapSize: GameConfig.mapSize) <
             toroidalDistance(from: position, to: $1.position, mapSize: GameConfig.mapSize)
         }) else { return }
@@ -560,7 +520,7 @@ final class GameScene: SKScene {
         skillSelectionPlayer = nil
         pendingSkillSelectionPlayer = nil
         pendingSkillSelectionDelay = 0
-        players.forEach { $0.hideAimGuide() }
+        entityStore.players.forEach { $0.hideAimGuide() }
         physicsWorld.speed = 0
         onGameOverPresented?()
 
@@ -624,14 +584,14 @@ final class GameScene: SKScene {
     }
 
     private func updateGameOverInput() {
-        let playerIndex = players.first?.controllerIndex ?? 0
+        let playerIndex = entityStore.players.first?.controllerIndex ?? 0
         if inputSystem.consumeAnyMenuButton(for: playerIndex) {
             gameOverOverlay?.replay()
         }
     }
 
     private func updateControlGuideDismissal() {
-        guard players.contains(where: {
+        guard entityStore.players.contains(where: {
             inputSystem.hasControlGuideDismissInput(for: $0.controllerIndex ?? 0)
         }) else { return }
         hud.dismissControlGuide()
@@ -653,7 +613,7 @@ final class GameScene: SKScene {
     }
 
     private func updateAimCursorMode() {
-        let mode = inputSystem.aimMode(for: players.first?.controllerIndex ?? 0)
+        let mode = inputSystem.aimMode(for: entityStore.players.first?.controllerIndex ?? 0)
         guard mode != lastReportedAimMode else { return }
         lastReportedAimMode = mode
         onAimModeChanged?(mode)
