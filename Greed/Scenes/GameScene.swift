@@ -2,7 +2,6 @@ import SpriteKit
 import MetalKit
 
 private let visibilityCheckMargin: CGFloat = 100
-private let levelUpOverlayDelay: TimeInterval = 0.35
 
 /// Main gameplay scene that coordinates systems, entities, overlays, audio, and the update loop.
 final class GameScene: SKScene {
@@ -12,8 +11,8 @@ final class GameScene: SKScene {
     private(set) var directorSystem: DirectorSystem!
     private var spawnSystem: SpawnSystem!
     private var collisionSystem: CollisionSystem!
-    private var skillSystem: SkillSystem!
     private var skillRuntimeSystem: SkillRuntimeSystem!
+    private let overlayFlow = OverlayFlowController()
     private var floorRenderer: FloorTileRenderer!
     private var environmentPropSystem: EnvironmentPropSystem!
     private var enemyAI: EnemyAI!
@@ -23,15 +22,10 @@ final class GameScene: SKScene {
     private let entityStore = GameSceneEntityStore()
     private let audioManager = AudioManager.shared
     private let particleAssets = ParticleAssets.shared
-    private var skillCardOverlay: SkillCardOverlay?
-    private var gameOverOverlay: GameOverOverlay?
-    private var startCountdownOverlay: StartCountdownOverlay?
-    private weak var skillSelectionPlayer: PlayerEntity?
-    private weak var pendingSkillSelectionPlayer: PlayerEntity?
-    private var pendingSkillSelectionDelay: TimeInterval = 0
-    private var wasSkillConfirmPressed = false
     /// Called when the game-over overlay requests a fresh run.
-    var onReplayRequested: (() -> Void)?
+    var onReplayRequested: (() -> Void)? {
+        didSet { overlayFlow.onReplayRequested = onReplayRequested }
+    }
     
     private var playerAttacks: [PlayerAttack] = []
     
@@ -40,12 +34,15 @@ final class GameScene: SKScene {
     
     private var elapsedRunTime: TimeInterval = 0
     private var lastUpdateTime: TimeInterval = 0
-    private var lastReportedAimMode: InputSystem.AimMode?
     private var wasBossStageActive = false
     /// Called when cursor presentation should switch between manual and hidden aim modes.
-    var onAimModeChanged: ((InputSystem.AimMode) -> Void)?
+    var onAimModeChanged: ((InputSystem.AimMode) -> Void)? {
+        didSet { overlayFlow.onAimModeChanged = onAimModeChanged }
+    }
     /// Called once the game-over overlay takes control of input.
-    var onGameOverPresented: (() -> Void)?
+    var onGameOverPresented: (() -> Void)? {
+        didSet { overlayFlow.onGameOverPresented = onGameOverPresented }
+    }
 
     /// Initializes scene systems and spawns the first player.
     func setup(view: MTKView) {
@@ -63,32 +60,27 @@ final class GameScene: SKScene {
         let deltaTime = computeDeltaTime(currentTime)
         guard deltaTime > 0 else { return }
 
-        if skillCardOverlay != nil {
-            updateSkillSelectionInput()
+        let players = entityStore.players
+        switch overlayFlow.updateBeforeGameplay(
+            deltaTime: deltaTime,
+            screenSize: size,
+            elapsedRunTime: elapsedRunTime,
+            hud: hud,
+            players: players,
+            refreshWorldRenderers: { [weak self] in self?.refreshWorldRenderers() },
+            updateYSort: { [weak self] in self?.updateYSort() }
+        ) {
+        case .none:
+            break
+        case .blocked:
             return
-        }
-
-        if gameOverOverlay != nil {
-            updateGameOverInput()
-            return
-        }
-
-        if let startCountdownOverlay {
-            hud.updateViewport(size)
-            hud.update(elapsedTime: elapsedRunTime)
-            refreshWorldRenderers()
-            updateYSort()
-
-            if startCountdownOverlay.update(deltaTime: deltaTime) {
-                self.startCountdownOverlay = nil
-                lastUpdateTime = 0
-            }
+        case .resetGameplayClock:
+            lastUpdateTime = 0
             return
         }
 
         elapsedRunTime += deltaTime
 
-        let players = entityStore.players
         let enemies = entityStore.enemies
         let visibleEnemies = entityStore.visibleEnemies(
             cameraPosition: cameraSystem.cameraNode.position,
@@ -131,7 +123,11 @@ final class GameScene: SKScene {
         updateControlGuideDismissal()
         updateAimCursorMode()
         hud.update(elapsedTime: elapsedRunTime)
-        updatePendingSkillSelection(deltaTime: deltaTime)
+        overlayFlow.updatePendingSkillSelection(
+            deltaTime: deltaTime,
+            screenSize: size,
+            cameraNode: cameraSystem.cameraNode
+        )
         cameraSystem.update(deltaTime: deltaTime)
         refreshWorldRenderers()
         updateYSort()
@@ -176,7 +172,6 @@ final class GameScene: SKScene {
         directorSystem = DirectorSystem()
         collisionSystem = CollisionSystem()
         physicsWorld.contactDelegate = collisionSystem
-        skillSystem = SkillSystem()
         skillRuntimeSystem = SkillRuntimeSystem()
         enemyAI = EnemyAI()
         spawnSystem = SpawnSystem(entityLayer: self, cameraSystem: cameraSystem, directorSystem: directorSystem)
@@ -228,9 +223,7 @@ final class GameScene: SKScene {
         floorRenderer.updateViewport(size)
         refreshWorldRenderers()
         hud?.updateViewport(size)
-        skillCardOverlay?.updateViewport(size)
-        gameOverOverlay?.updateViewport(size)
-        startCountdownOverlay?.updateViewport(size)
+        overlayFlow.updateViewport(size)
     }
 
     private func refreshWorldRenderers() {
@@ -260,9 +253,7 @@ final class GameScene: SKScene {
     }
 
     private func presentStartCountdown() {
-        let overlay = StartCountdownOverlay(screenSize: size)
-        cameraSystem.cameraNode.addChild(overlay)
-        startCountdownOverlay = overlay
+        overlayFlow.presentStartCountdown(screenSize: size, cameraNode: cameraSystem.cameraNode)
     }
 
     private func computeDeltaTime(_ currentTime: TimeInterval) -> TimeInterval {
@@ -314,82 +305,45 @@ final class GameScene: SKScene {
     
     /// Starts the delayed level-up card flow for a player.
     func handleLevelUp(for player: PlayerEntity) {
-        Log.debug("GameScene: player leveled up to \(player.level.currentLevel)")
-        guard skillCardOverlay == nil, pendingSkillSelectionPlayer == nil else { return }
-        audioManager.play(.levelUp)
-        hud.showFullEssenceBriefly(duration: levelUpOverlayDelay)
-        pendingSkillSelectionPlayer = player
-        pendingSkillSelectionDelay = levelUpOverlayDelay
+        overlayFlow.handleLevelUp(for: player, hud: hud)
     }
 
     /// Routes a view-space mouse-down event to active camera-space overlays.
     @discardableResult
     func handleMouseDown(atViewPosition viewPosition: CGPoint, viewSize: CGSize) -> Bool {
-        guard viewSize.width > 0, viewSize.height > 0 else { return true }
-
-        let overlayPoint = CGPoint(
-            x: (viewPosition.x / viewSize.width) * size.width - size.width / 2,
-            y: (viewPosition.y / viewSize.height) * size.height - size.height / 2
-        )
-
-        if let gameOverOverlay {
-            return gameOverOverlay.handleMouseDown(at: overlayPoint)
-        }
-
-        guard let skillCardOverlay else { return false }
-        return skillCardOverlay.handleMouseDown(at: overlayPoint)
+        let handled = overlayFlow.handleMouseDown(atViewPosition: viewPosition, viewSize: viewSize, screenSize: size)
+        resetGameplayClockIfNeeded()
+        return handled
     }
 
     /// Routes a view-space mouse-move event to active camera-space overlays.
     @discardableResult
     func handleMouseMoved(atViewPosition viewPosition: CGPoint, viewSize: CGSize) -> Bool {
-        guard viewSize.width > 0, viewSize.height > 0 else { return true }
-
-        let overlayPoint = CGPoint(
-            x: (viewPosition.x / viewSize.width) * size.width - size.width / 2,
-            y: (viewPosition.y / viewSize.height) * size.height - size.height / 2
-        )
-
-        if let gameOverOverlay {
-            return gameOverOverlay.handleMouseMoved(at: overlayPoint)
-        }
-
-        guard let skillCardOverlay else { return false }
-        return skillCardOverlay.handleMouseMoved(at: overlayPoint)
+        overlayFlow.handleMouseMoved(atViewPosition: viewPosition, viewSize: viewSize, screenSize: size)
     }
 
     /// Routes key-down events to active overlays before gameplay input sees them.
     @discardableResult
     func handleKeyDown(_ event: NSEvent) -> Bool {
-        if gameOverOverlay != nil {
-            return true
-        }
-        guard let skillCardOverlay else { return false }
-
-        let shortcutModifiers: NSEvent.ModifierFlags = [.command, .control, .option]
-        guard event.modifierFlags.intersection(shortcutModifiers).isEmpty else { return true }
-
-        switch event.keyCode {
-        case 0:
-            skillCardOverlay.moveSelection(.left)
-        case 2:
-            skillCardOverlay.moveSelection(.right)
-        case 36, 49:
-            skillCardOverlay.selectHighlightedCard()
-        default:
-            break
-        }
-        return true
+        let handled = overlayFlow.handleKeyDown(event)
+        resetGameplayClockIfNeeded()
+        return handled
     }
 
     /// Freezes gameplay and presents game over for the dead player.
     func handlePlayerDeath(_ player: PlayerEntity) {
         Log.debug("GameScene: player died")
-        pendingSkillSelectionPlayer = nil
-        pendingSkillSelectionDelay = 0
         audioManager.stopAllMusic()
         audioManager.playDeathExclusively()
-        presentGameOverOverlay(for: player)
+        overlayFlow.presentGameOver(
+            for: player,
+            players: entityStore.players,
+            physicsWorld: physicsWorld,
+            elapsedRunTime: elapsedRunTime,
+            screenSize: size,
+            cameraNode: cameraSystem.cameraNode,
+            stats: makeGameOverStats(for: player)
+        )
     }
     
     /// Ends boss-stage systems after the active boss dies.
@@ -478,64 +432,6 @@ final class GameScene: SKScene {
         addChild(projectile)
     }
 
-    private func presentSkillCardOverlay() {
-        guard let player = skillSelectionPlayer else { return }
-        player.hideAimGuide()
-
-        let skills = skillSystem.draw(for: player.skillState)
-        guard !skills.isEmpty else {
-            skillSelectionPlayer = nil
-            return
-        }
-
-        let skillLevels = Dictionary(uniqueKeysWithValues: skills.map { skill in
-            (skill.id, player.skillState.level(of: skill.id, type: skill.type))
-        })
-
-        let overlay = SkillCardOverlay(skills: skills, skillLevels: skillLevels, screenSize: size) { [weak self, weak player] skill in
-            guard let self, let player else { return }
-            self.completeSkillSelection(skill, for: player)
-        }
-        cameraSystem.cameraNode.addChild(overlay)
-        skillCardOverlay = overlay
-        wasSkillConfirmPressed = inputSystem.confirmPressed(for: player.controllerIndex ?? 0)
-        lastReportedAimMode = .manual
-        onAimModeChanged?(.manual)
-    }
-
-    private func updatePendingSkillSelection(deltaTime: TimeInterval) {
-        guard skillCardOverlay == nil, gameOverOverlay == nil, let player = pendingSkillSelectionPlayer else { return }
-        pendingSkillSelectionDelay = max(0, pendingSkillSelectionDelay - deltaTime)
-        guard pendingSkillSelectionDelay == 0 else { return }
-
-        pendingSkillSelectionPlayer = nil
-        skillSelectionPlayer = player
-        presentSkillCardOverlay()
-    }
-
-    private func presentGameOverOverlay(for player: PlayerEntity) {
-        guard gameOverOverlay == nil else { return }
-        skillCardOverlay?.removeFromParent()
-        skillCardOverlay = nil
-        skillSelectionPlayer = nil
-        pendingSkillSelectionPlayer = nil
-        pendingSkillSelectionDelay = 0
-        entityStore.players.forEach { $0.hideAimGuide() }
-        physicsWorld.speed = 0
-        onGameOverPresented?()
-
-        let overlay = GameOverOverlay(
-            survivedTime: elapsedRunTime,
-            screenSize: size,
-            stats: makeGameOverStats(for: player),
-            usesControllerPrompt: inputSystem.hasConnectedController
-        ) { [weak self] in
-            self?.onReplayRequested?()
-        }
-        cameraSystem.cameraNode.addChild(overlay)
-        gameOverOverlay = overlay
-    }
-
     private func makeGameOverStats(for player: PlayerEntity) -> GameOverStats {
         let items = (player.equippedWeapons + player.equippedPowerUps).map { skill in
             GameOverStats.Item(
@@ -554,47 +450,17 @@ final class GameScene: SKScene {
         )
     }
 
-    private func completeSkillSelection(_ skill: Skill, for player: PlayerEntity) {
-        player.applySkill(skill)
-        audioManager.play(.pickPower)
-        skillCardOverlay?.removeFromParent()
-        skillCardOverlay = nil
-        skillSelectionPlayer = nil
-        wasSkillConfirmPressed = false
-        lastUpdateTime = 0
-        // Force cursor mode re-evaluation on the next gameplay frame.
-        lastReportedAimMode = nil
-    }
-
-    private func updateSkillSelectionInput() {
-        guard let player = skillSelectionPlayer else { return }
-        if let direction = inputSystem.consumeMenuDirection(for: player.controllerIndex ?? 0) {
-            skillCardOverlay?.moveSelection(direction)
-        }
-        if inputSystem.consumeMenuConfirm(for: player.controllerIndex ?? 0) {
-            skillCardOverlay?.selectHighlightedCard()
-            return
-        }
-
-        let isConfirmPressed = inputSystem.confirmPressed(for: player.controllerIndex ?? 0)
-        if isConfirmPressed && !wasSkillConfirmPressed {
-            skillCardOverlay?.selectHighlightedCard()
-        }
-        wasSkillConfirmPressed = isConfirmPressed
-    }
-
-    private func updateGameOverInput() {
-        let playerIndex = entityStore.players.first?.controllerIndex ?? 0
-        if inputSystem.consumeAnyMenuButton(for: playerIndex) {
-            gameOverOverlay?.replay()
-        }
-    }
-
     private func updateControlGuideDismissal() {
         guard entityStore.players.contains(where: {
             inputSystem.hasControlGuideDismissInput(for: $0.controllerIndex ?? 0)
         }) else { return }
         hud.dismissControlGuide()
+    }
+
+    private func resetGameplayClockIfNeeded() {
+        if overlayFlow.consumeNeedsGameplayClockReset() {
+            lastUpdateTime = 0
+        }
     }
 
     private func updateBossStageAudio() {
@@ -613,9 +479,6 @@ final class GameScene: SKScene {
     }
 
     private func updateAimCursorMode() {
-        let mode = inputSystem.aimMode(for: entityStore.players.first?.controllerIndex ?? 0)
-        guard mode != lastReportedAimMode else { return }
-        lastReportedAimMode = mode
-        onAimModeChanged?(mode)
+        overlayFlow.updateAimCursorMode(players: entityStore.players)
     }
 }
