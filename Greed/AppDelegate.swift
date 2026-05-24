@@ -11,7 +11,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func registerCustomFont(named assetName: String) {
         guard let asset = NSDataAsset(name: assetName) else {
-            print("⚠️ Failed to find NSDataAsset: \(assetName)")
+            Log.warning("Failed to find NSDataAsset: \(assetName)")
             return
         }
         
@@ -21,16 +21,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         do {
             try asset.data.write(to: tempFontURL, options: .atomic)
         } catch {
-            print("⚠️ Failed to write custom font data to temp URL: \(error.localizedDescription)")
+            Log.warning("Failed to write custom font data to temp URL: \(error.localizedDescription)")
             return
         }
         
         var error: Unmanaged<CFError>?
         if CTFontManagerRegisterFontsForURL(tempFontURL as CFURL, .process, &error) {
-            print("✅ Successfully registered custom font: \(assetName)")
+            Log.debug("Successfully registered custom font: \(assetName)")
         } else {
             let errorDescription = error?.takeRetainedValue().localizedDescription ?? "Unknown error"
-            print("⚠️ Failed to register custom font: \(errorDescription)")
+            Log.warning("Failed to register custom font: \(errorDescription)")
         }
     }
     
