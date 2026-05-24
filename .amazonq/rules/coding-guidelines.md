@@ -13,8 +13,8 @@
 ## Project Folder Structure
 
 ```
-Challenge2/                             # Xcode project root
-├── Greed/                              # Main app target
+GnomeApocalypse/                             # Xcode project root
+├── GnomeApocalypse/                              # Main app target
 │   ├── Entities/
 │   │   ├── Player/
 │   │   │   ├── PlayerEntity.swift          # Base player class (movement, health, level, death)
@@ -79,7 +79,7 @@ Challenge2/                             # Xcode project root
 │   ├── GameManager.swift                   # App entry, bootstraps scene, owns top-level state machine
 │   └── AppDelegate.swift
 │
-├── GreedTests/                             # Unit & integration test target — Swift Testing only
+├── GnomeApocalypseTests/                             # Unit & integration test target — Swift Testing only
 │   ├── Utilities/
 │   │   └── ToroidalMathTests.swift
 │   ├── Systems/
@@ -92,14 +92,14 @@ Challenge2/                             # Xcode project root
 │   └── Entities/
 │       └── ProjectilePoolTests.swift
 │
-└── GreedUITests/                  # UI test target — XCUITest only
+└── GnomeApocalypseUITests/                  # UI test target — XCUITest only
     ├── GameLaunch/
     │   └── GameLaunchUITests.swift         # App launch, reaches game screen
     ├── HUD/
     │   └── HUDUITests.swift                # HUD elements present and accessible
     ├── SkillCard/
     │   └── SkillCardUITests.swift          # Skill overlay appears and dismisses
-    └── GreedUITestsLaunchTests.swift  # Baseline screenshot capture — do not remove
+    └── GnomeApocalypseUITestsLaunchTests.swift  # Baseline screenshot capture — do not remove
 ```
 
 ---
@@ -716,13 +716,13 @@ Use **Swift Testing** (`import Testing`) for all unit and integration tests. XCT
 - `SkillSystem` — draw returns exactly 3 non-duplicate skills, seeded reproducibility
 - `EssenceOrbComponent` — state machine transitions (`small → grown → mistExplosion`), timer thresholds
 
-**Naming convention:** Test files live in `GreedTests/` and mirror the source file name. See the full folder structure above.
+**Naming convention:** Test files live in `GnomeApocalypseTests/` and mirror the source file name. See the full folder structure above.
 
 **Swift Testing style:**
 
 ```swift
 import Testing
-@testable import Greed
+@testable import GnomeApocalypse
 
 @Suite("ToroidalMath")
 struct ToroidalMathTests {
@@ -741,7 +741,7 @@ struct ToroidalMathTests {
 
 ### UI Tests — XCUITest
 
-Use **XCTest + XCUITest** (`import XCTest`) for UI-layer tests only. These live in `GreedUITests/`.
+Use **XCTest + XCUITest** (`import XCTest`) for UI-layer tests only. These live in `GnomeApocalypseUITests/`.
 
 **What to test:**
 - App launches and reaches the home/game screen without crashing
@@ -764,7 +764,7 @@ final class GameLaunchUITests: XCTestCase {
 
 - One `XCTestCase` subclass per UI flow.
 - Use `XCTAssert` family only in XCUITest files — never in Swift Testing files.
-- Launch tests (`GreedUITestsLaunchTests.swift`) capture baseline screenshots; keep them.
+- Launch tests (`GnomeApocalypseUITestsLaunchTests.swift`) capture baseline screenshots; keep them.
 
 ### Rules
 
