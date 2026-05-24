@@ -5,12 +5,19 @@ private let grumbleTargetHeight: CGFloat = 48 * 1.35
 final class Grumble: EnemyEntity {
 
     override var budgetWeight: Int { GameConfig.grumbleBudgetWeight }
-    override var moveSpeed: CGFloat { GameConfig.miniBossMoveSpeed }
+    override var moveSpeed: CGFloat {
+        if attackWindupRemaining > 0 {
+            return 0
+        }
+        return GameConfig.miniBossMoveSpeed
+    }
     override var preferredTargetRange: CGFloat { GameConfig.miniBossPreferredRange }
 
     private var timeSinceLastShot: TimeInterval = 0
     private var animator: AnimationComponent!
     private var lastDirection: String = "right"
+    private var attackWindupRemaining: TimeInterval = 0
+    private var queuedAttackDirection: CGVector = .zero
 
     init() {
         let atlas = SKTextureAtlas(named: "grumble")
@@ -39,6 +46,11 @@ final class Grumble: EnemyEntity {
     }
 
     private func updateAnimation() {
+        if attackWindupRemaining > 0 {
+            animator.play(animation: "grumble_attack", timePerFrame: 0.12, repeat: false)
+            return
+        }
+
         let delta = movementDelta
         let isMoving = abs(delta.x) > 0.01 || abs(delta.y) > 0.01
 
@@ -52,7 +64,22 @@ final class Grumble: EnemyEntity {
     }
 
     private func updateRangedAttack(deltaTime: TimeInterval) {
+        if attackWindupRemaining > 0 {
+            attackWindupRemaining = max(0, attackWindupRemaining - deltaTime)
+            if attackWindupRemaining == 0 {
+                launchQueuedAttack()
+            }
+            return
+        }
+
+        // Always update cooldown so the mini-boss can attack immediately when reaching the target
         timeSinceLastShot += deltaTime
+
+        let offset = toroidalOffset(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
+        let distance = sqrt(offset.dx * offset.dx + offset.dy * offset.dy)
+        let shootRadius = preferredTargetRange + 1.0
+        
+        guard distance <= shootRadius else { return }
         guard timeSinceLastShot >= GameConfig.miniBossShootInterval else { return }
         
         guard let gameScene, let cameraSystem = gameScene.cameraSystem else { return }
@@ -69,20 +96,35 @@ final class Grumble: EnemyEntity {
         guard dist <= grumbleShootRadius else { return }
         
         timeSinceLastShot = 0
-        fireTowardTarget()
+        
+        if distance > 0 {
+            queuedAttackDirection = CGVector(dx: offset.dx / distance, dy: offset.dy / distance)
+        } else {
+            queuedAttackDirection = .zero
+        }
+        
+        if offset.dx != 0 {
+            lastDirection = offset.dx < 0 ? "left" : "right"
+            xScale = lastDirection == "left" ? 1 : -1
+        }
+        
+        attackWindupRemaining = GameConfig.miniBossAttackWindup
+        animator.stop()
+        animator.play(animation: "grumble_attack", timePerFrame: 0.12, repeat: false)
     }
 
-    private func fireTowardTarget() {
-        guard let gameScene else { return }
-        let offset = toroidalOffset(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
-        let distance = sqrt(offset.dx * offset.dx + offset.dy * offset.dy)
-        guard distance > 0 else { return }
-        let direction = CGVector(dx: offset.dx / distance, dy: offset.dy / distance)
+    private func launchQueuedAttack() {
+        guard let gameScene, queuedAttackDirection != .zero else { return }
+        let projectileRange: CGFloat = 200.0
+        let lifespan = TimeInterval(projectileRange / GameConfig.projectileSpeed)
+        
         gameScene.spawnEnemyProjectile(
             at: position,
-            direction: direction,
+            direction: queuedAttackDirection,
             damage: GameConfig.miniBossProjectileDamage,
-            textureName: "projectile_enemy_grumble"
+            textureName: "projectile_enemy_grumble",
+            lifespan: lifespan
         )
+        queuedAttackDirection = .zero
     }
 }

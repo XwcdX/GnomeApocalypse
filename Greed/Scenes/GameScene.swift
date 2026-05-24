@@ -676,13 +676,14 @@ final class GameScene: SKScene {
     }
 
     func canPlayerShoot(from playerPosition: CGPoint) -> Bool {
-        let halfW = cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)
-        let halfH = cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)
-        let shootRadius = sqrt(halfW * halfW + halfH * halfH) * 0.95
+        // Calculate the actual visible screen half-width and half-height in world coordinates
+        let halfW = (cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)) * 0.95
+        let halfH = (cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)) * 0.95
 
         return enemies.contains { enemy in
-            enemy.parent != nil
-                && toroidalDistance(from: playerPosition, to: enemy.position, mapSize: GameConfig.mapSize) <= shootRadius
+            guard enemy.parent != nil else { return false }
+            let camOffset = toroidalOffset(from: cameraSystem.cameraNode.position, to: enemy.position, mapSize: GameConfig.mapSize)
+            return abs(camOffset.dx) <= halfW && abs(camOffset.dy) <= halfH
         }
     }
 

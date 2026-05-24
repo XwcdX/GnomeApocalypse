@@ -10,7 +10,7 @@ enum GameConfig {
     // MARK: - Player
     static let basePlayerSpeed: CGFloat = 200
     static let basePlayerHealth: Int = 100
-    static let basePlayerDamage: Int = 10
+    static let basePlayerDamage: Int = 30
     static let baseFireRate: TimeInterval = 1
     static let projectileSpeed: CGFloat = 500
     static var projectileLifeSpan: TimeInterval {
@@ -107,7 +107,7 @@ enum GameConfig {
 
     // MARK: - Boss Stage
     /// Interval (in seconds) between Boss eruptions, regardless of Director budget state.
-    static let bossSpawnInterval: TimeInterval = 300.0
+    static let bossSpawnInterval: TimeInterval = 150.0
 
 
     // MARK: - Enemy Spawn
@@ -134,17 +134,18 @@ enum GameConfig {
     // MARK: - Grumble (Mini-Boss)
     static let grumbleBudgetWeight: Int = 10
     static let miniBossShootInterval: TimeInterval = 2.0
+    static let miniBossAttackWindup: TimeInterval = 0.4
     static let miniBossProjectileDamage: Int = 15
     static let miniBossMoveSpeed: CGFloat = 60
-    static let miniBossHealth: Int = 200
-    static let miniBossPreferredRange: CGFloat = 180
+    static let miniBossHealth: Int = 180
+    static let miniBossPreferredRange: CGFloat = 200
 
 
     // MARK: - Grand (Boss)
     static let swarmBudgetWeight: Int = 20
     static let bossAbilityInterval: TimeInterval = 8.0
     static let bossMoveSpeed: CGFloat = 40
-    static let bossHealth: Int = 2000
+    static let bossHealth: Int = 900
     static let bossPhase1MinionCount: Int = 3
     static let bossPhase2MinionCount: Int = 6
     static let bossMeleeRange: CGFloat = 80
