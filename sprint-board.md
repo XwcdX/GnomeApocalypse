@@ -46,7 +46,7 @@
 
 ### Systems
 - `DirectorSystem.swift` — rolling kill window, average player health pressure, budget adjustment, Boss stage timer
-- `SkillSystem.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap, `PlayerSkillState`
+- `SkillSystem.swift` / `Skill.swift` / `PlayerSkillState.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap
 - `SpawnSystem.swift` — budget-gated spawning, outside-camera positions, orb tracking + cleanup, MiniBoss/Boss spawning, wave escalation
 - `CollisionSystem.swift` — projectile→enemy, projectile→player, orb→player, ghost redirect
 
@@ -66,7 +66,7 @@
 - `GameOverOverlay.swift` — game-over screen with survival time and replay button
 
 ### Tests
-- `ToroidalMathTest.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
+- `ToroidalMathTests.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
 - `HealthComponentTests.swift` — all boundary conditions
 - `LevelComponentTests.swift` — XP accumulation, multi-level-up, threshold growth
 - `EnemyProjectilePoolTests.swift` — enemy projectile activation

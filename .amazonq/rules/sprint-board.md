@@ -47,7 +47,7 @@
 
 ### Systems
 - `DirectorSystem.swift` — rolling kill window, average player health pressure, budget adjustment, Boss stage timer
-- `SkillSystem.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap, `PlayerSkillState`
+- `SkillSystem.swift` / `Skill.swift` / `PlayerSkillState.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap
 - `SpawnSystem.swift` — budget-gated wave spawning, wave escalation, orb state machine wiring, MiniBoss from orb explosion, Boss stage, `activeBudgetUsed` passed to Director
 - `CollisionSystem.swift` — projectile→enemy, projectile→player, orb→player, ghost redirect
 
@@ -61,7 +61,7 @@
 - `AudioManager.swift` — preloaded music + SFX players, `play(_:)`, `playBackgroundMusic()`
 
 ### Tests
-- `ToroidalMathTest.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
+- `ToroidalMathTests.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
 - `HealthComponentTests.swift` — all boundary conditions
 - `LevelComponentTests.swift` — XP accumulation, multi-level-up, threshold growth
 - `EssenceOrbComponentTests.swift` — full state machine transitions, timer thresholds
