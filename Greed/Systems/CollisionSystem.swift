@@ -5,8 +5,8 @@ final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
     private let areShieldHandlersEnabled = false
     private var playerHealthCallbacks: [SKNode: (Int) -> Void] = [:]
     
-    /// Registers a player damage callback. The director parameter is reserved for damage-rate tracking.
-    func register(player: PlayerEntity, directorSystem: DirectorSystem) {
+    /// Registers a player damage callback.
+    func register(player: PlayerEntity) {
         playerHealthCallbacks[player] = { [weak player] damage in
             player?.takeDamage(damage)
         }

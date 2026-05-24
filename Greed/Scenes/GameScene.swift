@@ -271,7 +271,7 @@ final class GameScene: SKScene {
         let playerAttack = PlayerAttack(owner: player, pool: playerProjectilePool, entityLayer: self)
         player.attack = playerAttack
         playerAttacks.append(playerAttack)
-        collisionSystem.register(player: player, directorSystem: directorSystem)
+        collisionSystem.register(player: player)
         setupHUD(for: player)
         presentStartCountdown()
     }
