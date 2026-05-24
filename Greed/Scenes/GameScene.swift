@@ -678,7 +678,7 @@ final class GameScene: SKScene {
     func canPlayerShoot(from playerPosition: CGPoint) -> Bool {
         // Calculate the actual visible screen half-width and half-height in world coordinates
         let halfW = (cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)) * 0.95
-        let halfH = (cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2
+        let halfH = (cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)) * 0.95
 
         return enemies.contains { enemy in
             guard enemy.parent != nil else { return false }
