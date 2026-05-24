@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Playable character implementation using the luminous wisp atlas and base player combat.
 final class LuminousWisp: PlayerEntity {
     private var animator: AnimationComponent!
     private var lastDirection: String = "down"

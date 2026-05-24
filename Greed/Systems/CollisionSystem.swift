@@ -1,15 +1,18 @@
 import SpriteKit
 
+/// Routes SpriteKit physics contacts into gameplay effects.
 final class CollisionSystem: NSObject, SKPhysicsContactDelegate {
     private let areShieldHandlersEnabled = false
     private var playerHealthCallbacks: [SKNode: (Int) -> Void] = [:]
     
+    /// Registers a player damage callback. The director parameter is reserved for damage-rate tracking.
     func register(player: PlayerEntity, directorSystem: DirectorSystem) {
         playerHealthCallbacks[player] = { [weak player] damage in
             player?.takeDamage(damage)
         }
     }
     
+    /// Handles begin-contact events from SpriteKit's physics world.
     func didBegin(_ contact: SKPhysicsContact) {
         let a = contact.bodyA
         let b = contact.bodyB

@@ -1,5 +1,6 @@
 import CoreGraphics
 
+/// Returns the shortest wrapped vector from `a` to `b` in the toroidal world.
 func toroidalOffset(from a: CGPoint, to b: CGPoint, mapSize: CGSize) -> CGVector {
     let w = mapSize.width
     let h = mapSize.height
@@ -15,6 +16,7 @@ func toroidalOffset(from a: CGPoint, to b: CGPoint, mapSize: CGSize) -> CGVector
     return CGVector(dx: dx, dy: dy)
 }
 
+/// Returns the sector copy of `target` that is nearest to `origin`.
 func nearestToroidalTarget(from origin: CGPoint, to target: CGPoint, mapSize: CGSize) -> CGPoint {
     let w = mapSize.width
     let h = mapSize.height
@@ -36,6 +38,7 @@ func nearestToroidalTarget(from origin: CGPoint, to target: CGPoint, mapSize: CG
     return bestPosition
 }
 
+/// Returns the shortest wrapped distance between two world positions.
 func toroidalDistance(from a: CGPoint, to b: CGPoint, mapSize: CGSize) -> CGFloat {
     let offset = toroidalOffset(from: a, to: b, mapSize: mapSize)
     return sqrt(offset.dx * offset.dx + offset.dy * offset.dy)

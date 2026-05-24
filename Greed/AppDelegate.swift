@@ -1,6 +1,7 @@
 import Cocoa
 import CoreText
 
+/// Application delegate responsible for process-level setup such as custom font registration.
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
     
@@ -34,6 +35,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationWillTerminate(_ aNotification: Notification) {
-        // Insert code here to tear down your application
     }
 }

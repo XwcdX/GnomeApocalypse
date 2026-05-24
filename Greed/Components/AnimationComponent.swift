@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Atlas-backed animation helper for SpriteKit nodes with optional horizontal mirroring.
 final class AnimationComponent {
     private let atlas: SKTextureAtlas
     private let owner: SKSpriteNode
@@ -14,6 +15,7 @@ final class AnimationComponent {
         self.canMirror = canMirror
     }
     
+    /// Loads frames named `<name>_000`, `<name>_001`, ... from the configured atlas.
     func loadAnimation(name: String, frameCount: Int) {
         guard frameCount > 0 else {
             Log.warning("AnimationComponent: frameCount must be > 0 for animation '\(name)'")
@@ -35,12 +37,14 @@ final class AnimationComponent {
         animations[name] = frames
     }
     
+    /// Loads several animations by appending each suffix to `prefix`.
     func loadAnimations(prefix: String, frameCount: Int, suffixes: [String]) {
         for suffix in suffixes {
             loadAnimation(name: "\(prefix)\(suffix)", frameCount: frameCount)
         }
     }
     
+    /// Starts an animation unless it is already active on the owner.
     func play(animation: String, timePerFrame: TimeInterval, repeat: Bool = true) {
         guard currentAnimation != animation,
               let frames = animations[animation] else { return }
@@ -53,11 +57,13 @@ final class AnimationComponent {
         owner.run(finalAction, withKey: "animate")
     }
     
+    /// Stops the owner animation and clears the active animation key.
     func stop() {
         owner.removeAction(forKey: "animate")
         currentAnimation = nil
     }
     
+    /// Maps a movement or aim vector to an animation direction name.
     func setDirection(dx: CGFloat, dy: CGFloat) -> String {
         let angle = atan2(dy, dx)
         let degrees = angle * 180 / .pi

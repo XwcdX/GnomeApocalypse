@@ -1,5 +1,6 @@
 import Foundation
 
+/// XP and level progression state for a single player run.
 struct LevelComponent {
     private(set) var currentLevel: Int = 1
     private(set) var currentXP: Int = 0
@@ -9,6 +10,7 @@ struct LevelComponent {
         self.xpThreshold = xpThreshold
     }
 
+    /// Adds XP, applies every threshold crossed, and returns whether at least one level was gained.
     @discardableResult
     mutating func addXP(_ amount: Int) -> Bool {
         guard amount > 0 else { return false }

@@ -1,11 +1,13 @@
 import Foundation
 import CoreGraphics
 
+/// Skill category used for slot caps and upgrade eligibility.
 enum SkillType {
     case weapon
     case powerUp
 }
 
+/// Concrete gameplay effect produced by a skill at a specific level.
 enum SkillEffect {
     case wardenThorns(thornCount: Int)
     case lightningStrike(cooldown: TimeInterval, strikeCount: Int)
@@ -15,6 +17,7 @@ enum SkillEffect {
     case increaseMaxHealth(bonusRate: CGFloat)
 }
 
+/// Stable skill definition shown in selection cards and applied to player state.
 struct Skill {
     let id: String
     let name: String
@@ -22,6 +25,7 @@ struct Skill {
     let iconName: String
     let maxLevel: Int
 
+    /// Returns the gameplay effect for a 1-based skill level, clamped to configured values.
     func effect(at level: Int) -> SkillEffect {
         let index = max(0, min(level - 1, 2))
         switch id {
@@ -65,6 +69,7 @@ struct Skill {
     }
 }
 
+/// Tracks a player's owned skills and enforces slot and max-level caps.
 struct PlayerSkillState {
     private var ownedWeapons:  [String: Int] = [:]
     private var ownedPowerUps: [String: Int] = [:]
@@ -82,6 +87,7 @@ struct PlayerSkillState {
     var powerUpCapReached: Bool { powerUpCount >= GameConfig.maxPowerUpSlots }
     var maxLevelCapReached: Bool { maxedItemCount >= GameConfig.maxLevel3Items }
 
+    /// Returns the current level for an owned skill, or 0 when unowned.
     func level(of skillId: String, type: SkillType) -> Int {
         switch type {
         case .weapon:  return ownedWeapons[skillId]  ?? 0
@@ -89,6 +95,7 @@ struct PlayerSkillState {
         }
     }
 
+    /// Returns whether a skill can no longer be offered by the draw pool.
     func isMaxed(_ skill: Skill) -> Bool {
         let currentLevel = level(of: skill.id, type: skill.type)
         if currentLevel >= skill.maxLevel { return true }
@@ -96,10 +103,12 @@ struct PlayerSkillState {
         return false
     }
 
+    /// Returns whether the player has at least level 1 of a skill.
     func owns(_ skill: Skill) -> Bool {
         level(of: skill.id, type: skill.type) > 0
     }
 
+    /// Raises an owned skill by one level, respecting the skill's own maximum.
     mutating func upgrade(_ skill: Skill) {
         let currentLevel = level(of: skill.id, type: skill.type)
         guard currentLevel < skill.maxLevel else { return }
@@ -111,6 +120,7 @@ struct PlayerSkillState {
     }
 }
 
+/// Draws upgrade cards from the available skills for a player's current state.
 final class SkillSystem {
     private let pool: [Skill] = [
         Skill(id: "warden_thorns",   name: "Warden Thorns",   type: .weapon,  iconName: "icon_warden_thorns",  maxLevel: 3),
@@ -121,6 +131,7 @@ final class SkillSystem {
         Skill(id: "life_bloom",       name: "Life Bloom",       type: .powerUp, iconName: "icon_life_bloom",       maxLevel: 3),
     ]
 
+    /// Draws up to `count` unique skills eligible for the supplied player state.
     func draw(for state: PlayerSkillState, count: Int = GameConfig.skillDrawCount) -> [Skill] {
         let available = availableSkills(for: state)
         guard !available.isEmpty else { return [] }

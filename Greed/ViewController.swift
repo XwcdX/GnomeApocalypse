@@ -15,6 +15,7 @@ private let aimCursorCrossWidth: CGFloat = 2.5
 private let aimCursorAccentColor = NSColor(calibratedRed: 1.0, green: 0.16, blue: 0.78, alpha: 1)
 private let minimumContentSize = NSSize(width: 1024, height: 640)
 
+/// Root macOS view controller that owns the Metal view, scene transitions, and AppKit input monitors.
 final class ViewController: NSViewController {
     private var metalRenderer: MetalRenderer!
     private var homeScene: HomeScene!

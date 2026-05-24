@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Timer-driven player auto-fire controller.
 final class PlayerAttack {
     private weak var owner: PlayerEntity?
     private weak var pool: ProjectilePool?
@@ -16,6 +17,7 @@ final class PlayerAttack {
         self.entityLayer = entityLayer
     }
 
+    /// Advances cooldown state and fires only when the owner has a non-zero aim direction.
     func update(deltaTime: TimeInterval) {
         guard let owner else { return }
         timeSinceLastShot += deltaTime

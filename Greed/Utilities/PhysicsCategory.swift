@@ -1,5 +1,6 @@
 import Foundation
 
+/// SpriteKit physics bit masks shared by entities, projectiles, pickups, and collisions.
 enum PhysicsCategory {
     static let none: UInt32 = 0
     static let player: UInt32 = 0b00000001

@@ -3,7 +3,6 @@ import SpriteKit
 import AppKit
 #endif
 
-// MARK: - Visual constants (set-and-forget, never balance-tuned)
 private let guideVerticalOffsetFactor: CGFloat = -0.02
 private let guideHorizontalInsetFactor: CGFloat = 0.22
 private let guideMaxScale: CGFloat = 0.58
@@ -19,6 +18,7 @@ private let guideControllerAimIconSize = CGSize(width: 292, height: 292)
 private let guideControllerMoveIconSize = guideControllerAimIconSize
 private let healthValueFontSize: CGFloat = 16
 
+/// Camera-space gameplay HUD for health, essence XP, timer, equipment, and control guide.
 final class HUD: SKNode {
     private enum ControlGuideInputMode {
         case keyboardMouse
@@ -178,12 +178,14 @@ final class HUD: SKNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
+    /// Relayouts the HUD for a new logical viewport size.
     func updateViewport(_ screenSize: CGSize) {
         guard self.screenSize != screenSize else { return }
         self.screenSize = screenSize
         layout()
     }
 
+    /// Refreshes HUD values from the current player state.
     func update(elapsedTime: TimeInterval) {
         guard let player else { return }
         setControlGuideUsesController(InputSystem.shared.hasConnectedController)
@@ -201,18 +203,21 @@ final class HUD: SKNode {
         updateGuideVisibility()
     }
 
+    /// Temporarily displays a full essence bar during the level-up transition.
     func showFullEssenceBriefly(duration: TimeInterval) {
         forcedEssenceFraction = 1
         forcedEssenceFractionUntil = CACurrentMediaTime() + duration
         setEssenceFraction(1)
     }
 
+    /// Permanently hides the startup control guide for this HUD instance.
     func dismissControlGuide() {
         guard !isControlGuideDismissed else { return }
         isControlGuideDismissed = true
         updateGuideVisibility()
     }
 
+    /// Switches the control guide art between keyboard/mouse and controller prompts.
     func setControlGuideUsesController(_ usesController: Bool) {
         let mode: ControlGuideInputMode = usesController ? .controller : .keyboardMouse
         guard mode != controlGuideInputMode else { return }

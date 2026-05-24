@@ -1,7 +1,10 @@
 import Foundation
 
+/// Dynamic difficulty controller for enemy budget and time-based boss-stage activation.
 final class DirectorSystem {
+    /// Current enemy budget that spawning systems must respect for regular enemies.
     private(set) var currentBudget: Int
+    /// Whether the boss stage is active and regular spawning should pause.
     private(set) var isBossStageActive: Bool = false
 
     private var killTimestamps: [TimeInterval] = []
@@ -19,6 +22,7 @@ final class DirectorSystem {
         currentBudget = GameConfig.directorMinBudget
     }
 
+    /// Advances budget timers and boss-stage state; `activeBudgetUsed` is currently informational.
     func update(deltaTime: TimeInterval, activeBudgetUsed: Int) {
         clock += deltaTime
         pollAccumulator += deltaTime
@@ -41,14 +45,17 @@ final class DirectorSystem {
         }
     }
 
+    /// Records an enemy kill at the Director's internal clock for rolling-window kill rate.
     func recordKill() {
         killTimestamps.append(clock)
     }
 
+    /// Ends the current boss stage so regular spawning and camera follow can resume.
     func recordBossDeath() {
         isBossStageActive = false
     }
     
+    /// Updates the average player health fraction used as the current damage-pressure proxy.
     func updatePlayerHealthFraction(_ fraction: Double) {
         playerHealthFraction = fraction
     }

@@ -1,6 +1,8 @@
 import SpriteKit
 
+/// Maintains a small grid of floor tiles around the camera for an infinite-ground illusion.
 final class FloorTileRenderer {
+    /// Parent node that scenes add to their floor layer.
     let rootNode: SKNode = SKNode()
 
     private let tileSize: CGSize
@@ -17,6 +19,7 @@ final class FloorTileRenderer {
         rebuildGrid(for: viewportSize)
     }
 
+    /// Rebuilds the tile grid when the viewport size changes.
     func updateViewport(_ size: CGSize) {
         guard size != viewportSize else { return }
         viewportSize = size
@@ -25,6 +28,7 @@ final class FloorTileRenderer {
         rebuildGrid(for: size)
     }
 
+    /// Repositions reusable tiles around the current camera position.
     func update(cameraPosition: CGPoint) {
         let tw = tileSize.width
         let th = tileSize.height

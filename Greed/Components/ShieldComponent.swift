@@ -1,6 +1,6 @@
 import SpriteKit
 
-// TODO: V1 — implement full shield expansion, physics impulse, isTargetingActive toggle
+/// Placeholder level-up shield node retained while active shield physics is disabled.
 final class ShieldComponent: SKNode {
     private weak var player: PlayerEntity?
 
@@ -13,10 +13,12 @@ final class ShieldComponent: SKNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
+    /// Keeps the shield centered on its owner; `affectedNodes` is reserved for future push logic.
     func update(deltaTime: TimeInterval, affectedNodes: [SKNode]) {
         if let player { position = player.position }
     }
 
+    /// Removes the shield from the scene; `affectedNodes` is reserved for future burst logic.
     func burst(affectedNodes: [SKNode]) {
         removeFromParent()
     }

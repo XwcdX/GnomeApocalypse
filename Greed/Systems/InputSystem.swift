@@ -1,12 +1,15 @@
 import GameController
 import SpriteKit
 
+/// Normalizes keyboard, mouse, and controller input into gameplay and menu actions.
 final class InputSystem {
+    /// Whether aim is currently driven by manual pointer/stick input or auto-aim fallback.
     enum AimMode {
         case auto
         case manual
     }
 
+    /// Discrete menu movement consumed by overlays.
     enum MenuDirection {
         case left
         case right
@@ -41,6 +44,7 @@ final class InputSystem {
         !controllers.isEmpty
     }
 
+    /// Registers controller notifications and discovers controllers that are already connected.
     func setup() {
         guard !isSetup else { return }
         isSetup = true
@@ -63,6 +67,7 @@ final class InputSystem {
         }
     }
 
+    /// Returns a normalized movement vector for a player slot.
     func movementVector(for playerIndex: Int) -> CGVector {
         if playerIndex == 0, controllers.isEmpty {
             return keyboardMovementVector()
@@ -78,6 +83,7 @@ final class InputSystem {
         return magnitude(v) > GameConfig.stickDeadzone ? normalised(v) : .zero
     }
 
+    /// Returns manual aim when active, otherwise falls back to nearest visible enemy auto-aim.
     func aimVector(
         for playerIndex: Int,
         playerWorldPos: CGPoint,
@@ -103,6 +109,7 @@ final class InputSystem {
         return autoAimVector(from: playerWorldPos, gnomes: gnomes)
     }
 
+    /// Reports the visible aim mode for cursor and controller guide presentation.
     func aimMode(for playerIndex: Int) -> AimMode {
         if playerIndex == 0, controllers.isEmpty {
             let hasMoved = lastMouseMoveTime > 0
@@ -121,6 +128,7 @@ final class InputSystem {
         return magnitude(v) >= GameConfig.stickDeadzone ? .manual : .auto
     }
 
+    /// Returns the raw confirm-button held state for controller users.
     func confirmPressed(for playerIndex: Int) -> Bool {
         if playerIndex == 0, controllers.isEmpty {
             return false
@@ -133,6 +141,7 @@ final class InputSystem {
         return confirmButton(on: gamepad, controller: controller).isPressed
     }
 
+    /// Consumes one repeat-aware menu direction for controller navigation.
     func consumeMenuDirection(for playerIndex: Int) -> MenuDirection? {
         guard let controller = controller(for: playerIndex),
               let gamepad = controller.extendedGamepad
@@ -165,6 +174,7 @@ final class InputSystem {
         return direction
     }
 
+    /// Consumes a confirm button edge for menu selection.
     func consumeMenuConfirm(for playerIndex: Int) -> Bool {
         guard let controller = controller(for: playerIndex),
               let gamepad = controller.extendedGamepad
@@ -180,6 +190,7 @@ final class InputSystem {
         return isPressed && !state.isConfirmHeld
     }
 
+    /// Consumes any face/shoulder/trigger button edge for simple prompts.
     func consumeAnyMenuButton(for playerIndex: Int) -> Bool {
         guard let controller = controller(for: playerIndex),
               let gamepad = controller.extendedGamepad
@@ -195,11 +206,13 @@ final class InputSystem {
         return isPressed && !state.isAnyButtonHeld
     }
 
+    /// Resets the dismissal grace period for the startup control guide.
     func resetControlGuideTracking() {
         hasMouseMovedSinceGuideReset = false
         ignoreControlGuideInputUntil = CACurrentMediaTime() + 0.35
     }
 
+    /// Returns whether the player has provided movement or aim input after the guide grace period.
     func hasControlGuideDismissInput(for playerIndex: Int) -> Bool {
         guard CACurrentMediaTime() >= ignoreControlGuideInputUntil else {
             return false
@@ -225,7 +238,7 @@ final class InputSystem {
             || magnitude(rightStick) >= GameConfig.stickDeadzone
     }
 
-    // Supaya tidak muncul mac tink sound
+    /// Consumes movement key-down events so AppKit does not play its invalid-key sound.
     @discardableResult
     func keyDown(with event: NSEvent) -> Bool {
         guard let key = KeyCode(rawValue: event.keyCode) else { return false }
@@ -234,6 +247,7 @@ final class InputSystem {
         return true
     }
 
+    /// Clears movement key state for consumed keys.
     @discardableResult
     func keyUp(with event: NSEvent) -> Bool {
         guard let key = KeyCode(rawValue: event.keyCode) else { return false }
@@ -241,6 +255,7 @@ final class InputSystem {
         return true
     }
 
+    /// Updates the current mouse aim position in world coordinates.
     func mouseMoved(to worldPosition: CGPoint) {
         mouseWorldPosition = worldPosition
         lastMouseMoveTime = CACurrentMediaTime()

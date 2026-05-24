@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Title scene that preloads gameplay assets and starts the run after user input.
 final class HomeScene: SKScene {
     private let onStart: () -> Void
     private var hasStarted = false
@@ -75,6 +76,7 @@ final class HomeScene: SKScene {
         }
     }
 
+    /// Starts gameplay once preloading has completed.
     func handleStartInput() {
         guard !hasStarted else { return }
         guard GameAssetPreloader.shared.isReady else { return }

@@ -15,7 +15,9 @@ private let orbBobInitialDelayMax: TimeInterval = 0.35
 private let mutationFrameCount: Int = 5
 private let mutationFrameTime: TimeInterval = 0.08
 
+/// Collectible essence orb that evolves over time and can mutate into a mini-boss spawn.
 final class EssenceOrbComponent: SKSpriteNode, WorldLayerSortable {
+    /// Gameplay tier for value, texture, size, and collection physics.
     enum EssenceTier {
         case green
         case blue
@@ -54,6 +56,7 @@ final class EssenceOrbComponent: SKSpriteNode, WorldLayerSortable {
         }
     }
 
+    /// Visual state that controls whether the orb can still be collected.
     enum VisualPhase {
         case collectible
         case mutating
@@ -86,6 +89,10 @@ final class EssenceOrbComponent: SKSpriteNode, WorldLayerSortable {
     
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
     
+    /// Advances evolution, magnet-independent toroidal wrapping, and ghost rendering.
+    ///
+    /// Returns `true` only when the red-tier mutation animation has completed and the
+    /// spawn system should consume the orb.
     func update(deltaTime: TimeInterval, cameraSystem: CameraSystem) -> Bool {
         if ghostRenderer == nil {
             ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
@@ -115,12 +122,14 @@ final class EssenceOrbComponent: SKSpriteNode, WorldLayerSortable {
         return false
     }
     
+    /// Removes transient rendering and scene state before the orb is discarded.
     func cleanup() {
         ghostRenderer?.clear()
         removeAction(forKey: "idleBob")
         removeFromParent()
     }
 
+    /// Moves toward a player after the spawn grace period while still collectible.
     func applyMagnet(toward targetPosition: CGPoint, deltaTime: TimeInterval, speed: CGFloat) {
         guard visualPhase != .mutating else { return }
         guard lifetimeElapsedTime >= GameConfig.orbMagnetActivationDelay else { return }

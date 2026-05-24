@@ -1,6 +1,7 @@
 import SpriteKit
 import MetalKit
 
+/// Bridges SpriteKit scenes into an `MTKView` through `SKRenderer`.
 final class MetalRenderer: NSObject {
     private(set) var mtkView: MTKView
     private let renderer: SKRenderer
@@ -36,6 +37,7 @@ final class MetalRenderer: NSObject {
         mtkView.delegate = self
     }
 
+    /// Presents a scene and synchronizes its logical viewport with the Metal view bounds.
     func present(scene: SKScene) {
         scene.scaleMode = .resizeFill
         let logicalSize = mtkView.bounds.size
@@ -48,10 +50,12 @@ final class MetalRenderer: NSObject {
         }
     }
 
+    /// Forces viewport synchronization after AppKit layout changes.
     func updateLogicalViewport() {
         updateLogicalViewportIfNeeded(for: mtkView)
     }
 
+    /// Marks the Metal view and backing layer as needing display.
     func requestRedraw() {
         mtkView.needsDisplay = true
         mtkView.layer?.setNeedsDisplay()

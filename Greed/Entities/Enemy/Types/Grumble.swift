@@ -2,6 +2,7 @@ import SpriteKit
 
 private let grumbleTargetHeight: CGFloat = 48 * 1.35
 
+/// Budgeted mini-boss that holds preferred range and fires visible, short-lived projectiles.
 final class Grumble: EnemyEntity {
 
     override var budgetWeight: Int { GameConfig.grumbleBudgetWeight }
@@ -72,7 +73,7 @@ final class Grumble: EnemyEntity {
             return
         }
 
-        // Always update cooldown so the mini-boss can attack immediately when reaching the target
+        // Keep cooldown warm while approaching so the first in-range attack can fire immediately.
         timeSinceLastShot += deltaTime
 
         let offset = toroidalOffset(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
@@ -84,13 +85,11 @@ final class Grumble: EnemyEntity {
         
         guard let gameScene, let cameraSystem = gameScene.cameraSystem else { return }
         
-        // Ensure Grumble is within the camera's visible viewport
         let halfW = cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)
         let halfH = cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)
         let camOffset = toroidalOffset(from: cameraSystem.cameraNode.position, to: position, mapSize: GameConfig.mapSize)
         guard abs(camOffset.dx) <= halfW && abs(camOffset.dy) <= halfH else { return }
         
-        // Enforce a smaller shooting range from the target player
         let grumbleShootRadius: CGFloat = 350.0
         let dist = toroidalDistance(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
         guard dist <= grumbleShootRadius else { return }

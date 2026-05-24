@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Base enemy node with health, toroidal movement, hit feedback, and death cleanup.
 class EnemyEntity: SKSpriteNode {
     var health: HealthComponent
     private var ghostRenderer: ToroidalRenderingComponent?
@@ -24,6 +25,7 @@ class EnemyEntity: SKSpriteNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
+    /// Preserves texture aspect ratio when fitting enemy art to a target height.
     static func scaledSize(for texture: SKTexture, targetHeight: CGFloat) -> CGSize {
         let sourceSize = texture.size()
         guard sourceSize.height > 0 else {
@@ -37,6 +39,7 @@ class EnemyEntity: SKSpriteNode {
     private var lastPosition: CGPoint = .zero
     var movementDelta: CGPoint { CGPoint(x: position.x - lastPosition.x, y: position.y - lastPosition.y) }
 
+    /// Advances toroidal movement toward `targetPosition` and refreshes ghost rendering.
     func update(deltaTime: TimeInterval) {
         guard !isDying else { return }
         if ghostRenderer == nil {
@@ -51,6 +54,7 @@ class EnemyEntity: SKSpriteNode {
         ghostRenderer?.update(cameraPosition: cam.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
     }
 
+    /// Spawns essence, records the kill, deregisters from the scene, and plays death feedback.
     func die() {
         guard !isDying else { return }
         isDying = true
@@ -69,6 +73,7 @@ class EnemyEntity: SKSpriteNode {
         run(.sequence([blinkOut, blinkIn, fadeAway, .removeFromParent()]), withKey: deathFeedbackActionKey)
     }
 
+    /// Applies damage unless the enemy is already dead or in its death sequence.
     func takeDamage(_ amount: Int) {
         guard amount > 0, !health.isDead, !isDying else { return }
         let didDie = health.takeDamage(amount)

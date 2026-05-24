@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Owns camera following, toroidal wrapping relative to the camera, and boss-stage locks.
 final class CameraSystem {
     let cameraNode: SKCameraNode
     private(set) var players: [PlayerEntity] = []
@@ -12,21 +13,25 @@ final class CameraSystem {
         cameraNode.setScale(1.0 / GameConfig.cameraZoom)
     }
 
+    /// Stores the current view size in points for camera-space constraints.
     func updateViewport(_ size: CGSize) {
         viewportSize = size
     }
 
     var worldViewportSize: CGSize { GameConfig.cameraViewportSize }
 
+    /// Starts including a player in camera follow calculations.
     func addPlayer(_ player: PlayerEntity) {
         guard !players.contains(where: { $0 === player }) else { return }
         players.append(player)
     }
 
+    /// Stops including a player in camera follow calculations.
     func removePlayer(_ player: PlayerEntity) {
         players.removeAll { $0 === player }
     }
 
+    /// Repositions a world point to the nearest wrapped sector around the camera.
     func clampToroidal(_ position: inout CGPoint) {
         let camPos = cameraNode.position
         let hw = GameConfig.mapSize.width / 2
@@ -37,6 +42,7 @@ final class CameraSystem {
         if position.y - camPos.y < -hh { position.y += GameConfig.mapSize.height }
     }
 
+    /// Moves the camera toward the midpoint of tracked players unless locked.
     func update(deltaTime: TimeInterval) {
         guard !isLocked else { return }
         guard !players.isEmpty else { return }
@@ -50,6 +56,7 @@ final class CameraSystem {
         )
     }
 
+    /// Current world-space rectangle visible through the camera.
     var visibleRect: CGRect {
         let origin = CGPoint(
             x: cameraNode.position.x - worldViewportSize.width  / 2,
@@ -61,20 +68,21 @@ final class CameraSystem {
     var isLocked: Bool = false
     var bossArenaCenter: CGPoint = .zero
 
+    /// Freezes camera follow at a boss arena center until explicitly unlocked.
     func lockCamera(at position: CGPoint) {
         isLocked = true
         bossArenaCenter = position
     }
 
+    /// Restores normal player-follow behavior.
     func unlockCamera() {
         isLocked = false
     }
 
-    /// Membatasi posisi pemain agar tidak keluar dari layar/viewport yang terlihat saat kamera terkunci (Boss Stage).
+    /// Keeps a player inside the visible boss arena while the camera is locked.
     func enforceLeash(for player: PlayerEntity) {
         guard isLocked else { return }
         
-        // Ukuran dunia yang terlihat di layar = viewportSize / cameraZoom
         let halfW = viewportSize.width  / (GameConfig.cameraZoom * 2)
         let halfH = viewportSize.height / (GameConfig.cameraZoom * 2)
         
@@ -82,7 +90,7 @@ final class CameraSystem {
         player.position.y = min(max(player.position.y, bossArenaCenter.y - halfH), bossArenaCenter.y + halfH)
     }
 
-    /// Efek kamera bergetar (screen shake) dengan durasi dan amplitudo tertentu.
+    /// Applies a temporary shake around the current camera anchor.
     func shakeCamera(duration: TimeInterval, amplitude: CGFloat) {
         let originalPos = cameraNode.position
         

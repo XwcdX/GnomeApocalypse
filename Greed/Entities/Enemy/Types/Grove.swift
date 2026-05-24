@@ -2,6 +2,7 @@ import SpriteKit
 
 private let groveTargetHeight: CGFloat = 48 * 0.62
 
+/// Small budgeted enemy that pursues the player and fires a short-range projectile after windup.
 final class Grove: EnemyEntity {
     private var animator: AnimationComponent!
     private var lastDirection: String = "right"

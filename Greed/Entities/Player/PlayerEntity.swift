@@ -8,6 +8,7 @@ private let aimGuideHeadWidth: CGFloat = 3.8
 private let aimGuideLineWidth: CGFloat = 0.9
 private let aimGuideSideLineWidth: CGFloat = 0.45
 
+/// Base player node that owns movement, health, XP, skill state, and toroidal rendering.
 class PlayerEntity: SKSpriteNode {
     var health: HealthComponent
     var level: LevelComponent
@@ -38,6 +39,7 @@ class PlayerEntity: SKSpriteNode {
     private(set) var equippedWeapons: [Skill] = []
     private(set) var equippedPowerUps: [Skill] = []
 
+    /// Current movement speed after power-up multipliers.
     var currentSpeed: CGFloat { GameConfig.basePlayerSpeed * movementSpeedMultiplier }
 
     init(texture: SKTexture, health: Int = GameConfig.basePlayerHealth) {
@@ -50,6 +52,7 @@ class PlayerEntity: SKSpriteNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
+    /// Advances movement, camera leash/wrap rules, ghost rendering, and aim guide state.
     func update(deltaTime: TimeInterval) {
         guard let scene = scene as? GameScene else { return }
         if ghostRenderer == nil {
@@ -67,10 +70,12 @@ class PlayerEntity: SKSpriteNode {
         updateAimGuide(using: scene.inputSystem)
     }
 
+    /// Applies incoming damage and notifies the scene when health reaches zero.
     func takeDamage(_ amount: Int) {
         if health.takeDamage(amount) { die() }
     }
 
+    /// Adds essence XP and asks the scene to present skill selection on level-up.
     func addXP(_ amount: Int) {
         if level.addXP(amount) {
             guard let scene = scene as? GameScene else { return }
@@ -78,6 +83,7 @@ class PlayerEntity: SKSpriteNode {
         }
     }
 
+    /// Upgrades a skill and applies its gameplay effect to this player.
     func applySkill(_ skill: Skill) {
         guard !skillState.isMaxed(skill) else { return }
 
@@ -116,11 +122,13 @@ class PlayerEntity: SKSpriteNode {
         }
     }
 
+    /// Routes player death handling through the owning `GameScene`.
     func die() {
         guard let scene = scene as? GameScene else { return }
         scene.handlePlayerDeath(self)
     }
 
+    /// Hides the controller aim guide while overlays are active.
     func hideAimGuide() {
         aimGuideRoot.isHidden = true
     }

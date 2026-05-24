@@ -1,8 +1,11 @@
 import SpriteKit
 
+/// Preloads particle emitters and provides programmatic fallbacks when `.sks` files are missing.
 final class ParticleAssets {
+    /// Shared effect cache for gameplay scenes.
     static let shared = ParticleAssets()
 
+    /// Particle effect names shared by gameplay call sites and emitter files.
     enum Effect: String, CaseIterable {
         case orbCollect = "OrbCollect"
         case gnomeDeath = "GnomeDeath"
@@ -17,14 +20,17 @@ final class ParticleAssets {
 
     private init() {}
 
+    /// Builds or loads every effect so gameplay emission can copy cached emitters.
     func preloadAll() {
         Effect.allCases.forEach { preload($0) }
     }
 
+    /// Returns a copy of a cached emitter so callers can place and remove it independently.
     func makeEmitter(for effect: Effect) -> SKEmitterNode? {
         emitters[effect]?.copy() as? SKEmitterNode
     }
 
+    /// Emits an effect at a world-space position and removes it after particle lifetime expires.
     func emit(_ effect: Effect, at position: CGPoint, in parent: SKNode) {
         guard let emitter = makeEmitter(for: effect) else { return }
         emitter.position = position

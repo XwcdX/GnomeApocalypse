@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Creates transient ghost sprites so wrapped world entities remain visible across map edges.
 final class ToroidalRenderingComponent {
     private weak var owner: SKNode?
     private var ghosts: [SKSpriteNode] = []
@@ -10,6 +11,7 @@ final class ToroidalRenderingComponent {
         self.mapSize = mapSize
     }
     
+    /// Rebuilds visible ghost nodes around the camera; existing ghosts are removed each call.
     func update(cameraPosition: CGPoint, viewportSize: CGSize) {
         guard let owner = owner,
               let sprite = owner as? SKSpriteNode,
@@ -52,6 +54,7 @@ final class ToroidalRenderingComponent {
         }
     }
     
+    /// Removes every ghost owned by this component.
     func clear() {
         clearGhosts()
     }

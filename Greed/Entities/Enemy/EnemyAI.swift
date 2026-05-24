@@ -1,6 +1,8 @@
 import SpriteKit
 
+/// Updates enemies to target the nearest active player using toroidal distance.
 final class EnemyAI {
+    /// Recomputes each enemy's target position from the currently targetable players.
     func update(enemies: [EnemyEntity], players: [PlayerEntity]) {
         let targets = players.filter { !$0.health.isDead && $0.isTargetingActive }
         guard !targets.isEmpty else { return }

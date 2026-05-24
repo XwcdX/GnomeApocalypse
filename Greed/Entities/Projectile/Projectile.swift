@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Reusable moving projectile node owned by a `ProjectilePool`.
 final class Projectile: SKSpriteNode {
     private var ghostRenderer: ToroidalRenderingComponent?
 
@@ -12,6 +13,7 @@ final class Projectile: SKSpriteNode {
 
     var isActive: Bool = false
 
+    /// Configures the projectile body once during pool construction.
     func configurePhysics(category: UInt32, contactTestBitMask: UInt32) {
         let body = SKPhysicsBody(circleOfRadius: max(size.width, size.height) / 2)
         body.categoryBitMask = category
@@ -23,11 +25,13 @@ final class Projectile: SKSpriteNode {
         physicsBody = body
     }
 
+    /// Stores animation frames reused each time the projectile is activated.
     func configureAnimation(frames: [SKTexture], frameTime: TimeInterval) {
         animationFrames = frames
         self.frameTime = frameTime
     }
 
+    /// Makes the projectile active at a world position with velocity in points per second.
     func activate(at position: CGPoint, velocity: CGVector, damage: Int, lifespan: TimeInterval) {
         self.position = position
         self.velocity = velocity
@@ -44,6 +48,7 @@ final class Projectile: SKSpriteNode {
         playAnimation()
     }
 
+    /// Returns the projectile to the inactive pool state and removes it from the scene.
     func deactivate() {
         isActive = false
         isHidden = true
@@ -52,6 +57,7 @@ final class Projectile: SKSpriteNode {
         removeFromParent()
     }
 
+    /// Advances movement, lifespan, and toroidal ghost rendering while active.
     func update(deltaTime: TimeInterval) {
         guard isActive else { return }
 

@@ -688,6 +688,19 @@ enum GameConfig {
 
 ---
 
+## Comments & Documentation
+
+- Comments must be written in English.
+- Use Swift documentation comments (`///`) for stable cross-file APIs: top-level types, shared methods/properties, gameplay-impact configuration values, and non-obvious SpriteKit or physics contracts.
+- Document what callers need to know: ownership, lifecycle, side effects, coordinate space, timing assumptions, and gameplay rule intent.
+- Keep implementation comments rare. Add them only when the code relies on a non-obvious constraint, platform behavior, physics quirk, or gameplay contract that is not clear from names alone.
+- Remove comments that merely restate the code, such as "calculate value", "set property", or "loop through items".
+- Convert useful inline comments into clearer English when they explain a constraint that should remain local to a block.
+- Prefer documenting contracts around systems, entities, components, and configs over adding comments to tests or UI layout constants.
+- Do not leave stale TODO comments. If unfinished behavior must remain visible, describe the current contract and track follow-up work in the sprint board or review report.
+
+---
+
 ## Testing
 
 ### Unit & Integration Tests — Swift Testing

@@ -4,6 +4,7 @@ private let countdownStepDuration: TimeInterval = 1.0
 private let countdownFadeInPortion: CGFloat = 0.24
 private let countdownFadeOutPortion: CGFloat = 0.34
 
+/// Camera-space countdown overlay that blocks gameplay until it completes.
 final class StartCountdownOverlay: SKNode {
     private let values = ["3", "2", "1"]
     private let label = OutlinedLabel(text: "3")
@@ -25,12 +26,14 @@ final class StartCountdownOverlay: SKNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
+    /// Relayouts countdown text for a new logical viewport size.
     func updateViewport(_ screenSize: CGSize) {
         guard self.screenSize != screenSize else { return }
         self.screenSize = screenSize
         layout()
     }
 
+    /// Advances the countdown and returns `true` after removing itself.
     @discardableResult
     func update(deltaTime: TimeInterval) -> Bool {
         elapsedTime += deltaTime

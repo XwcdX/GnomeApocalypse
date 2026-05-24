@@ -2,6 +2,7 @@ import SpriteKit
 
 private let grandTargetHeight: CGFloat = 48 * 1.8
 
+/// Budget-exempt boss enemy with locked-arena melee attacks and phase-based minion spawns.
 final class Grand: EnemyEntity {
     override var budgetWeight: Int { 0 }
     private var isAnimatingSmash: Bool = false
@@ -15,7 +16,6 @@ final class Grand: EnemyEntity {
     private var animator: AnimationComponent!
     private var lastDirection: String = "right"
 
-    // MARK: - Melee Attack State
     private var timeSinceLastMelee: TimeInterval = 0
     private var meleeWindupRemaining: TimeInterval = 0
     private var isInMeleeWindup: Bool = false
@@ -50,10 +50,7 @@ final class Grand: EnemyEntity {
         animator.loadAnimation(name: "grand_attack", frameCount: 5)
     }
 
-    // MARK: - Melee Attack
-
     private func updateMeleeAttack(deltaTime: TimeInterval) {
-        // Jika sedang windup, kurangi timer sampai habis lalu hajar pemain
         if isInMeleeWindup {
             meleeWindupRemaining = max(0, meleeWindupRemaining - deltaTime)
             if meleeWindupRemaining == 0 {
@@ -63,16 +60,13 @@ final class Grand: EnemyEntity {
             return
         }
 
-        // Tambah cooldown timer
         timeSinceLastMelee += deltaTime
         guard timeSinceLastMelee >= GameConfig.bossMeleeAttackInterval else { return }
 
-        // Cek apakah pemain dalam range melee
         let offset = toroidalOffset(from: position, to: targetPosition, mapSize: GameConfig.mapSize)
         let distance = sqrt(offset.dx * offset.dx + offset.dy * offset.dy)
         guard distance <= GameConfig.bossMeleeRange else { return }
 
-        // Mulai windup serangan
         timeSinceLastMelee = 0
         isInMeleeWindup = true
         isAnimatingSmash = true
@@ -85,19 +79,17 @@ final class Grand: EnemyEntity {
     private func playProgrammaticSmashAnimation() {
         let baseDir: CGFloat = lastDirection == "left" ? 1.0 : -1.0
         
-        // 1. Windup (Stretch & Lift)
+        // Windup, impact, and recovery intentionally mirror the melee timing constants.
         let stretchX = SKAction.scaleX(to: baseDir * 0.85, duration: GameConfig.bossMeleeWindup)
         let stretchY = SKAction.scaleY(to: 1.25, duration: GameConfig.bossMeleeWindup)
         let lift = SKAction.moveBy(x: 0, y: 15, duration: GameConfig.bossMeleeWindup)
         let windupGroup = SKAction.group([stretchX, stretchY, lift])
         
-        // 2. Smash (Squash & Slam)
         let squashX = SKAction.scaleX(to: baseDir * 1.3, duration: 0.08)
         let squashY = SKAction.scaleY(to: 0.7, duration: 0.08)
         let slam = SKAction.moveBy(x: 0, y: -20, duration: 0.08)
         let smashGroup = SKAction.group([squashX, squashY, slam])
         
-        // 3. Recovery (Back to normal)
         let recoverX = SKAction.scaleX(to: baseDir * 1.0, duration: 0.15)
         let recoverY = SKAction.scaleY(to: 1.0, duration: 0.15)
         let rise = SKAction.moveBy(x: 0, y: 5, duration: 0.15)
@@ -119,7 +111,6 @@ final class Grand: EnemyEntity {
     }
 
     private func updateAnimation() {
-        // Prioritaskan animasi serangan saat windup atau sedang squash/stretch
         if isAnimatingSmash { return }
 
         let delta = movementDelta

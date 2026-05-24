@@ -1,6 +1,8 @@
 import SpriteKit
 
+/// Snapshot of run stats shown on the game-over overlay.
 struct GameOverStats {
+    /// One equipped item entry shown in the item summary.
     struct Item {
         let name: String
         let level: Int
@@ -14,6 +16,7 @@ struct GameOverStats {
     let items: [Item]
 }
 
+/// Camera-space game-over overlay with survival summary and replay interaction.
 final class GameOverOverlay: SKNode {
     private enum Metrics {
         static let baseWidth: CGFloat = GameConfig.uiReferenceSize.width
@@ -72,12 +75,14 @@ final class GameOverOverlay: SKNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
+    /// Relayouts the overlay for a new logical viewport size.
     func updateViewport(_ screenSize: CGSize) {
         guard self.screenSize != screenSize else { return }
         self.screenSize = screenSize
         layout()
     }
 
+    /// Updates replay hover state for a camera-space point.
     @discardableResult
     func handleMouseMoved(at point: CGPoint) -> Bool {
         guard !hasReplayed else { return true }
@@ -85,6 +90,7 @@ final class GameOverOverlay: SKNode {
         return true
     }
 
+    /// Triggers replay when the camera-space point is inside the replay button.
     @discardableResult
     func handleMouseDown(at point: CGPoint) -> Bool {
         guard !hasReplayed else { return true }
@@ -93,6 +99,7 @@ final class GameOverOverlay: SKNode {
         return true
     }
 
+    /// Invokes the replay callback once.
     func replay() {
         guard !hasReplayed else { return }
         hasReplayed = true
@@ -380,7 +387,7 @@ final class GameOverOverlay: SKNode {
     }
 }
 
-// MARK: - OutlinedLabel Helper
+/// Small label helper that renders shadow copies behind foreground text.
 private final class OutlinedLabel {
     let root = SKNode()
     private let shadows: [SKLabelNode]

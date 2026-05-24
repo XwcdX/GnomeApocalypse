@@ -1,6 +1,8 @@
 import Foundation
 
+/// Debug-only logging helpers that include the calling file and line.
 enum Log {
+    /// Prints a debug message only in DEBUG builds.
     static func debug(
         _ message: @autoclosure () -> String,
         file: String = #fileID,
@@ -11,6 +13,7 @@ enum Log {
         #endif
     }
 
+    /// Prints a warning message only in DEBUG builds.
     static func warning(
         _ message: @autoclosure () -> String,
         file: String = #fileID,
@@ -21,6 +24,7 @@ enum Log {
         #endif
     }
 
+    /// Prints an error message and triggers an assertion only in DEBUG builds.
     static func error(
         _ message: @autoclosure () -> String,
         file: String = #fileID,

@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Shared preloader for gameplay atlases and one-off textures used after the home screen.
 final class GameAssetPreloader {
     static let shared = GameAssetPreloader()
 
@@ -48,6 +49,7 @@ final class GameAssetPreloader {
 
     private init() {}
 
+    /// Starts one preload pass and calls every queued completion on the main queue when ready.
     func preloadGameplayAssets(completion: (() -> Void)? = nil) {
         if isReady {
             completion?()

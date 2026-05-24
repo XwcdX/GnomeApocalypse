@@ -1,5 +1,6 @@
 import SpriteKit
 
+/// Fixed-size projectile pool used to avoid allocation during combat.
 final class ProjectilePool {
     private var pool: [Projectile] = []
     
@@ -55,20 +56,24 @@ final class ProjectilePool {
         }
     }
     
+    /// Returns an inactive projectile, or `nil` when every pooled projectile is in use.
     func dequeue() -> Projectile? {
         pool.first { !$0.isActive }
     }
     
+    /// Deactivates a projectile so it can be reused by a later dequeue.
     func enqueue(_ projectile: Projectile) {
         projectile.deactivate()
     }
     
+    /// Updates only projectiles currently marked active.
     func updateAll(deltaTime: TimeInterval) {
         for projectile in pool where projectile.isActive {
             projectile.update(deltaTime: deltaTime)
         }
     }
     
+    /// Adds every pooled projectile to a parent node.
     func attachAll(to parent: SKNode) {
         for projectile in pool {
             parent.addChild(projectile)

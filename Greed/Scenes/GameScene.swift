@@ -9,6 +9,7 @@ private let lightningBoltOffsetFactor: CGFloat = 0.15
 private let wardenThornAnimationKey = "wardenThornAnimation"
 private let levelUpOverlayDelay: TimeInterval = 0.35
 
+/// Main gameplay scene that coordinates systems, entities, overlays, audio, and the update loop.
 final class GameScene: SKScene {
     private struct ActiveMistCloud {
         weak var owner: PlayerEntity?
@@ -25,6 +26,7 @@ final class GameScene: SKScene {
     }
 
     private(set) var cameraSystem: CameraSystem!
+    /// Shared input router used by entities and overlays.
     var inputSystem: InputSystem { InputSystem.shared }
     private(set) var directorSystem: DirectorSystem!
     private var spawnSystem: SpawnSystem!
@@ -56,6 +58,7 @@ final class GameScene: SKScene {
     private lazy var wardenThornFrames: [SKTexture] = (0..<SkillConfig.wardenThornFrameCount).map {
         wardenThornTexture(named: "weapon_warden_thorns_\(String(format: "%03d", $0))")
     }
+    /// Called when the game-over overlay requests a fresh run.
     var onReplayRequested: (() -> Void)?
     
     private var players: [PlayerEntity] = []
@@ -69,9 +72,12 @@ final class GameScene: SKScene {
     private var lastUpdateTime: TimeInterval = 0
     private var lastReportedAimMode: InputSystem.AimMode?
     private var wasBossStageActive = false
+    /// Called when cursor presentation should switch between manual and hidden aim modes.
     var onAimModeChanged: ((InputSystem.AimMode) -> Void)?
+    /// Called once the game-over overlay takes control of input.
     var onGameOverPresented: (() -> Void)?
 
+    /// Initializes scene systems and spawns the first player.
     func setup(view: MTKView) {
         let viewSize = view.bounds.size
         size = viewSize
@@ -239,6 +245,7 @@ final class GameScene: SKScene {
         particleAssets.preloadAll()
     }
 
+    /// Propagates a logical viewport change to camera-space and world renderers.
     func updateViewport(_ size: CGSize) {
         cameraSystem.updateViewport(size)
         floorRenderer.updateViewport(size)
@@ -675,8 +682,8 @@ final class GameScene: SKScene {
         return false
     }
 
+    /// Returns whether there is at least one shootable enemy in the visible camera bounds.
     func canPlayerShoot(from playerPosition: CGPoint) -> Bool {
-        // Calculate the actual visible screen half-width and half-height in world coordinates
         let halfW = (cameraSystem.viewportSize.width / (GameConfig.cameraZoom * 2)) * 0.95
         let halfH = (cameraSystem.viewportSize.height / (GameConfig.cameraZoom * 2)) * 0.95
 
@@ -687,6 +694,7 @@ final class GameScene: SKScene {
         }
     }
 
+    /// Finds the nearest player within an orb's magnet radius.
     func magnetTargetForOrb(at orbPosition: CGPoint, radius: CGFloat) -> CGPoint? {
         let radiusSquared = radius * radius
 
@@ -725,6 +733,7 @@ final class GameScene: SKScene {
         return false
     }
 
+    /// Returns the closest player position to a world point using toroidal distance.
     func nearestPlayerPosition(to position: CGPoint) -> CGPoint {
         players.min {
             toroidalDistance(from: position, to: $0.position, mapSize: GameConfig.mapSize) <
@@ -732,21 +741,27 @@ final class GameScene: SKScene {
         }?.position ?? .zero
     }
 
+    /// Starts tracking an enemy for updates, targeting, budget, and game-over cleanup.
     func register(enemy: EnemyEntity) {
         enemies.append(enemy)
     }
+
+    /// Stops tracking an enemy after death or removal.
     func deregister(enemy: EnemyEntity) {
         enemies.removeAll { $0 === enemy }
     }
     
+    /// Delegates essence-orb spawning to `SpawnSystem`.
     func spawnEssenceOrb(at position: CGPoint) {
         spawnSystem.spawnEssenceOrb(at: position)
     }
 
+    /// Removes an essence orb through `SpawnSystem` so tracking and node state stay aligned.
     func removeOrb(_ orb: EssenceOrbComponent) {
         spawnSystem.removeOrb(orb)
     }
     
+    /// Starts the delayed level-up card flow for a player.
     func handleLevelUp(for player: PlayerEntity) {
         Log.debug("GameScene: player leveled up to \(player.level.currentLevel)")
         guard skillCardOverlay == nil, pendingSkillSelectionPlayer == nil else { return }
@@ -756,6 +771,7 @@ final class GameScene: SKScene {
         pendingSkillSelectionDelay = levelUpOverlayDelay
     }
 
+    /// Routes a view-space mouse-down event to active camera-space overlays.
     @discardableResult
     func handleMouseDown(atViewPosition viewPosition: CGPoint, viewSize: CGSize) -> Bool {
         guard viewSize.width > 0, viewSize.height > 0 else { return true }
@@ -773,6 +789,7 @@ final class GameScene: SKScene {
         return skillCardOverlay.handleMouseDown(at: overlayPoint)
     }
 
+    /// Routes a view-space mouse-move event to active camera-space overlays.
     @discardableResult
     func handleMouseMoved(atViewPosition viewPosition: CGPoint, viewSize: CGSize) -> Bool {
         guard viewSize.width > 0, viewSize.height > 0 else { return true }
@@ -790,6 +807,7 @@ final class GameScene: SKScene {
         return skillCardOverlay.handleMouseMoved(at: overlayPoint)
     }
 
+    /// Routes key-down events to active overlays before gameplay input sees them.
     @discardableResult
     func handleKeyDown(_ event: NSEvent) -> Bool {
         if gameOverOverlay != nil {
@@ -813,6 +831,7 @@ final class GameScene: SKScene {
         return true
     }
 
+    /// Freezes gameplay and presents game over for the dead player.
     func handlePlayerDeath(_ player: PlayerEntity) {
         Log.debug("GameScene: player died")
         pendingSkillSelectionPlayer = nil
@@ -822,6 +841,7 @@ final class GameScene: SKScene {
         presentGameOverOverlay(for: player)
     }
     
+    /// Ends boss-stage systems after the active boss dies.
     func handleBossDeath() {
         directorSystem.recordBossDeath()
         cameraSystem.unlockCamera()
@@ -846,7 +866,7 @@ final class GameScene: SKScene {
         let smashNode = SKSpriteNode(texture: frames[0])
         smashNode.position = position
         smashNode.size = CGSize(width: 140, height: 140)
-        smashNode.zPosition = 1.0 // Render on top of floor tiles
+        smashNode.zPosition = 1.0
         floorLayer.addChild(smashNode)
 
         let animate = SKAction.animate(with: frames, timePerFrame: 0.08)
@@ -857,6 +877,7 @@ final class GameScene: SKScene {
         cameraSystem.shakeCamera(duration: 0.25, amplitude: 8.0)
     }
 
+    /// Applies boss melee damage to the nearest player when that player is inside range.
     func dealMeleeDamageToNearestPlayer(from position: CGPoint, damage: Int, range: CGFloat) {
         spawnSmashEffect(at: position)
 
@@ -872,10 +893,12 @@ final class GameScene: SKScene {
         AudioManager.shared.play(.hit)
     }
 
+    /// Delegates budget-exempt boss minion spawning to `SpawnSystem`.
     func spawnBossMinions(count: Int, around position: CGPoint) {
         spawnSystem.spawnBossMinions(count: count, around: position)
     }
     
+    /// Spawns an enemy projectile from the pooled enemy projectile set.
     func spawnEnemyProjectile(
         at position: CGPoint,
         direction: CGVector,
@@ -988,7 +1011,8 @@ final class GameScene: SKScene {
         skillSelectionPlayer = nil
         wasSkillConfirmPressed = false
         lastUpdateTime = 0
-        lastReportedAimMode = nil  // force re-evaluate on next frame
+        // Force cursor mode re-evaluation on the next gameplay frame.
+        lastReportedAimMode = nil
     }
 
     private func updateSkillSelectionInput() {
@@ -1027,7 +1051,6 @@ final class GameScene: SKScene {
         guard isBossStageActive != wasBossStageActive else { return }
 
         if isBossStageActive {
-            // Kunci kamera tepat saat boss stage mulai
             cameraSystem.lockCamera(at: cameraSystem.cameraNode.position)
             audioManager.playMusic(.boss)
         } else {

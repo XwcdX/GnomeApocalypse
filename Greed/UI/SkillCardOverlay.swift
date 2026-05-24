@@ -3,6 +3,7 @@ import SpriteKit
 import AppKit
 #endif
 
+/// Camera-space modal overlay for choosing one skill during level-up.
 final class SkillCardOverlay: SKNode {
     private enum Metrics {
         static let cardSize = CGSize(width: 250, height: 395)
@@ -86,12 +87,14 @@ final class SkillCardOverlay: SKNode {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
 
+    /// Relayouts cards and modal chrome for a new logical viewport size.
     func updateViewport(_ screenSize: CGSize) {
         guard self.screenSize != screenSize else { return }
         self.screenSize = screenSize
         layout()
     }
 
+    /// Selects a card under a camera-space point.
     @discardableResult
     func handleMouseDown(at point: CGPoint) -> Bool {
         guard !hasSelected else { return true }
@@ -101,6 +104,7 @@ final class SkillCardOverlay: SKNode {
         return true
     }
 
+    /// Updates hover/highlight state for a camera-space point.
     @discardableResult
     func handleMouseMoved(at point: CGPoint) -> Bool {
         guard !hasSelected,
@@ -111,10 +115,12 @@ final class SkillCardOverlay: SKNode {
         return true
     }
 
+    /// Confirms the currently highlighted card.
     func selectHighlightedCard() {
         select(index: selectedIndex)
     }
 
+    /// Moves controller or keyboard selection with wraparound.
     func moveSelection(_ direction: InputSystem.MenuDirection) {
         guard !hasSelected, !skills.isEmpty else { return }
         switch direction {

@@ -2,6 +2,7 @@ import SpriteKit
 
 private let bossMinionsSpawnRadius: CGFloat = 72
 
+/// Owns regular enemy waves, boss spawns, boss minions, and essence-orb mutation spawns.
 final class SpawnSystem {
     private weak var entityLayer: SKNode?
     private weak var cameraSystem: CameraSystem?
@@ -18,6 +19,7 @@ final class SpawnSystem {
         self.directorSystem = directorSystem
     }
     
+    /// Advances spawn timers and emits enemies without exceeding the Director budget.
     func update(deltaTime: TimeInterval, activeBudgetUsed: Int) {
         guard let director = directorSystem,
               let camera = cameraSystem,
@@ -39,6 +41,7 @@ final class SpawnSystem {
         }
     }
     
+    /// Drops a collectible essence orb at a world position.
     func spawnEssenceOrb(at position: CGPoint) {
         guard let layer = entityLayer else { return }
         
@@ -48,11 +51,13 @@ final class SpawnSystem {
         orbs.append(orb)
     }
     
+    /// Stops tracking and removes an orb from the scene.
     func removeOrb(_ orb: EssenceOrbComponent) {
         orbs.removeAll { $0 === orb }
         orb.cleanup()
     }
 
+    /// Spawns budget-exempt boss minions around a boss position.
     func spawnBossMinions(count: Int, around position: CGPoint) {
         guard count > 0,
               let layer = entityLayer,
@@ -113,15 +118,18 @@ final class SpawnSystem {
         return spawnedBudget
     }
 
+    /// Current escalation tier derived from elapsed wave time.
     var currentWaveIndex: Int {
         Int(waveAccumulator / GameConfig.spawnWaveEscalationInterval)
     }
 
+    /// Current delay between regular spawn attempts after wave escalation.
     var currentSpawnInterval: TimeInterval {
         let reduction = TimeInterval(currentWaveIndex) * GameConfig.spawnIntervalReductionPerWave
         return max(GameConfig.minimumSpawnInterval, GameConfig.baseSpawnInterval - reduction)
     }
 
+    /// Current maximum number of regular gnomes attempted per wave.
     var currentGnomesPerSpawn: Int {
         let count = GameConfig.baseGnomesPerSpawn + (currentWaveIndex * GameConfig.gnomesPerSpawnIncreasePerWave)
         return min(GameConfig.maximumGnomesPerSpawn, count)
