@@ -30,6 +30,7 @@ final class GameAssetPreloader {
         "health_bar_fill",
         "guide_wasd",
         "guide_cursor",
+        "guide_controller_arrow",
         "guide_left_analog",
         "guide_right_analog",
         "projectile_enemy_grove",

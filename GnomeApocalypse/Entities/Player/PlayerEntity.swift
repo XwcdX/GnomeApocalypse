@@ -1,12 +1,9 @@
 import SpriteKit
 
-private let aimGuideLength: CGFloat = 95
-private let aimGuideStartOffset: CGFloat = 20
-private let aimGuideHeadLength: CGFloat = 14
-private let aimGuideTailWidth: CGFloat = 1.1
-private let aimGuideHeadWidth: CGFloat = 3.8
-private let aimGuideLineWidth: CGFloat = 0.9
-private let aimGuideSideLineWidth: CGFloat = 0.45
+private let aimGuideVisibleLength: CGFloat = 75
+private let aimGuideStartOffset: CGFloat = 8
+private let aimGuideScaleMultiplier: CGFloat = 0.5
+private let aimGuideTextureVisibleHeight: CGFloat = 29
 
 /// Base player node that owns movement, health, XP, skill state, and toroidal rendering.
 class PlayerEntity: SKSpriteNode {
@@ -23,10 +20,7 @@ class PlayerEntity: SKSpriteNode {
     var isTargetingActive: Bool = true
 
     private let aimGuideRoot = SKNode()
-    private let aimGuideBody = SKShapeNode()
-    private let aimGuideCenterLine = SKShapeNode()
-    private let aimGuideLeftEdge = SKShapeNode()
-    private let aimGuideRightEdge = SKShapeNode()
+    private let aimGuideSprite = SKSpriteNode(imageNamed: "guide_controller_arrow")
     private var hasSetupAimGuide = false
 
     private(set) var attackSpeedMultiplier: CGFloat = 1.0
@@ -153,30 +147,12 @@ class PlayerEntity: SKSpriteNode {
         aimGuideRoot.isHidden = true
         addChild(aimGuideRoot)
 
-        aimGuideBody.name = "controllerAimGuideBody"
-        aimGuideBody.fillColor = SKColor(white: 1.0, alpha: 0.16)
-        aimGuideBody.strokeColor = SKColor(red: 0.18, green: 0.58, blue: 1.0, alpha: 0.55)
-        aimGuideBody.lineWidth = aimGuideSideLineWidth
-        aimGuideBody.lineJoin = .round
-        aimGuideBody.lineCap = .round
-        aimGuideRoot.addChild(aimGuideBody)
-
-        aimGuideCenterLine.name = "controllerAimGuideCenter"
-        aimGuideCenterLine.strokeColor = SKColor(white: 1.0, alpha: 0.22)
-        aimGuideCenterLine.lineWidth = aimGuideLineWidth
-        aimGuideCenterLine.lineCap = .round
-        aimGuideCenterLine.zPosition = 2
-        aimGuideRoot.addChild(aimGuideCenterLine)
-
-        for edge in [aimGuideLeftEdge, aimGuideRightEdge] {
-            edge.strokeColor = SKColor(red: 0.18, green: 0.58, blue: 1.0, alpha: 0.24)
-            edge.lineWidth = aimGuideSideLineWidth
-            edge.lineCap = .round
-            edge.zPosition = 1
-            aimGuideRoot.addChild(edge)
-        }
-
-        rebuildAimGuidePath()
+        aimGuideSprite.name = "controllerAimGuideArrow"
+        aimGuideSprite.texture?.filteringMode = .nearest
+        aimGuideSprite.zPosition = 1
+        aimGuideSprite.zRotation = -.pi / 2
+        rebuildAimGuideSprite()
+        aimGuideRoot.addChild(aimGuideSprite)
     }
 
     private func updateAimGuide(using inputSystem: InputSystem) {
@@ -192,36 +168,14 @@ class PlayerEntity: SKSpriteNode {
         aimGuideRoot.zRotation = atan2(aimDirection.dy, aimDirection.dx)
     }
 
-    private func rebuildAimGuidePath() {
-        let tailX = aimGuideStartOffset
-        let tipX = aimGuideLength
-        let headBaseX = tipX - aimGuideHeadLength
-
-        let bodyPath = CGMutablePath()
-        bodyPath.move(to: CGPoint(x: tailX, y: 0))
-        bodyPath.addLine(to: CGPoint(x: tailX + aimGuideHeadLength * 0.45, y: aimGuideTailWidth))
-        bodyPath.addLine(to: CGPoint(x: headBaseX, y: aimGuideTailWidth))
-        bodyPath.addLine(to: CGPoint(x: headBaseX, y: aimGuideHeadWidth))
-        bodyPath.addLine(to: CGPoint(x: tipX, y: 0))
-        bodyPath.addLine(to: CGPoint(x: headBaseX, y: -aimGuideHeadWidth))
-        bodyPath.addLine(to: CGPoint(x: headBaseX, y: -aimGuideTailWidth))
-        bodyPath.addLine(to: CGPoint(x: tailX + aimGuideHeadLength * 0.45, y: -aimGuideTailWidth))
-        bodyPath.closeSubpath()
-        aimGuideBody.path = bodyPath
-
-        let centerPath = CGMutablePath()
-        centerPath.move(to: CGPoint(x: tailX + aimGuideHeadLength * 0.25, y: 0))
-        centerPath.addLine(to: CGPoint(x: tipX - aimGuideHeadLength * 0.18, y: 0))
-        aimGuideCenterLine.path = centerPath
-
-        let leftPath = CGMutablePath()
-        leftPath.move(to: CGPoint(x: tailX + aimGuideHeadLength * 0.15, y: aimGuideTailWidth * 1.65))
-        leftPath.addLine(to: CGPoint(x: headBaseX - aimGuideHeadLength * 0.15, y: aimGuideTailWidth * 2.4))
-        aimGuideLeftEdge.path = leftPath
-
-        let rightPath = CGMutablePath()
-        rightPath.move(to: CGPoint(x: tailX + aimGuideHeadLength * 0.15, y: -aimGuideTailWidth * 1.65))
-        rightPath.addLine(to: CGPoint(x: headBaseX - aimGuideHeadLength * 0.15, y: -aimGuideTailWidth * 2.4))
-        aimGuideRightEdge.path = rightPath
+    private func rebuildAimGuideSprite() {
+        guard let texture = aimGuideSprite.texture else { return }
+        let textureSize = texture.size()
+        let scale = aimGuideVisibleLength / aimGuideTextureVisibleHeight * aimGuideScaleMultiplier
+        aimGuideSprite.size = CGSize(
+            width: textureSize.width * scale,
+            height: textureSize.height * scale
+        )
+        aimGuideSprite.position = CGPoint(x: aimGuideStartOffset + aimGuideVisibleLength / 2, y: 0)
     }
 }
