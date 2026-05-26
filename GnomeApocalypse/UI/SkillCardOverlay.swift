@@ -1,6 +1,8 @@
 import SpriteKit
 #if os(macOS)
 import AppKit
+#else
+import UIKit
 #endif
 
 /// Camera-space modal overlay for choosing one skill during level-up.
@@ -208,7 +210,6 @@ final class SkillCardOverlay: SKNode {
         card.addChild(nameLabel)
 
         let descriptionLabel = SKLabelNode(fontNamed: GameConfig.fontName)
-        descriptionLabel.text = descriptionText(for: skill)
         descriptionLabel.fontColor = .black
         descriptionLabel.horizontalAlignmentMode = .center
         descriptionLabel.verticalAlignmentMode = .top
@@ -285,8 +286,10 @@ final class SkillCardOverlay: SKNode {
             }
 
             if let descriptionLabel = card.childNode(withName: "skillCardDescription") as? SKLabelNode {
-                descriptionLabel.fontSize = min(layout.cardSize.height * 0.033, layout.cardSize.width * 0.065) * 1.5
+                let descriptionFontSize = min(layout.cardSize.height * 0.033, layout.cardSize.width * 0.065) * 1.5
+                descriptionLabel.fontSize = descriptionFontSize
                 descriptionLabel.preferredMaxLayoutWidth = layout.cardSize.width * 0.72
+                applyDescriptionText(to: descriptionLabel, for: skills[index], fontSize: descriptionFontSize)
                 descriptionLabel.position = CGPoint(x: 0, y: -layout.cardSize.height * 0.13)
             }
 
@@ -359,7 +362,7 @@ final class SkillCardOverlay: SKNode {
             return "Strike \(strikeCount) enemies every \(formattedSeconds(cooldown))"
         case .poisonousMist(let cooldown, let cloudCount):
             let noun = cloudCount == 1 ? "cloud" : "clouds"
-            return "Spawn \(cloudCount) poison \(noun) every \(formattedSeconds(cooldown))"
+            return "Spawn \(cloudCount) poison \(noun)\nevery \(formattedSeconds(cooldown))"
         case .increaseAttackSpeed(let bonusRate):
             return "+\(formattedPercent(bonusRate)) attack speed"
         case .increaseMovementSpeed(let bonusRate):
@@ -379,6 +382,27 @@ final class SkillCardOverlay: SKNode {
             return "\(Int(roundedTenths))s"
         }
         return String(format: "%.1fs", roundedTenths)
+    }
+
+    private func applyDescriptionText(to label: SKLabelNode, for skill: Skill, fontSize: CGFloat) {
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        paragraphStyle.lineBreakMode = .byWordWrapping
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: cardFont(size: fontSize),
+            .foregroundColor: SKColor.black,
+            .paragraphStyle: paragraphStyle
+        ]
+        label.attributedText = NSAttributedString(string: descriptionText(for: skill), attributes: attributes)
+    }
+
+    private func cardFont(size: CGFloat) -> Any {
+        #if os(macOS)
+        return NSFont(name: GameConfig.fontName, size: size) ?? NSFont.systemFont(ofSize: size)
+        #else
+        return UIFont(name: GameConfig.fontName, size: size) ?? UIFont.systemFont(ofSize: size)
+        #endif
     }
 
     private func updateCardSelection() {

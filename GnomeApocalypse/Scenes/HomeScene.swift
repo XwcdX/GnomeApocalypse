@@ -7,7 +7,8 @@ final class HomeScene: SKScene {
 
     private let background = SKSpriteNode(texture: SKTexture(imageNamed: "tile_ground"))
     private let dimmer = SKSpriteNode(color: SKColor.black.withAlphaComponent(0.58), size: .zero)
-    private let titleLabel = OutlinedLabel(text: "Gnome Apocalypse")
+    private let titleLogo = SKSpriteNode(imageNamed: "game_intro_logo")
+    private let titleSizingLabel = OutlinedLabel(text: "Gnome Apocalypse")
     private let startLabel = OutlinedLabel(text: "Press Any Button to Start")
 
     private final class OutlinedLabel {
@@ -95,8 +96,10 @@ final class HomeScene: SKScene {
         dimmer.zPosition = 1
         addChild(dimmer)
 
-        titleLabel.root.zPosition = 2
-        addChild(titleLabel.root)
+        titleLogo.texture?.filteringMode = .nearest
+        titleLogo.anchorPoint = CGPoint(x: 0.498, y: 0.578)
+        titleLogo.zPosition = 2
+        addChild(titleLogo)
 
         startLabel.setText(GameAssetPreloader.shared.isReady ? "Press Any Button to Start" : "Loading...")
         startLabel.root.zPosition = 2
@@ -115,10 +118,15 @@ final class HomeScene: SKScene {
         dimmer.position = background.position
         dimmer.size = size
 
-        titleLabel.setFontSize(max(30, size.width * 0.035))
-        titleLabel.root.position = CGPoint(x: size.width / 2, y: size.height * 0.70)
+        let titleFontSize = max(30, size.width * 0.035)
+        titleSizingLabel.setFontSize(titleFontSize)
+        let titleWidth = titleSizingLabel.root.calculateAccumulatedFrame().width
+        let logoAspectRatio = max(1, titleLogo.texture?.size().width ?? 1) / max(1, titleLogo.texture?.size().height ?? 1)
+        let logoWidth = min(size.width * 0.84, max(titleWidth, size.width * 0.28) * 2)
+        titleLogo.size = CGSize(width: logoWidth, height: logoWidth / logoAspectRatio)
+        titleLogo.position = CGPoint(x: size.width / 2, y: size.height * 0.70)
 
         startLabel.setFontSize(max(18, size.width * 0.018))
-        startLabel.root.position = CGPoint(x: size.width / 2, y: size.height * 0.32)
+        startLabel.root.position = CGPoint(x: size.width / 2, y: size.height * 0.24)
     }
 }
