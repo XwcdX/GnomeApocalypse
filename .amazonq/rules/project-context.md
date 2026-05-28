@@ -128,10 +128,10 @@ Every polling interval (defined in `GameConfig.directorPollInterval`), the Direc
 
 | Signal | Director Response |
 |---|---|
-| High kill rate + low damage taken rate | Player is dominating → increase budget cap, escalate spawn rate |
-| Low kill rate + high damage taken rate | Player is struggling → decrease budget cap, reduce spawn pressure |
-| Low kill rate + low damage taken rate | Player is playing safely/passively → slight budget increase to apply pressure |
-| High kill rate + high damage taken rate | Player is in a frantic, high-intensity fight → hold budget steady, do not pile on |
+| High kill rate + high average health | Player is dominating → increase budget cap, escalate spawn rate |
+| Low kill rate + low average health | Player is struggling → decrease budget cap, reduce spawn pressure |
+| Low kill rate + high average health | Player is playing safely/passively → slight budget increase to apply pressure |
+| High kill rate + low average health | Player is in a high-intensity fight → slight budget increase, but avoid the full domination step |
 
 ### Boss Stage
 

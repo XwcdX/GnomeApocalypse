@@ -19,7 +19,7 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 
 - [x] **`GameConfig.swift`**
   - Populate all V1 tuning constants: speed, health, XP thresholds, shield timing, orb evolution timers
-  - Include all Director constants: `directorPollInterval`, `directorRollingWindowDuration`, `directorMinBudget`, `directorMaxBudget`, `directorBudgetStep`, `directorPassiveStep`, `directorKillRateThreshold`, `directorDamageRateThreshold`
+  - Include all Director constants: `directorPollInterval`, `directorRollingWindowDuration`, `directorMinBudget`, `directorMaxBudget`, `directorBudgetStep`, `directorPassiveStep`, `directorKillRateThreshold`, `directorHealthThreshold`
   - Include Boss stage constant: `bossSpawnInterval`
   - Include input constants: `autoAimIdleThreshold`, `stickDeadzone`
 
@@ -169,19 +169,19 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 ### Director System
 
 - [x] **`DirectorSystem.swift`**
-  - Maintain a rolling window circular buffer of kill timestamps and damage events (window duration from `GameConfig.directorRollingWindowDuration`)
+  - Maintain a rolling window of kill timestamps (window duration from `GameConfig.directorRollingWindowDuration`)
   - `recordKill()` — appends timestamp to kill buffer
-  - `recordDamageTaken(_ amount: Int)` — appends damage event to damage buffer
+  - `updatePlayerHealthFraction(_ fraction: Double)` — stores the current average active-player health fraction
   - `update(deltaTime:, activeBudgetUsed:)` — advances internal timer, fires `evaluateAndAdjust()` every `GameConfig.directorPollInterval`; advances Boss stage timer
-  - `evaluateAndAdjust()` — computes kill/sec and damage/sec from rolling window, applies budget adjustment per the rules below
+  - `evaluateAndAdjust()` — computes kill/sec from the rolling window and reads current health pressure, then applies budget adjustment per the rules below
   - `currentBudget: Int` — read-only, queried by `SpawnSystem` each frame
   - `isBossStageActive: Bool` — read-only; true while a Boss is alive; `SpawnSystem` pauses regular spawning when true
 
   **Adjustment logic inside `evaluateAndAdjust()`:**
-  - High kill rate + low damage rate → `currentBudget += directorBudgetStep`
-  - Low kill rate + high damage rate → `currentBudget -= directorBudgetStep`
-  - Low kill rate + low damage rate → `currentBudget += directorPassiveStep`
-  - High kill rate + high damage rate → no change
+  - High kill rate + player not hurt → `currentBudget += directorBudgetStep`
+  - Low kill rate + player hurt → `currentBudget -= directorBudgetStep`
+  - Low kill rate + player not hurt → `currentBudget += directorPassiveStep`
+  - High kill rate + player hurt → `currentBudget += directorPassiveStep`
   - Floor clamp: `currentBudget = max(directorMinBudget, currentBudget)`
   - Soft ceiling: if `currentBudget` is within one step of `directorMaxBudget`, halve the upward step; never exceed `directorMaxBudget`
 
@@ -192,7 +192,7 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
 
   **Notes for implementation:**
   - "High" kill rate = kills/sec > `GameConfig.directorKillRateThreshold`
-  - "High" damage rate = damage/sec > `GameConfig.directorDamageRateThreshold`
+  - "Player hurt" = average active-player health fraction < `GameConfig.directorHealthThreshold`
   - Budget changes are additive steps per poll — not instant snaps to a target value
   - Expect this system to require multiple tuning passes during playtesting. All constants are in `GameConfig`; do not hardcode any threshold or step value
 
@@ -247,7 +247,7 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
   - Handlers: player takes damage, gnome takes damage, Forest Essence collect
   - Ghost node hits redirect damage to real entity via `userData["ghostOf"]`
   - On gnome death: call `DirectorSystem.recordKill()`
-  - On player damage: call `DirectorSystem.recordDamageTaken(_ amount:)`
+  - Player health pressure is reported by `GameScene` through `DirectorSystem.updatePlayerHealthFraction(_:)`
   - ⚠️ Shield push and shield destroys enemy projectile handlers are missing
 
 ---
@@ -287,7 +287,7 @@ Tasks are grouped by version phase. Within each phase, tasks are ordered by depe
   - Simultaneous level-ups: independent shield radii, push each other apart
 - [ ] Update `HUD.swift`: add per-player HUD slots (4 slots across top of screen, each tied to a controller index)
 - [ ] Update `DirectorSystem` metrics to aggregate across all active players:
-  - `recordDamageTaken` must accept a `playerIndex` — sum damage across all players for rate calculation
+  - `GameScene` must report the average active-player health fraction each frame
   - Kill rate remains global (any player purification counts)
 - [ ] Validate `EnemyAI` multi-target logic: AI must target nearest player, re-evaluate each frame as positions change
 - [ ] Confirm `ShieldComponent` interaction with other player entities (push, cover from projectiles)

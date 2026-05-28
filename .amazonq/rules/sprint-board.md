@@ -46,8 +46,8 @@
 - `ProjectilePool.swift` — pre-allocated pool, `dequeue/enqueue`, `attachAll`
 
 ### Systems
-- `DirectorSystem.swift` — rolling window, kill/damage rate, budget adjustment, Boss stage timer
-- `SkillSystem.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap, `PlayerSkillState`
+- `DirectorSystem.swift` — rolling kill window, average player health pressure, budget adjustment, Boss stage timer
+- `SkillSystem.swift` / `Skill.swift` / `PlayerSkillState.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap
 - `SpawnSystem.swift` — budget-gated wave spawning, wave escalation, orb state machine wiring, MiniBoss from orb explosion, Boss stage, `activeBudgetUsed` passed to Director
 - `CollisionSystem.swift` — projectile→enemy, projectile→player, orb→player, ghost redirect
 
@@ -61,7 +61,7 @@
 - `AudioManager.swift` — preloaded music + SFX players, `play(_:)`, `playBackgroundMusic()`
 
 ### Tests
-- `ToroidalMathTest.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
+- `ToroidalMathTests.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
 - `HealthComponentTests.swift` — all boundary conditions
 - `LevelComponentTests.swift` — XP accumulation, multi-level-up, threshold growth
 - `EssenceOrbComponentTests.swift` — full state machine transitions, timer thresholds
@@ -113,7 +113,7 @@
 - Leash logic in `CameraSystem`
 - `SkillCardOverlay` anchored to shield radius (world-space, not screen-space)
 - Per-player HUD slots in `HUD.swift`
-- `DirectorSystem.recordDamageTaken` aggregated across players
+- `DirectorSystem.updatePlayerHealthFraction(_:)` reports average active-player health fraction
 - Controller hot-plug decision
 
 ---

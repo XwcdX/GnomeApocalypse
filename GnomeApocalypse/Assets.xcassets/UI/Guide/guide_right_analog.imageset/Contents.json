@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "guide_right_analog.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

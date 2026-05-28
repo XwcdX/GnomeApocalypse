@@ -1,0 +1,91 @@
+import SpriteKit
+
+/// Reusable moving projectile node owned by a `ProjectilePool`.
+final class Projectile: SKSpriteNode {
+    private var ghostRenderer: ToroidalRenderingComponent?
+
+    var damage: Int = 0
+    var velocity: CGVector = .zero
+    var lifespan: TimeInterval = 0
+    private var age: TimeInterval = 0
+    private var animationFrames: [SKTexture] = []
+    private var frameTime: TimeInterval = 0
+
+    var isActive: Bool = false
+
+    /// Configures the projectile body once during pool construction.
+    func configurePhysics(category: UInt32, contactTestBitMask: UInt32) {
+        let body = SKPhysicsBody(circleOfRadius: max(size.width, size.height) / 2)
+        body.categoryBitMask = category
+        body.contactTestBitMask = contactTestBitMask | PhysicsCategory.decoration
+        body.collisionBitMask = PhysicsCategory.none
+        body.affectedByGravity = false
+        body.allowsRotation = false
+        body.usesPreciseCollisionDetection = true
+        physicsBody = body
+    }
+
+    /// Stores animation frames reused each time the projectile is activated.
+    func configureAnimation(frames: [SKTexture], frameTime: TimeInterval) {
+        animationFrames = frames
+        self.frameTime = frameTime
+    }
+
+    /// Makes the projectile active at a world position with velocity in points per second.
+    func activate(at position: CGPoint, velocity: CGVector, damage: Int, lifespan: TimeInterval) {
+        self.position = position
+        self.velocity = velocity
+        self.damage = damage
+        self.lifespan = lifespan
+        self.age = 0
+        self.isActive = true
+        self.isHidden = false
+
+        if velocity.dx != 0 || velocity.dy != 0 {
+            zRotation = atan2(velocity.dy, velocity.dx)
+        }
+
+        playAnimation()
+    }
+
+    /// Returns the projectile to the inactive pool state and removes it from the scene.
+    func deactivate() {
+        isActive = false
+        isHidden = true
+        removeAction(forKey: "projectileAnimation")
+        ghostRenderer?.clear()
+        removeFromParent()
+    }
+
+    /// Advances movement, lifespan, and toroidal ghost rendering while active.
+    func update(deltaTime: TimeInterval) {
+        guard isActive else { return }
+
+        age += deltaTime
+        if age >= lifespan {
+            deactivate()
+            return
+        }
+
+        position.x += velocity.dx * deltaTime
+        position.y += velocity.dy * deltaTime
+
+        if let scene = scene as? GameScene {
+            let cam: CameraSystem = scene.cameraSystem
+            cam.clampToroidal(&position)
+            if ghostRenderer == nil {
+                ghostRenderer = ToroidalRenderingComponent(owner: self, mapSize: GameConfig.mapSize)
+            }
+            ghostRenderer?.update(cameraPosition: cam.cameraNode.position, viewportSize: GameConfig.cameraViewportSize)
+        }
+    }
+
+    private func playAnimation() {
+        guard animationFrames.count > 1, frameTime > 0 else { return }
+        removeAction(forKey: "projectileAnimation")
+
+        let animate = SKAction.animate(with: animationFrames, timePerFrame: frameTime)
+        run(SKAction.repeatForever(animate), withKey: "projectileAnimation")
+    }
+
+}

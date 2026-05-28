@@ -14,16 +14,16 @@
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:Greed.xcodeproj",
+        "containerPath" : "container:GnomeApocalypse.xcodeproj",
         "identifier" : "D6973F4F2FA260F6000D428B",
-        "name" : "GreedTests"
+        "name" : "GnomeApocalypseTests"
       }
     },
     {
       "target" : {
-        "containerPath" : "container:Greed.xcodeproj",
+        "containerPath" : "container:GnomeApocalypse.xcodeproj",
         "identifier" : "D6973F592FA260F6000D428B",
-        "name" : "GreedUITests"
+        "name" : "GnomeApocalypseUITests"
       }
     }
   ],

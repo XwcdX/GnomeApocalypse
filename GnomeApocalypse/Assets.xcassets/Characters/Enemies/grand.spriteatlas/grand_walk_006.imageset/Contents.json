@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "Left_walk_06.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

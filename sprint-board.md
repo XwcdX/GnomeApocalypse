@@ -45,13 +45,13 @@
 - `ProjectilePool.swift` — pre-allocated pool, `dequeue/enqueue`, `attachAll`
 
 ### Systems
-- `DirectorSystem.swift` — rolling window, kill/damage rate, budget adjustment, Boss stage timer
-- `SkillSystem.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap, `PlayerSkillState`
+- `DirectorSystem.swift` — rolling kill window, average player health pressure, budget adjustment, Boss stage timer
+- `SkillSystem.swift` / `Skill.swift` / `PlayerSkillState.swift` — 6-skill pool, unified draw, pool caps, `maxLevel3Items` cap
 - `SpawnSystem.swift` — budget-gated spawning, outside-camera positions, orb tracking + cleanup, MiniBoss/Boss spawning, wave escalation
 - `CollisionSystem.swift` — projectile→enemy, projectile→player, orb→player, ghost redirect
 
 ### V1 Gameplay Completion
-- **GNAP-136 — Player Weapon Ancient Cards** — Orbiting Spell, Lightning Strike, Poisonous Mist live as picks. Lightning per-level cooldown + multi-strike (no chaining); Mist per-level cooldown + multi-cloud; Orbit new (orbits player, per-orb-per-enemy cooldown). `SkillConfig.*ByLevel` arrays drive per-level tuning. `AudioManager` migrated to `NSDataAsset`; 8 placeholder mp3s added under `Greed/Assets.xcassets/Sounds/`. `ParticleAssets` now has code-built emitter fallback for all 7 effect cases (`orbCollect`, `gnomeDeath`, `shieldExpand`, `shieldBurst`, `mistExplosion`, `orbitingSpellHit`, `lightningImpact`) — every existing call site now produces a visible burst until real `.sks` art lands. New `OrbitingSpellCard.imageset` + `OrbitingSpell.spriteatlas/orbiting_orb_000.imageset` ship as CoreGraphics placeholders. Orb ghost-rendering deferred (80px orbit radius makes the seam negligible). `Music.background` still silent (out of ticket scope).
+- **GNAP-136 — Player Weapon Ancient Cards** — Warden Thorns, Lightning Strike, Poisonous Mist live as picks. Lightning per-level cooldown + multi-strike (no chaining); Mist per-level cooldown + multi-cloud; Warden Thorns new (circles player, per-thorn-per-enemy cooldown). `SkillConfig.*ByLevel` arrays drive per-level tuning. `AudioManager` migrated to `NSDataAsset`; 8 placeholder mp3s added under `GnomeApocalypse/Assets.xcassets/Sounds/`. `ParticleAssets` now has code-built emitter fallback for all 7 effect cases (`orbCollect`, `gnomeDeath`, `shieldExpand`, `shieldBurst`, `mistExplosion`, `wardenThornsHit`, `lightningImpact`) — every existing call site now produces a visible burst until real `.sks` art lands. New `icon_warden_thorns.imageset` + `warden_thorns.spriteatlas/weapon_warden_thorns_000.imageset` ship as CoreGraphics placeholders. Thorn ghost-rendering deferred (80px radius makes the seam negligible). `Music.background` still silent (out of ticket scope).
 - `GameScene.setupSystems` — enemy projectile pool added; `spawnEnemyProjectile(at:direction:damage:)` implemented
 - `ForestEssenceOrb.swift` — state machine implemented (`small → grown → red → mistExplosion`), placeholder Mist VFX, high-value red tier
 - `SpawnSystem.swift` — orb Mist explosion wiring, budget-checked MiniBoss spawn, Boss stage spawn pause, `BossGnome` spawn, wave escalation
@@ -66,7 +66,7 @@
 - `GameOverOverlay.swift` — game-over screen with survival time and replay button
 
 ### Tests
-- `ToroidalMathTest.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
+- `ToroidalMathTests.swift` — `toroidalOffset`, `nearestToroidalTarget`, `toroidalDistance`
 - `HealthComponentTests.swift` — all boundary conditions
 - `LevelComponentTests.swift` — XP accumulation, multi-level-up, threshold growth
 - `EnemyProjectilePoolTests.swift` — enemy projectile activation
@@ -108,7 +108,7 @@
 - Leash logic in `CameraSystem`
 - `SkillCardOverlay` anchored to shield radius (world-space, not screen-space)
 - Per-player HUD slots in `HUD.swift`
-- `DirectorSystem.recordDamageTaken` aggregated across players
+- `DirectorSystem.updatePlayerHealthFraction(_:)` reports average active-player health fraction
 - Controller hot-plug decision
 
 ---
