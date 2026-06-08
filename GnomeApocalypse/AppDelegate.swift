@@ -36,4 +36,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationWillTerminate(_ aNotification: Notification) {
     }
+
+    /// Single-window app: quit when the main window is closed so the process
+    /// does not linger headless with no way to reopen it (App Store Guideline 4).
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
+    }
 }
