@@ -46,10 +46,22 @@ fastlane/screenshots/
 fastlane/test_output/
 
 # --------------------------------------------------
+# Signing secrets — NEVER commit
+# Certificates, keys, and provisioning profiles are
+# injected at CI runtime from GitHub secrets.
+# --------------------------------------------------
+*.p12
+*.p8
+*.mobileprovision
+fastlane/dist_cert.p12
+
+# --------------------------------------------------
 # Editor / temporary files
 # --------------------------------------------------
 *.swp
 *.lock
+# Keep the bundler lockfile for reproducible CI builds
+!Gemfile.lock
 
 # --------------------------------------------------
 # Test results

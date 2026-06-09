@@ -1,0 +1,65 @@
+default_platform(:mac)
+
+SCHEME = "GnomeApocalypse"
+PROJECT = "GnomeApocalypse.xcodeproj"
+TEAM_ID = "FJ2KGQ6VZ9"
+EXTERNAL_GROUP = ENV["TF_EXTERNAL_GROUP"] || "External Testers"
+
+platform :mac do
+  desc "Build the staging archive and upload it to TestFlight external testing"
+  lane :beta do
+    # Creates a temporary, isolated keychain on CI so signing does not touch
+    # the login keychain. No-op on a normal developer machine.
+    setup_ci
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_KEY_P8"),
+      is_key_content_base64: true
+    )
+
+    # Import the Apple Distribution certificate (.p12) into the CI keychain.
+    # Skipped locally where the cert already lives in the login keychain.
+    if File.exist?("dist_cert.p12")
+      import_certificate(
+        certificate_path: "fastlane/dist_cert.p12",
+        certificate_password: ENV["DIST_CERT_PASSWORD"] || "",
+        keychain_name: ENV["MATCH_KEYCHAIN_NAME"] || "fastlane_tmp_keychain",
+        keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"] || ""
+      )
+    end
+
+    # Build number = highest build already on TestFlight + 1. Keeps the counter
+    # monotonic without committing anything back to the repo.
+    latest = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: "com.oxy.gnomeapocalypse",
+      platform: "osx",
+      initial_build_number: 0
+    )
+    increment_build_number(build_number: latest + 1, xcodeproj: PROJECT)
+
+    build_mac_app(
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      # Cloud signing: let xcodebuild create/download the App Store provisioning
+      # profile via the API key instead of maintaining a match repo.
+      xcargs: "-allowProvisioningUpdates DEVELOPMENT_TEAM=#{TEAM_ID}",
+      output_directory: "build/ci",
+      clean: true
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_platform: "osx",
+      pkg: lane_context[SharedValues::PKG_OUTPUT_PATH],
+      distribute_external: true,
+      groups: [EXTERNAL_GROUP],
+      changelog: ENV["TF_CHANGELOG"] || "Automated staging build.",
+      # Cancel a prior build still waiting for review so this one supersedes it.
+      reject_build_waiting_for_review: true
+    )
+  end
+end

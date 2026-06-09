@@ -1,0 +1,46 @@
+name: Staging → TestFlight (External)
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: staging-testflight
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set up Ruby + fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Decode distribution certificate
+        run: echo "$DIST_CERT_P12" | base64 --decode > fastlane/dist_cert.p12
+        env:
+          DIST_CERT_P12: ${{ secrets.DIST_CERT_P12 }}
+
+      - name: Build & upload to TestFlight
+        run: bundle exec fastlane mac beta
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          DIST_CERT_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
+          TF_CHANGELOG: "Staging build ${{ github.sha }}"
+
+      - name: Cleanup certificate
+        if: always()
+        run: rm -f fastlane/dist_cert.p12
